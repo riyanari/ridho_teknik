@@ -27,7 +27,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
           padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: kBoxGreyColor,
+            color: kGreyColor,
           ),
           child: Image.asset(
             'assets/ic_back.png',

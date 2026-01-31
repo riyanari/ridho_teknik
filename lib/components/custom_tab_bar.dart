@@ -21,7 +21,7 @@ class CustomTabBar extends StatelessWidget {
               ),
               child: TabBar(
                 padding: const EdgeInsets.all(5),
-                unselectedLabelColor: tSecondaryColor,
+                unselectedLabelColor: kSecondaryColor,
                 indicatorSize: TabBarIndicatorSize.tab,
                 indicator: ShapeDecoration(
                   shape: RoundedRectangleBorder(

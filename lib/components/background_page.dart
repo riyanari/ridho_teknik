@@ -11,7 +11,7 @@ class BackgroundPage extends StatelessWidget {
       child: Image.asset(
         'assets/img_background_buble.png',
         fit: BoxFit.cover,
-        color: kBoxGreyColor.withValues(alpha: 0.15),
+        color: kGreyColor.withValues(alpha: 0.15),
       ),
     );
   }

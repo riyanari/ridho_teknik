@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ridho_teknik/pages/home_page.dart';
+import 'package:ridho_teknik/pages/klien/klien_page.dart';
 import 'package:ridho_teknik/pages/login_page.dart';
 import 'package:ridho_teknik/pages/splash_page.dart';
 
@@ -19,6 +20,7 @@ class MyApp extends StatelessWidget {
         '/': (context) => const SplashPage(),
         '/login': (context) => const LoginPage(),
         '/home': (context) => const HomePage(),
+        '/klien': (context) => const KlienPage(),
       },
     );
   }

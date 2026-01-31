@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:ridho_teknik/theme/theme.dart';
 
+import 'arsip/arsip_page.dart';
+
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
@@ -506,6 +508,10 @@ class HomePage extends StatelessWidget {
     switch (menuTitle) {
       case 'Arsip':
       // Navigate to Arsip page
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const ArsipPage()),
+        );
         break;
       case 'Invoice PDF':
       // Navigate to Invoice PDF Output
@@ -921,6 +927,7 @@ class HomePage extends StatelessWidget {
               ],
             ),
           ),
+          SizedBox(width: 8,),
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(

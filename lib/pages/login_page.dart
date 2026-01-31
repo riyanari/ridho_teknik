@@ -221,14 +221,15 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                     ),
                     onPressed: (){
-                      Navigator.of(context).pushReplacementNamed('/home');
+                      // Navigator.of(context).pushReplacementNamed('/home');
+                      Navigator.of(context).pushReplacementNamed('/klien');
                     },
                     child: Padding(
                       padding: const EdgeInsets.all(8.0),
                       child: Text(
                         "Login",
                         style: whiteTextStyle.copyWith(
-                          fontWeight: extraBold,
+                          fontWeight: bold,
                           fontSize: 14
                         )
                       ),
@@ -253,7 +254,7 @@ class _LoginPageState extends State<LoginPage> {
     }
 
     return Scaffold(
-      backgroundColor: kBackgroundPrimaryColor,
+      backgroundColor: kPrimaryColor,
       body: Stack(
         children: [
           const BackgroundPage(),

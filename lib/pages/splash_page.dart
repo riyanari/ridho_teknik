@@ -32,7 +32,7 @@ class _SplashPageState extends State<SplashPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kBackgroundPrimaryColor,
+      backgroundColor: kPrimaryColor,
       body: Stack(
         children: [
           // Positioned.fill(
@@ -48,7 +48,7 @@ class _SplashPageState extends State<SplashPage> {
             child: CustomPaint(
               size: const Size(100, 100),
               painter: HalfCirclePainter(
-                  color: kBoxGreyColor.withValues(alpha: 0.1)), // Gunakan painter yang telah Anda buat
+                  color: kGreyColor.withValues(alpha: 0.1)), // Gunakan painter yang telah Anda buat
             ),
           ),
           Positioned(
@@ -57,7 +57,7 @@ class _SplashPageState extends State<SplashPage> {
             child: CustomPaint(
               size: const Size(100, 100),
               painter: HalfCirclePainter(
-                  color: kBoxGreyColor.withValues(alpha: 0.15))), // Gunakan painter yang telah Anda buat
+                  color: kGreyColor.withValues(alpha: 0.15))), // Gunakan painter yang telah Anda buat
             ),
           Center(
             child: Column(
@@ -68,7 +68,7 @@ class _SplashPageState extends State<SplashPage> {
                 Spacer(),
                 const CircularProgressIndicator(
                   strokeWidth: 5,
-                  valueColor: AlwaysStoppedAnimation<Color>(kBoxGreyColor),
+                  valueColor: AlwaysStoppedAnimation<Color>(kGreyColor),
                   backgroundColor: kSecondaryColor,
                   semanticsLabel: 'Loading...',
                 ),

@@ -1,0 +1,514 @@
+// lib/pages/klien/ac_list_page.dart
+import 'package:flutter/material.dart';
+import 'package:ridho_teknik/pages/klien/ac_form_dialog.dart';
+import 'package:ridho_teknik/pages/klien/widgets/empty_state.dart';
+import 'package:ridho_teknik/pages/klien/widgets/modern_ac_card.dart';
+import '../../models/ac_model.dart';
+import '../../models/lokasi_model.dart';
+import '../../theme/theme.dart';
+import 'keluhan_create_page.dart';
+import 'keluhan_list_page.dart';
+
+class AcListPage extends StatefulWidget {
+  final LokasiModel lokasi;
+  const AcListPage({super.key, required this.lokasi});
+
+  @override
+  State<AcListPage> createState() => _AcListPageState();
+}
+
+class _AcListPageState extends State<AcListPage> {
+  final List<AcModel> acList = [
+    AcModel(
+      id: 'A1',
+      lokasiId: 'L1',
+      nama: 'AC Split 1 PK - Ruang Tamu',
+      merk: 'Daikin',
+      type: 'FTKN50',
+      kapasitas: '1 PK',
+      terakhirService: DateTime.now().subtract(const Duration(days: 30)),
+    ),
+    AcModel(
+      id: 'A2',
+      lokasiId: 'L1',
+      nama: 'AC Kamar 0.5 PK',
+      merk: 'Panasonic',
+      type: 'CS-EN5',
+      kapasitas: '0.5 PK',
+      terakhirService: DateTime.now().subtract(const Duration(days: 90)),
+    ),
+    AcModel(
+      id: 'A3',
+      lokasiId: 'L1',
+      nama: 'AC Cassette 2 PK - Meeting Room',
+      merk: 'LG',
+      type: 'ARTCOOL',
+      kapasitas: '2 PK',
+      terakhirService: DateTime.now().subtract(const Duration(days: 120)),
+    ),
+  ];
+
+  final TextEditingController _searchController = TextEditingController();
+  List<AcModel> _filteredAC = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _filteredAC = acList.where((e) => e.lokasiId == widget.lokasi.id).toList();
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _onSearchChanged() {
+    final query = _searchController.text.toLowerCase();
+    setState(() {
+      _filteredAC = acList.where((ac) {
+        return ac.lokasiId == widget.lokasi.id &&
+            (ac.nama.toLowerCase().contains(query) ||
+                ac.merk.toLowerCase().contains(query) ||
+                ac.type.toLowerCase().contains(query));
+      }).toList();
+    });
+  }
+
+  // Di dalam _AcListPageState class, update method _openAcForm:
+  void _openAcForm({AcModel? ac}) async {
+    final result = await showModalBottomSheet<AcModel>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => AcFormDialog(
+        initial: ac,
+        lokasiId: widget.lokasi.id,
+      ),
+    );
+
+    if (result == null) return;
+
+    setState(() {
+      final index = acList.indexWhere((e) => e.id == result.id);
+      if (index >= 0) {
+        acList[index] = result;
+        _showSnackBar(
+          ac == null
+              ? 'AC berhasil ditambahkan'
+              : 'AC berhasil diperbarui',
+          kBoxMenuGreenColor,
+        );
+      } else {
+        acList.add(result);
+        _showSnackBar('AC berhasil ditambahkan', kBoxMenuGreenColor);
+      }
+      _onSearchChanged();
+    });
+  }
+
+// Tambahkan method _showSnackBar:
+  void _showSnackBar(String message, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: whiteTextStyle.copyWith(fontWeight: medium)),
+        backgroundColor: color,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  void _deleteAc(AcModel ac) {
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        backgroundColor: kWhiteColor,
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [kBoxMenuRedColor, Colors.red[700]!],
+                  ),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.warning_amber_rounded, color: Colors.white, size: 32),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Hapus AC?',
+                style: primaryTextStyle.copyWith(fontSize: 20, fontWeight: bold),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'AC "${ac.nama}" akan dihapus permanen. Tindakan ini tidak dapat dibatalkan.',
+                style: greyTextStyle.copyWith(fontSize: 14),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 28),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        side: BorderSide(color: kGreyColor.withValues(alpha:0.5)),
+                      ),
+                      child: Text('Batal', style: blackTextStyle.copyWith(fontWeight: medium)),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        setState(() => acList.removeWhere((e) => e.id == ac.id));
+                        Navigator.pop(context);
+                        _onSearchChanged();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'AC "${ac.nama}" berhasil dihapus',
+                              style: whiteTextStyle.copyWith(fontWeight: medium),
+                            ),
+                            backgroundColor: kBoxMenuRedColor,
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: kBoxMenuRedColor,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 2,
+                      ),
+                      child: Text('Hapus', style: whiteTextStyle.copyWith(fontWeight: bold)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    final totalAC = _filteredAC.length;
+    final needService = _filteredAC
+        .where((ac) => DateTime.now().difference(ac.terakhirService).inDays > 60)
+        .length;
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [kPrimaryColor, Color(0xFF5D6BC0)],
+        ),
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(30),
+          bottomRight: Radius.circular(30),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: kPrimaryColor.withValues(alpha:0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Back button and title
+          Row(
+            children: [
+              GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha:0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 20),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.lokasi.nama,
+                      style: whiteTextStyle.copyWith(
+                        fontSize: 16,
+                        fontWeight: bold,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      'Kelola AC di lokasi ini',
+                      style: whiteTextStyle.copyWith(
+                        fontSize: 12,
+                        color: Colors.white.withValues(alpha:0.8),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Action buttons
+              Row(
+                children: [
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => KeluhanListPage(lokasi: widget.lokasi),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha:0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.history_rounded, color: Colors.white, size: 20),
+                    ),
+                  ),
+                  // const SizedBox(width: 8),
+                  // GestureDetector(
+                  //   onTap: () => _openAcForm(),
+                  //   child: Container(
+                  //     padding: const EdgeInsets.all(8),
+                  //     decoration: BoxDecoration(
+                  //       color: Colors.white.withValues(alpha:0.2),
+                  //       shape: BoxShape.circle,
+                  //     ),
+                  //     child: const Icon(Icons.add, color: Colors.white, size: 20),
+                  //   ),
+                  // ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Search Bar
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(15),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha:0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Cari AC...',
+                hintStyle: greyTextStyle,
+                prefixIcon: Icon(Icons.search, color: kPrimaryColor),
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(
+                  vertical: 10,
+                  horizontal: 20,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 18),
+
+          // Stats Cards
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: _buildStatCard(
+                  title: 'Total AC',
+                  value: totalAC.toString(),
+                  icon: Icons.ac_unit_rounded,
+                  color: Colors.white,
+                  bgColor: Colors.white.withValues(alpha:0.2),
+                ),
+              ),
+              SizedBox(width: 8,),
+              Expanded(
+                child: _buildStatCard(
+                  title: 'Normal',
+                  value: (totalAC - needService).toString(),
+                  icon: Icons.check_circle_rounded,
+                  color: Colors.white,
+                  bgColor: Colors.white.withValues(alpha:0.2),
+                ),
+              ),
+              SizedBox(width: 8,),
+              Expanded(
+                child: _buildStatCard(
+                  title: 'Perlu Service',
+                  value: needService.toString(),
+                  icon: Icons.warning_rounded,
+                  color: Colors.white,
+                  bgColor: Colors.white.withValues(alpha:0.2),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatCard({
+    required String title,
+    required String value,
+    required IconData icon,
+    required Color color,
+    required Color bgColor,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha:0.3),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, size: 16, color: color),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: whiteTextStyle.copyWith(
+              fontSize: 18,
+              fontWeight: bold,
+            ),
+          ),
+          Text(
+            title,
+            style: whiteTextStyle.copyWith(
+              fontSize: 10,
+              color: Colors.white.withValues(alpha:0.8),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: kBackgroundColor,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Header dengan gradient
+            _buildHeader(),
+
+            // Content
+            Expanded(
+              child: _filteredAC.isEmpty
+                  ? EmptyState(
+                icon: Icons.ac_unit_outlined,
+                title: _searchController.text.isEmpty
+                    ? 'Belum Ada AC'
+                    : 'AC Tidak Ditemukan',
+                subtitle: _searchController.text.isEmpty
+                    ? 'Tambahkan AC pertama untuk mulai mengajukan keluhan'
+                    : 'Coba dengan kata kunci lain',
+                actionText: 'Tambah AC',
+                onAction: () => _openAcForm(),
+                iconColor: kPrimaryColor,
+              )
+                  : Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Daftar AC',
+                          style: primaryTextStyle.copyWith(
+                            fontSize: 14,
+                            fontWeight: bold,
+                          ),
+                        ),
+                        Text(
+                          '${_filteredAC.length} ditemukan',
+                          style: greyTextStyle.copyWith(fontSize: 12),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Expanded(
+                      child: ListView.separated(
+                        itemCount: _filteredAC.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 16),
+                        itemBuilder: (context, index) {
+                          final ac = _filteredAC[index];
+                          return ModernAcCard(
+                            ac: ac,
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => KeluhanCreatePage(ac: ac, lokasi: widget.lokasi),
+                                ),
+                              );
+                            },
+                            onEdit: () => _openAcForm(ac: ac),
+                            onDelete: () => _deleteAc(ac),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _openAcForm(),
+        backgroundColor: kSecondaryColor,
+        foregroundColor: Colors.white,
+        elevation: 6,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: const Icon(Icons.add, size: 28),
+      ),
+    );
+  }
+}
