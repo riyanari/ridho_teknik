@@ -4,8 +4,10 @@ import '../services/auth_service.dart';
 import '../services/token_store.dart';
 
 class AuthProvider with ChangeNotifier {
-  final AuthService _service = AuthService();
-  final TokenStore _store = TokenStore();
+  final AuthService service;
+  final TokenStore store;
+
+  AuthProvider({required this.service, required this.store});
 
   UserModel? _user;
   UserModel? get user => _user;
@@ -17,30 +19,27 @@ class AuthProvider with ChangeNotifier {
     required String email,
     required String password,
   }) async {
-    try {
-      _loading = true;
-      notifyListeners();
+    _loading = true;
+    notifyListeners();
 
-      final u = await _service.login(email: email, password: password);
+    try {
+      final u = await service.login(email: email, password: password);
       _user = u;
 
-      if (u.token != null) {
-        await _store.saveToken(u.token!);
-      }
-      await _store.saveCredential(email, password);
+      if (u.token != null) await store.saveToken(u.token!);
+      await store.saveCredential(email, password);
 
-      _loading = false;
-      notifyListeners();
       return true;
     } catch (_) {
+      return false;
+    } finally {
       _loading = false;
       notifyListeners();
-      return false;
     }
   }
 
   Future<bool> tryAutoLogin() async {
-    final cred = await _store.getCredential();
+    final cred = await store.getCredential();
     if (cred == null) return false;
 
     return await login(
@@ -52,13 +51,11 @@ class AuthProvider with ChangeNotifier {
   Future<void> logout() async {
     try {
       final token = _user?.token;
-      if (token != null) {
-        await _service.logout(token);
-      }
+      if (token != null) await service.logout(token);
     } catch (_) {}
 
     _user = null;
-    await _store.clear();
+    await store.clear();
     notifyListeners();
   }
 }

@@ -75,8 +75,17 @@ class _LoginPageState extends State<LoginPage> {
         // final role = authProvider.user?.role;
         // if (role == 'klien') Navigator.pushReplacementNamed(context, '/klien');
         // else Navigator.pushReplacementNamed(context, '/teknisi');
+        final role = authProvider.user?.role ?? 'klien';
 
-        Navigator.pushReplacementNamed(context, '/teknisi');
+        if (role == 'owner') {
+          Navigator.pushReplacementNamed(context, '/home');
+        } else if (role == 'teknisi') {
+          Navigator.pushReplacementNamed(context, '/teknisi');
+        } else {
+          Navigator.pushReplacementNamed(context, '/klien');
+        }
+
+        // Navigator.pushReplacementNamed(context, '/teknisi');
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

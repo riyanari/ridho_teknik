@@ -36,12 +36,18 @@ class _SplashPageState extends State<SplashPage> {
     if (!mounted) return;
 
     if (ok) {
-      // nanti bisa cek role:
-      // if (auth.user?.role == 'teknisi') ...
-      Navigator.pushReplacementNamed(context, '/teknisi');
+      final role = auth.user?.role ?? 'klien';
+      if (role == 'owner') {
+        Navigator.pushReplacementNamed(context, '/home');
+      } else if (role == 'teknisi') {
+        Navigator.pushReplacementNamed(context, '/teknisi');
+      } else {
+        Navigator.pushReplacementNamed(context, '/klien');
+      }
     } else {
       Navigator.pushReplacementNamed(context, '/login');
     }
+
   }
 
   @override

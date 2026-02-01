@@ -386,10 +386,6 @@ class _TeknisiServisDetailPageState extends State<TeknisiServisDetailPage> {
               final isActive = i <= safeCurrentIndex;
               final isCurrent = i == safeCurrentIndex;
 
-              final canTap = (_currentStatus != ServisStatus.selesai &&
-                  _currentStatus != ServisStatus.ditolak) &&
-                  (i == safeCurrentIndex || i == safeCurrentIndex + 1);
-
               return Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [

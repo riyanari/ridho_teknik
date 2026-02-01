@@ -8,43 +8,38 @@ class AuthService {
     required String email,
     required String password,
   }) async {
-    final url = Uri.parse(ApiConfig.login);
-
     final res = await http.post(
-      url,
+      Uri.parse(ApiConfig.login),
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
       },
-      body: jsonEncode({
-        'email': email,
-        'password': password,
-      }),
+      body: jsonEncode({'email': email, 'password': password}),
     );
 
     final json = _safeJson(res.body);
 
     if (res.statusCode == 200) {
-      // dukung format: {data:{user, token}} atau {user, token}
+      // support: {data:{user,token}} atau {user,token}
       final data = (json['data'] ?? json) as Map<String, dynamic>;
-
       final token = (data['token'] ?? data['access_token'])?.toString();
-      final userJson = (data['user'] ?? data) as Map<String, dynamic>;
 
+      final userJson = (data['user'] ?? data) as Map<String, dynamic>;
       final user = UserModel.fromJson(userJson);
-      user.token = token != null ? "Bearer $token" : null;
+
+      if (token != null && token.isNotEmpty) {
+        user.token = "Bearer $token";
+      }
       return user;
     }
 
-    final msg = json['message']?.toString() ?? 'Gagal login (${res.statusCode})';
-    throw Exception(msg);
+    final msg = (json['message'] ?? json['error'] ?? 'Login gagal').toString();
+    throw Exception('$msg (${res.statusCode})');
   }
 
   Future<void> logout(String token) async {
-    final url = Uri.parse(ApiConfig.logout);
-
     final res = await http.post(
-      url,
+      Uri.parse(ApiConfig.logout),
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
@@ -53,7 +48,9 @@ class AuthService {
     );
 
     if (res.statusCode != 200) {
-      throw Exception('Failed to logout: ${res.statusCode}');
+      final json = _safeJson(res.body);
+      final msg = (json['message'] ?? 'Logout gagal').toString();
+      throw Exception('$msg (${res.statusCode})');
     }
   }
 

@@ -1,11 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:ridho_teknik/theme/theme.dart';
+import 'package:provider/provider.dart';
+import 'package:ridho_teknik/providers/auth_provider.dart';
+import 'package:awesome_dialog/awesome_dialog.dart';
+
 
 import 'arsip/arsip_page.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
+
+  Future<void> _confirmLogout(BuildContext context) async {
+    AwesomeDialog(
+      context: context,
+      dialogType: DialogType.warning,
+      animType: AnimType.scale,
+      title: 'Logout',
+      desc: 'Yakin ingin keluar?',
+      btnCancelText: 'Batal',
+      btnOkText: 'Keluar',
+      btnCancelOnPress: () {},
+      btnOkOnPress: () async {
+        // IMPORTANT: AwesomeDialog btnOkOnPress boleh async
+        await context.read<AuthProvider>().logout();
+
+        if (!context.mounted) return;
+        Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+      },
+    ).show();
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -18,7 +43,7 @@ class HomePage extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Header Welcome dengan info bisnis
-              _buildBusinessHeader(),
+              _buildBusinessHeader(context),
               const SizedBox(height: 24),
 
               // Statistik Cepat dengan animasi
@@ -42,7 +67,7 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  Widget _buildBusinessHeader() {
+  Widget _buildBusinessHeader(BuildContext context) {
     DateTime now = DateTime.now();
     String dayName = _getDayName(now.weekday);
     String monthName = _getMonthName(now.month);
@@ -74,19 +99,46 @@ class HomePage extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha:0.2),
+                  color: Colors.white.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(Iconsax.personalcard, color: Colors.white, size: 20),
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: Text(
-                  'Ridho Teknik - AC Service',
-                  style: whiteTextStyle.copyWith(
-                    fontSize: 16,
-                    fontWeight: semiBold,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Ridho Teknik',
+                      style: whiteTextStyle.copyWith(
+                        fontSize: 14,
+                        fontWeight: semiBold,
+                      ),
+                    ),
+                    Text(
+                      'AC Service',
+                      style: whiteTextStyle.copyWith(
+                        fontSize: 10,
+                        fontWeight: regular,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // ✅ tombol logout
+              GestureDetector(
+                onTap: () => _confirmLogout(context),
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
                   ),
+                  child: const Icon(Iconsax.logout_1, color: Colors.white, size: 18),
                 ),
               ),
             ],

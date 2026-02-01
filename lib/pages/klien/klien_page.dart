@@ -6,6 +6,10 @@ import '../../models/lokasi_model.dart';
 import '../../theme/theme.dart';
 import 'ac_list_page.dart';
 import 'lokasi_form_dialog.dart';
+import 'package:awesome_dialog/awesome_dialog.dart';
+import 'package:provider/provider.dart';
+import '../../providers/auth_provider.dart';
+
 
 class KlienPage extends StatefulWidget {
   const KlienPage({super.key});
@@ -55,6 +59,26 @@ class _KlienPageState extends State<KlienPage> {
     _searchController.dispose();
     super.dispose();
   }
+
+  Future<void> _confirmLogout(BuildContext context) async {
+    AwesomeDialog(
+      context: context,
+      dialogType: DialogType.warning,
+      animType: AnimType.scale,
+      title: 'Logout',
+      desc: 'Yakin ingin keluar?',
+      btnCancelText: 'Batal',
+      btnOkText: 'Keluar',
+      btnCancelOnPress: () {},
+      btnOkOnPress: () async {
+        await context.read<AuthProvider>().logout();
+
+        if (!context.mounted) return;
+        Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+      },
+    ).show();
+  }
+
 
   void _onSearchChanged() {
     final query = _searchController.text.toLowerCase();
@@ -233,16 +257,19 @@ class _KlienPageState extends State<KlienPage> {
                   ),
                 ],
               ),
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha:0.2),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.location_on,
-                  color: Colors.white,
-                  size: 24,
+              GestureDetector(
+                onTap: () => _confirmLogout(context),
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.logout_rounded,
+                    color: Colors.white,
+                    size: 24,
+                  ),
                 ),
               ),
             ],

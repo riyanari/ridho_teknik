@@ -6,6 +6,8 @@ import '../../models/servis_model.dart';
 import '../../models/teknisi_model.dart';
 import '../../theme/theme.dart';
 import 'teknisi_lokasi_list_page.dart';
+import 'package:provider/provider.dart';
+import '../../providers/teknisi_provider.dart';
 
 class TeknisiDashboardPage extends StatefulWidget {
   const TeknisiDashboardPage({super.key});
@@ -15,6 +17,17 @@ class TeknisiDashboardPage extends StatefulWidget {
 }
 
 class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
+
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<TeknisiProvider>().fetch();
+    });
+  }
+
+
   // Data dummy teknisi
   final TeknisiModel _teknisi = TeknisiModel(
     id: 'T1',
