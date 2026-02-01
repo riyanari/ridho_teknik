@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:ridho_teknik/pages/home_page.dart';
-import 'package:ridho_teknik/pages/klien/klien_page.dart';
-import 'package:ridho_teknik/pages/login_page.dart';
-import 'package:ridho_teknik/pages/splash_page.dart';
+import 'package:provider/provider.dart';
+
+import 'providers/auth_provider.dart';
+import 'pages/splash_page.dart';
+import 'pages/login_page.dart';
+import 'pages/home_page.dart';
+import 'pages/klien/klien_page.dart';
+import 'pages/teknisi/teknisi_dashboard_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -11,18 +15,22 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      routes: {
-        '/': (context) => const SplashPage(),
-        '/login': (context) => const LoginPage(),
-        '/home': (context) => const HomePage(),
-        '/klien': (context) => const KlienPage(),
-      },
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+      ],
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        routes: {
+          '/': (context) => const SplashPage(),
+          '/login': (context) => const LoginPage(),
+          '/home': (context) => const HomePage(),
+          '/klien': (context) => const KlienPage(),
+          '/teknisi': (context) => const TeknisiDashboardPage(),
+        },
+      ),
     );
   }
 }
-

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../components/background_page.dart';
 import '../components/loading_button.dart';
+import '../providers/auth_provider.dart';
 import '../theme/theme.dart';
 
 class LoginPage extends StatefulWidget {
@@ -14,6 +16,7 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController usernameController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final FocusNode passwordFocusNode = FocusNode();
+
   bool isLoading = false;
   bool kunciPassword = true;
   bool isUsernameError = false;
@@ -27,96 +30,89 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    // AuthProvider authProvider = Provider.of<AuthProvider>(context);
+  void togglePasswordVisibility() {
+    setState(() {
+      kunciPassword = !kunciPassword;
+    });
+  }
 
-    // Future<void> handleSignIn() async {
-    //   String usernameValue = usernameController.text.trim();
-    //   String passwordValue = passwordController.text.trim();
-    //
-    //   // Validate username and Password
-    //   setState(() {
-    //     isusernameError = usernameValue.isEmpty;
-    //     isPasswordError = passwordValue.isEmpty;
-    //   });
-    //
-    //   if (isusernameError || isPasswordError) {
-    //     ScaffoldMessenger.of(context).showSnackBar(
-    //       SnackBar(
-    //         content: Semantics(
-    //           liveRegion: true,
-    //           child: Text(
-    //             isusernameError
-    //                 ? 'username Harus diisi'
-    //                 : 'Password Harus diisi',
-    //           ),
-    //         ),
-    //       ),
-    //     );
-    //     return;
-    //   }
-    //
-    //   setState(() {
-    //     isLoading = true;
-    //   });
-    //
-    //   try {
-    //     if (await authProvider.login(username: usernameValue, password: passwordValue)) {
-    //       Navigator.pushReplacementNamed(context, '/home');
-    //     } else {
-    //       ScaffoldMessenger.of(context).showSnackBar(
-    //         SnackBar(
-    //           backgroundColor: kBoxMenuRedColor,
-    //           content: Semantics(
-    //             liveRegion: true,
-    //             child: const Text(
-    //               'Gagal Login!',
-    //               textAlign: TextAlign.center,
-    //             ),
-    //           ),
-    //         ),
-    //       );
-    //     }
-    //   } catch (e) {
-    //     ScaffoldMessenger.of(context).showSnackBar(
-    //       SnackBar(
-    //         backgroundColor: kBoxMenuRedColor,
-    //         content: Semantics(
-    //           liveRegion: true,
-    //           child: const Text(
-    //             'Gagal melakukan login. Periksa koneksi internet Anda.',
-    //             textAlign: TextAlign.center,
-    //           ),
-    //         ),
-    //       ),
-    //     );
-    //   } finally {
-    //     setState(() {
-    //       isLoading = false;
-    //     });
-    //   }
-    // }
+  Future<void> handleSignIn() async {
+    final usernameValue = usernameController.text.trim();
+    final passwordValue = passwordController.text.trim();
 
-    void togglePasswordVisibility() {
-      setState(() {
-        kunciPassword = !kunciPassword;
-      });
+    setState(() {
+      isUsernameError = usernameValue.isEmpty;
+      isPasswordError = passwordValue.isEmpty;
+    });
+
+    if (isUsernameError || isPasswordError) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            isUsernameError ? 'Username/Email harus diisi' : 'Password harus diisi',
+          ),
+        ),
+      );
+      return;
     }
 
+    setState(() => isLoading = true);
 
+    try {
+      final authProvider = context.read<AuthProvider>();
+
+      // NOTE:
+      // Kalau backend kamu pakai field "email", ya tetap kirim usernameValue sebagai email
+      final ok = await authProvider.login(
+        email: usernameValue,
+        password: passwordValue,
+      );
+
+      if (!mounted) return;
+
+      if (ok) {
+        // Kalau mau berdasarkan role:
+        // final role = authProvider.user?.role;
+        // if (role == 'klien') Navigator.pushReplacementNamed(context, '/klien');
+        // else Navigator.pushReplacementNamed(context, '/teknisi');
+
+        Navigator.pushReplacementNamed(context, '/teknisi');
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: kBoxMenuRedColor,
+            content: const Text('Gagal Login!', textAlign: TextAlign.center),
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: kBoxMenuRedColor,
+          content: Text(
+            'Gagal login: ${e.toString()}',
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     Widget imageLogin() {
       return Center(
         child: Column(
           children: [
-            SizedBox(
-              height: MediaQuery.of(context).size.height * 0.08,
-            ),
+            SizedBox(height: MediaQuery.of(context).size.height * 0.08),
             Image.asset(
               'assets/logo_ridho_teknik.png',
               height: MediaQuery.of(context).size.height * 0.4,
             ),
-            Text("data")
+            const Text("data"),
           ],
         ),
       );
@@ -130,7 +126,7 @@ class _LoginPageState extends State<LoginPage> {
             padding: const EdgeInsets.fromLTRB(20, 30, 20, 20),
             decoration: BoxDecoration(
               color: kWhiteColor,
-              borderRadius: BorderRadius.only(
+              borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(40.0),
                 topRight: Radius.circular(40.0),
               ),
@@ -141,7 +137,7 @@ class _LoginPageState extends State<LoginPage> {
                   controller: usernameController,
                   keyboardType: TextInputType.text,
                   decoration: InputDecoration(
-                    hintText: 'Masukkan Username',
+                    hintText: 'Masukkan Username / Email',
                     hintStyle: const TextStyle(
                       color: kPrimaryColor,
                       fontWeight: FontWeight.w300,
@@ -149,22 +145,14 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     filled: true,
                     fillColor: Colors.white,
-                    prefixIcon: const Icon(
-                      Icons.person,
-                      color: kPrimaryColor,
-                    ),
+                    prefixIcon: const Icon(Icons.person, color: kPrimaryColor),
                     border: OutlineInputBorder(
-                      borderSide: const BorderSide(
-                        color: kPrimaryColor,
-                        width: 1.0,
-                      ),
+                      borderSide: const BorderSide(color: kPrimaryColor, width: 1.0),
                       borderRadius: BorderRadius.circular(40.0),
                     ),
-                    errorText: isUsernameError ? 'username Harus diisi' : null,
+                    errorText: isUsernameError ? 'Username/Email harus diisi' : null,
                   ),
-                  onFieldSubmitted: (value) {
-                    FocusScope.of(context).requestFocus(passwordFocusNode);
-                  },
+                  onFieldSubmitted: (_) => FocusScope.of(context).requestFocus(passwordFocusNode),
                 ),
                 const SizedBox(height: 10),
                 TextFormField(
@@ -180,35 +168,26 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     filled: true,
                     fillColor: Colors.white,
-                    prefixIcon: const Icon(
-                      Icons.lock_outlined,
-                      color: kPrimaryColor,
-                    ),
+                    prefixIcon: const Icon(Icons.lock_outlined, color: kPrimaryColor),
                     suffixIcon: GestureDetector(
                       onTap: togglePasswordVisibility,
                       child: Semantics(
-                        label: kunciPassword
-                            ? 'Show password'
-                            : 'Hide password',
+                        label: kunciPassword ? 'Show password' : 'Hide password',
                         child: Icon(
-                          kunciPassword
-                              ? Icons.visibility_off_outlined
-                              : Icons.visibility_outlined,
+                          kunciPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
                           color: kPrimaryColor,
                         ),
                       ),
                     ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(40.0),
-                      borderSide: const BorderSide(
-                        color: kPrimaryColor,
-                        width: 1.0,
-                      ),
+                      borderSide: const BorderSide(color: kPrimaryColor, width: 1.0),
                     ),
-                    errorText: isPasswordError ? 'Password Harus diisi' : null,
+                    errorText: isPasswordError ? 'Password harus diisi' : null,
                   ),
                 ),
                 const SizedBox(height: 10),
+
                 isLoading
                     ? const LoadingButton()
                     : SizedBox(
@@ -220,32 +199,31 @@ class _LoginPageState extends State<LoginPage> {
                         borderRadius: BorderRadius.circular(30.0),
                       ),
                     ),
-                    onPressed: (){
-                      // Navigator.of(context).pushReplacementNamed('/home');
-                      Navigator.of(context).pushReplacementNamed('/klien');
-                    },
+                    onPressed: handleSignIn, // ✅ ini yang penting
                     child: Padding(
                       padding: const EdgeInsets.all(8.0),
                       child: Text(
                         "Login",
                         style: whiteTextStyle.copyWith(
                           fontWeight: bold,
-                          fontSize: 14
-                        )
+                          fontSize: 14,
+                        ),
                       ),
                     ),
                   ),
                 ),
+
                 const SizedBox(height: 10),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text("Belum punya akun? ", style: greyTextStyle,),
-                    Text("Daftar", style: primaryTextStyle.copyWith(
-                      fontWeight: semiBold
-                    ),),
+                    Text("Belum punya akun? ", style: greyTextStyle),
+                    Text(
+                      "Daftar",
+                      style: primaryTextStyle.copyWith(fontWeight: semiBold),
+                    ),
                   ],
-                )
+                ),
               ],
             ),
           ),

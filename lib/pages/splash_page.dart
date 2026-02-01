@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../components/half_circle_painter.dart';
+import '../providers/auth_provider.dart';
 import '../theme/theme.dart';
 
 class SplashPage extends StatefulWidget {
@@ -14,19 +16,32 @@ class _SplashPageState extends State<SplashPage> {
   @override
   void initState() {
     super.initState();
+
+    // lebih aman: jalankan setelah widget ter-render
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      getInit();
-      // checkForUpdate();
+      _go();
     });
   }
 
-  Future<void> getInit() async {
-    // Simulasi loading 2 detik
-    await Future.delayed(const Duration(seconds: 2));
+  Future<void> _go() async {
+    final auth = context.read<AuthProvider>();
+
+    bool ok = false;
+    try {
+      ok = await auth.tryAutoLogin();
+    } catch (_) {
+      ok = false;
+    }
 
     if (!mounted) return;
-    // Pindah ke halaman login, hapus splash dari stack
-    Navigator.of(context).pushReplacementNamed('/login');
+
+    if (ok) {
+      // nanti bisa cek role:
+      // if (auth.user?.role == 'teknisi') ...
+      Navigator.pushReplacementNamed(context, '/teknisi');
+    } else {
+      Navigator.pushReplacementNamed(context, '/login');
+    }
   }
 
   @override
@@ -35,20 +50,14 @@ class _SplashPageState extends State<SplashPage> {
       backgroundColor: kPrimaryColor,
       body: Stack(
         children: [
-          // Positioned.fill(
-          //   child: Image.asset(
-          //     'assets/img_background_buble.png',
-          //     fit: BoxFit.fill,
-          //     color: const Color(0xffB8FFD8).withValues(alpha: 0.7),
-          //   ),
-          // ),
           Positioned(
             top: 90,
             right: -50,
             child: CustomPaint(
               size: const Size(100, 100),
               painter: HalfCirclePainter(
-                  color: kGreyColor.withValues(alpha: 0.1)), // Gunakan painter yang telah Anda buat
+                color: kGreyColor.withValues(alpha:0.1),
+              ),
             ),
           ),
           Positioned(
@@ -57,24 +66,27 @@ class _SplashPageState extends State<SplashPage> {
             child: CustomPaint(
               size: const Size(100, 100),
               painter: HalfCirclePainter(
-                  color: kGreyColor.withValues(alpha: 0.15))), // Gunakan painter yang telah Anda buat
+                color: kGreyColor.withValues(alpha:0.15),
+              ),
             ),
+          ),
           Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Spacer(),
-                Image.asset('assets/logo_ridho_teknik.png', width: MediaQuery.of(context).size.width * 0.7,),
-                Spacer(),
+                const Spacer(),
+                Image.asset(
+                  'assets/logo_ridho_teknik.png',
+                  width: MediaQuery.of(context).size.width * 0.7,
+                ),
+                const Spacer(),
                 const CircularProgressIndicator(
                   strokeWidth: 5,
                   valueColor: AlwaysStoppedAnimation<Color>(kGreyColor),
                   backgroundColor: kSecondaryColor,
                   semanticsLabel: 'Loading...',
                 ),
-                const SizedBox(
-                  height: 80,
-                ),
+                const SizedBox(height: 80),
               ],
             ),
           ),

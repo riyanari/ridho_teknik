@@ -39,6 +39,11 @@ dependencies:
   iconsax: ^0.0.8
   url_launcher: ^6.3.2
   image_picker: ^1.2.1
+  http: ^1.6.0
+  flutter_bloc: ^9.1.1
+  shared_preferences: ^2.5.4
+  equatable: ^2.0.8
+  provider: ^6.1.5+1
 
 dev_dependencies:
   flutter_test:
