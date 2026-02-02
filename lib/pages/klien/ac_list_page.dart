@@ -1,10 +1,11 @@
 // lib/pages/klien/ac_list_page.dart
 import 'package:flutter/material.dart';
-import 'package:ridho_teknik/pages/klien/ac_form_dialog.dart';
+import 'package:provider/provider.dart';
 import 'package:ridho_teknik/pages/klien/widgets/empty_state.dart';
 import 'package:ridho_teknik/pages/klien/widgets/modern_ac_card.dart';
 import '../../models/ac_model.dart';
 import '../../models/lokasi_model.dart';
+import '../../providers/client_ac_provider.dart';
 import '../../theme/theme.dart';
 import 'keluhan_create_page.dart';
 import 'keluhan_list_page.dart';
@@ -18,35 +19,6 @@ class AcListPage extends StatefulWidget {
 }
 
 class _AcListPageState extends State<AcListPage> {
-  final List<AcModel> acList = [
-    AcModel(
-      id: 'A1',
-      lokasiId: 'L1',
-      nama: 'AC Split 1 PK - Ruang Tamu',
-      merk: 'Daikin',
-      type: 'FTKN50',
-      kapasitas: '1 PK',
-      terakhirService: DateTime.now().subtract(const Duration(days: 30)),
-    ),
-    AcModel(
-      id: 'A2',
-      lokasiId: 'L1',
-      nama: 'AC Kamar 0.5 PK',
-      merk: 'Panasonic',
-      type: 'CS-EN5',
-      kapasitas: '0.5 PK',
-      terakhirService: DateTime.now().subtract(const Duration(days: 90)),
-    ),
-    AcModel(
-      id: 'A3',
-      lokasiId: 'L1',
-      nama: 'AC Cassette 2 PK - Meeting Room',
-      merk: 'LG',
-      type: 'ARTCOOL',
-      kapasitas: '2 PK',
-      terakhirService: DateTime.now().subtract(const Duration(days: 120)),
-    ),
-  ];
 
   final TextEditingController _searchController = TextEditingController();
   List<AcModel> _filteredAC = [];
@@ -54,9 +26,14 @@ class _AcListPageState extends State<AcListPage> {
   @override
   void initState() {
     super.initState();
-    _filteredAC = acList.where((e) => e.lokasiId == widget.lokasi.id).toList();
     _searchController.addListener(_onSearchChanged);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final locId = int.tryParse(widget.lokasi.id) ?? 0;
+      context.read<ClientAcProvider>().fetchAc(locationId: locId);
+    });
   }
+
 
   @override
   void dispose() {
@@ -66,47 +43,49 @@ class _AcListPageState extends State<AcListPage> {
 
   void _onSearchChanged() {
     final query = _searchController.text.toLowerCase();
+    final list = context.read<ClientAcProvider>().ac;
+
     setState(() {
-      _filteredAC = acList.where((ac) {
-        return ac.lokasiId == widget.lokasi.id &&
-            (ac.nama.toLowerCase().contains(query) ||
-                ac.merk.toLowerCase().contains(query) ||
-                ac.type.toLowerCase().contains(query));
+      _filteredAC = list.where((ac) {
+        return (ac.nama.toLowerCase().contains(query) ||
+            ac.merk.toLowerCase().contains(query) ||
+            ac.type.toLowerCase().contains(query));
       }).toList();
     });
   }
 
+
   // Di dalam _AcListPageState class, update method _openAcForm:
-  void _openAcForm({AcModel? ac}) async {
-    final result = await showModalBottomSheet<AcModel>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => AcFormDialog(
-        initial: ac,
-        lokasiId: widget.lokasi.id,
-      ),
-    );
-
-    if (result == null) return;
-
-    setState(() {
-      final index = acList.indexWhere((e) => e.id == result.id);
-      if (index >= 0) {
-        acList[index] = result;
-        _showSnackBar(
-          ac == null
-              ? 'AC berhasil ditambahkan'
-              : 'AC berhasil diperbarui',
-          kBoxMenuGreenColor,
-        );
-      } else {
-        acList.add(result);
-        _showSnackBar('AC berhasil ditambahkan', kBoxMenuGreenColor);
-      }
-      _onSearchChanged();
-    });
-  }
+  // void _openAcForm({AcModel? ac}) async {
+  //   final result = await showModalBottomSheet<AcModel>(
+  //     context: context,
+  //     isScrollControlled: true,
+  //     backgroundColor: Colors.transparent,
+  //     builder: (_) => AcFormDialog(
+  //       initial: ac,
+  //       lokasiId: widget.lokasi.id,
+  //     ),
+  //   );
+  //
+  //   if (result == null) return;
+  //
+  //   setState(() {
+  //     final index = acList.indexWhere((e) => e.id == result.id);
+  //     if (index >= 0) {
+  //       acList[index] = result;
+  //       _showSnackBar(
+  //         ac == null
+  //             ? 'AC berhasil ditambahkan'
+  //             : 'AC berhasil diperbarui',
+  //         kBoxMenuGreenColor,
+  //       );
+  //     } else {
+  //       acList.add(result);
+  //       _showSnackBar('AC berhasil ditambahkan', kBoxMenuGreenColor);
+  //     }
+  //     _onSearchChanged();
+  //   });
+  // }
 
 // Tambahkan method _showSnackBar:
   void _showSnackBar(String message, Color color) {
@@ -119,95 +98,95 @@ class _AcListPageState extends State<AcListPage> {
     );
   }
 
-  void _deleteAc(AcModel ac) {
-    showDialog(
-      context: context,
-      builder: (_) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        backgroundColor: kWhiteColor,
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [kBoxMenuRedColor, Colors.red[700]!],
-                  ),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.warning_amber_rounded, color: Colors.white, size: 32),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Hapus AC?',
-                style: primaryTextStyle.copyWith(fontSize: 20, fontWeight: bold),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'AC "${ac.nama}" akan dihapus permanen. Tindakan ini tidak dapat dibatalkan.',
-                style: greyTextStyle.copyWith(fontSize: 14),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 28),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        side: BorderSide(color: kGreyColor.withValues(alpha:0.5)),
-                      ),
-                      child: Text('Batal', style: blackTextStyle.copyWith(fontWeight: medium)),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        setState(() => acList.removeWhere((e) => e.id == ac.id));
-                        Navigator.pop(context);
-                        _onSearchChanged();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              'AC "${ac.nama}" berhasil dihapus',
-                              style: whiteTextStyle.copyWith(fontWeight: medium),
-                            ),
-                            backgroundColor: kBoxMenuRedColor,
-                            behavior: SnackBarBehavior.floating,
-                          ),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: kBoxMenuRedColor,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        elevation: 2,
-                      ),
-                      child: Text('Hapus', style: whiteTextStyle.copyWith(fontWeight: bold)),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  // void _deleteAc(AcModel ac) {
+  //   showDialog(
+  //     context: context,
+  //     builder: (_) => Dialog(
+  //       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+  //       backgroundColor: kWhiteColor,
+  //       child: Padding(
+  //         padding: const EdgeInsets.all(24),
+  //         child: Column(
+  //           mainAxisSize: MainAxisSize.min,
+  //           children: [
+  //             Container(
+  //               padding: const EdgeInsets.all(16),
+  //               decoration: BoxDecoration(
+  //                 gradient: LinearGradient(
+  //                   colors: [kBoxMenuRedColor, Colors.red[700]!],
+  //                 ),
+  //                 shape: BoxShape.circle,
+  //               ),
+  //               child: const Icon(Icons.warning_amber_rounded, color: Colors.white, size: 32),
+  //             ),
+  //             const SizedBox(height: 16),
+  //             Text(
+  //               'Hapus AC?',
+  //               style: primaryTextStyle.copyWith(fontSize: 20, fontWeight: bold),
+  //             ),
+  //             const SizedBox(height: 12),
+  //             Text(
+  //               'AC "${ac.nama}" akan dihapus permanen. Tindakan ini tidak dapat dibatalkan.',
+  //               style: greyTextStyle.copyWith(fontSize: 14),
+  //               textAlign: TextAlign.center,
+  //             ),
+  //             const SizedBox(height: 28),
+  //             Row(
+  //               children: [
+  //                 Expanded(
+  //                   child: OutlinedButton(
+  //                     onPressed: () => Navigator.pop(context),
+  //                     style: OutlinedButton.styleFrom(
+  //                       padding: const EdgeInsets.symmetric(vertical: 14),
+  //                       shape: RoundedRectangleBorder(
+  //                         borderRadius: BorderRadius.circular(12),
+  //                       ),
+  //                       side: BorderSide(color: kGreyColor.withValues(alpha:0.5)),
+  //                     ),
+  //                     child: Text('Batal', style: blackTextStyle.copyWith(fontWeight: medium)),
+  //                   ),
+  //                 ),
+  //                 const SizedBox(width: 16),
+  //                 Expanded(
+  //                   child: ElevatedButton(
+  //                     onPressed: () {
+  //                       setState(() => acList.removeWhere((e) => e.id == ac.id));
+  //                       Navigator.pop(context);
+  //                       _onSearchChanged();
+  //                       ScaffoldMessenger.of(context).showSnackBar(
+  //                         SnackBar(
+  //                           content: Text(
+  //                             'AC "${ac.nama}" berhasil dihapus',
+  //                             style: whiteTextStyle.copyWith(fontWeight: medium),
+  //                           ),
+  //                           backgroundColor: kBoxMenuRedColor,
+  //                           behavior: SnackBarBehavior.floating,
+  //                         ),
+  //                       );
+  //                     },
+  //                     style: ElevatedButton.styleFrom(
+  //                       backgroundColor: kBoxMenuRedColor,
+  //                       padding: const EdgeInsets.symmetric(vertical: 14),
+  //                       shape: RoundedRectangleBorder(
+  //                         borderRadius: BorderRadius.circular(12),
+  //                       ),
+  //                       elevation: 2,
+  //                     ),
+  //                     child: Text('Hapus', style: whiteTextStyle.copyWith(fontWeight: bold)),
+  //                   ),
+  //                 ),
+  //               ],
+  //             ),
+  //           ],
+  //         ),
+  //       ),
+  //     ),
+  //   );
+  // }
 
-  Widget _buildHeader() {
-    final totalAC = _filteredAC.length;
-    final needService = _filteredAC
+  Widget _buildHeader(List<AcModel> list) {
+    final totalAC = list.length;
+    final needService = list
         .where((ac) => DateTime.now().difference(ac.terakhirService).inDays > 60)
         .length;
 
@@ -428,87 +407,122 @@ class _AcListPageState extends State<AcListPage> {
     return Scaffold(
       backgroundColor: kBackgroundColor,
       body: SafeArea(
-        child: Column(
-          children: [
-            // Header dengan gradient
-            _buildHeader(),
+        child: Consumer<ClientAcProvider>(
+          builder: (context, prov, _) {
+            if (prov.loading) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-            // Content
-            Expanded(
-              child: _filteredAC.isEmpty
-                  ? EmptyState(
-                icon: Icons.ac_unit_outlined,
-                title: _searchController.text.isEmpty
-                    ? 'Belum Ada AC'
-                    : 'AC Tidak Ditemukan',
-                subtitle: _searchController.text.isEmpty
-                    ? 'Tambahkan AC pertama untuk mulai mengajukan keluhan'
-                    : 'Coba dengan kata kunci lain',
-                actionText: 'Tambah AC',
-                onAction: () => _openAcForm(),
-                iconColor: kPrimaryColor,
-              )
-                  : Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            if (prov.error != null) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Text(
+                    prov.error!,
+                    style: greyTextStyle,
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              );
+            }
+
+            // kalau search kosong => pakai prov.ac
+            // kalau search ada => pakai _filteredAC
+            final listToShow =
+            _searchController.text.isEmpty ? prov.ac : _filteredAC;
+
+            return Column(
+              children: [
+                _buildHeader(listToShow),
+
+                Expanded(
+                  child: listToShow.isEmpty
+                      ? EmptyState(
+                    icon: Icons.ac_unit_outlined,
+                    title: _searchController.text.isEmpty
+                        ? 'Belum Ada AC'
+                        : 'AC Tidak Ditemukan',
+                    subtitle: _searchController.text.isEmpty
+                        ? 'Belum ada AC dari server'
+                        : 'Coba dengan kata kunci lain',
+                    actionText: 'Refresh',
+                    onAction: () async {
+                      final locId = int.tryParse(widget.lokasi.id) ?? 0;
+                      await context
+                          .read<ClientAcProvider>()
+                          .fetchAc(locationId: locId);
+                      _onSearchChanged();
+                    },
+                    iconColor: kPrimaryColor,
+                  )
+                      : Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Daftar AC',
-                          style: primaryTextStyle.copyWith(
-                            fontSize: 14,
-                            fontWeight: bold,
-                          ),
+                        Row(
+                          mainAxisAlignment:
+                          MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Daftar AC',
+                              style: primaryTextStyle.copyWith(
+                                fontSize: 14,
+                                fontWeight: bold,
+                              ),
+                            ),
+                            Text(
+                              '${listToShow.length} ditemukan',
+                              style: greyTextStyle.copyWith(fontSize: 12),
+                            ),
+                          ],
                         ),
-                        Text(
-                          '${_filteredAC.length} ditemukan',
-                          style: greyTextStyle.copyWith(fontSize: 12),
+                        const SizedBox(height: 16),
+                        Expanded(
+                          child: ListView.separated(
+                            itemCount: listToShow.length,
+                            separatorBuilder: (_, __) =>
+                            const SizedBox(height: 16),
+                            itemBuilder: (context, index) {
+                              final ac = listToShow[index];
+                              return ModernAcCard(
+                                ac: ac,
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => KeluhanCreatePage(
+                                        ac: ac,
+                                        lokasi: widget.lokasi,
+                                      ),
+                                    ),
+                                  );
+                                },
+                                // onEdit: () => _openAcForm(ac: ac),
+                                // onDelete: () => _deleteAc(ac),
+                              );
+                            },
+                          ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 16),
-                    Expanded(
-                      child: ListView.separated(
-                        itemCount: _filteredAC.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 16),
-                        itemBuilder: (context, index) {
-                          final ac = _filteredAC[index];
-                          return ModernAcCard(
-                            ac: ac,
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => KeluhanCreatePage(ac: ac, lokasi: widget.lokasi),
-                                ),
-                              );
-                            },
-                            onEdit: () => _openAcForm(ac: ac),
-                            onDelete: () => _deleteAc(ac),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
-          ],
+              ],
+            );
+          },
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _openAcForm(),
-        backgroundColor: kSecondaryColor,
-        foregroundColor: Colors.white,
-        elevation: 6,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: const Icon(Icons.add, size: 28),
-      ),
+      // floatingActionButton: FloatingActionButton(
+      //   onPressed: () => _openAcForm(),
+      //   backgroundColor: kSecondaryColor,
+      //   foregroundColor: Colors.white,
+      //   elevation: 6,
+      //   shape: RoundedRectangleBorder(
+      //     borderRadius: BorderRadius.circular(16),
+      //   ),
+      //   child: const Icon(Icons.add, size: 28),
+      // ),
     );
   }
 }

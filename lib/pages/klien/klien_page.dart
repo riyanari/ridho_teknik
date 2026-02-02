@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:ridho_teknik/pages/klien/widgets/empty_state.dart';
 import 'package:ridho_teknik/pages/klien/widgets/modern_lokasi_card.dart';
 import '../../models/lokasi_model.dart';
+import '../../providers/client_master_provider.dart';
 import '../../theme/theme.dart';
 import 'ac_list_page.dart';
 import 'lokasi_form_dialog.dart';
@@ -19,6 +20,8 @@ class KlienPage extends StatefulWidget {
 }
 
 class _KlienPageState extends State<KlienPage> {
+
+
   final List<LokasiModel> lokasiList = [
     LokasiModel(
       id: 'L1',
@@ -47,11 +50,22 @@ class _KlienPageState extends State<KlienPage> {
   final TextEditingController _searchController = TextEditingController();
   List<LokasiModel> _filteredLokasi = [];
 
+  // @override
+  // void initState() {
+  //   super.initState();
+  //   _filteredLokasi = lokasiList;
+  //   _searchController.addListener(_onSearchChanged);
+  // }
+
   @override
   void initState() {
     super.initState();
-    _filteredLokasi = lokasiList;
     _searchController.addListener(_onSearchChanged);
+
+    // fetch data API setelah build pertama
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<ClientMasterProvider>().fetchLokasi();
+    });
   }
 
   @override
@@ -80,15 +94,28 @@ class _KlienPageState extends State<KlienPage> {
   }
 
 
+  // void _onSearchChanged() {
+  //   final query = _searchController.text.toLowerCase();
+  //   setState(() {
+  //     _filteredLokasi = lokasiList.where((lokasi) {
+  //       return lokasi.nama.toLowerCase().contains(query) ||
+  //           lokasi.alamat.toLowerCase().contains(query);
+  //     }).toList();
+  //   });
+  // }
   void _onSearchChanged() {
     final query = _searchController.text.toLowerCase();
+    final provider = context.read<ClientMasterProvider>();
+
+    final list = provider.lokasi;
     setState(() {
-      _filteredLokasi = lokasiList.where((lokasi) {
+      _filteredLokasi = list.where((lokasi) {
         return lokasi.nama.toLowerCase().contains(query) ||
             lokasi.alamat.toLowerCase().contains(query);
       }).toList();
     });
   }
+
 
   void _openForm({LokasiModel? lokasi}) async {
     final result = await showModalBottomSheet<LokasiModel>(
@@ -205,6 +232,14 @@ class _KlienPageState extends State<KlienPage> {
     );
   }
 
+  String _getNamaUser(BuildContext context) {
+    final auth = context.read<AuthProvider>();
+    final name = auth.user?.name?.trim();
+    if (name != null && name.isNotEmpty) return name;
+    return 'Klien';
+  }
+
+
   Widget _buildHeaderStats() {
     final totalAC = lokasiList.fold(0, (sum, lokasi) => sum + lokasi.jumlahAC);
     final activeLocations = lokasiList.where((l) =>
@@ -241,7 +276,7 @@ class _KlienPageState extends State<KlienPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Halo, Klien!',
+                    'Halo, ${_getNamaUser(context)}!',
                     style: whiteTextStyle.copyWith(
                       fontSize: 16,
                       fontWeight: bold,
@@ -399,81 +434,105 @@ class _KlienPageState extends State<KlienPage> {
 
             // Content
             Expanded(
-              child: _filteredLokasi.isEmpty
-                  ? EmptyState(
-                icon: Icons.location_on_outlined,
-                title: _searchController.text.isEmpty
-                    ? 'Belum Ada Lokasi'
-                    : 'Lokasi Tidak Ditemukan',
-                subtitle: _searchController.text.isEmpty
-                    ? 'Tambahkan lokasi pertama Anda untuk mengelola AC'
-                    : 'Coba dengan kata kunci lain',
-                actionText: 'Tambah Lokasi',
-                onAction: () => _openForm(),
-                iconColor: kPrimaryColor,
-              )
-                  : Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Semua Lokasi',
-                          style: primaryTextStyle.copyWith(
-                            fontSize: 14,
-                            fontWeight: bold,
-                          ),
+              child: Consumer<ClientMasterProvider>(
+                builder: (context, prov, _) {
+                  if (prov.loading) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+
+                  if (prov.error != null) {
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Text(
+                          prov.error!,
+                          style: greyTextStyle,
+                          textAlign: TextAlign.center,
                         ),
-                        Text(
-                          '${_filteredLokasi.length} ditemukan',
-                          style: greyTextStyle.copyWith(fontSize: 12),
+                      ),
+                    );
+                  }
+
+                  // pastikan filtered mengikuti data provider kalau search kosong
+                  final listToShow = _searchController.text.isEmpty ? prov.lokasi : _filteredLokasi;
+
+                  if (listToShow.isEmpty) {
+                    return EmptyState(
+                      icon: Icons.location_on_outlined,
+                      title: _searchController.text.isEmpty ? 'Belum Ada Lokasi' : 'Lokasi Tidak Ditemukan',
+                      subtitle: _searchController.text.isEmpty
+                          ? 'Belum ada lokasi dari server'
+                          : 'Coba dengan kata kunci lain',
+                      actionText: 'Refresh',
+                      onAction: () async {
+                        await context.read<ClientMasterProvider>().fetchLokasi();
+                        _onSearchChanged();
+                      },
+                      iconColor: kPrimaryColor,
+                    );
+                  }
+
+                  return Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Semua Lokasi',
+                              style: primaryTextStyle.copyWith(fontSize: 14, fontWeight: bold),
+                            ),
+                            Text(
+                              '${listToShow.length} ditemukan',
+                              style: greyTextStyle.copyWith(fontSize: 12),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Expanded(
+                          child: ListView.separated(
+                            padding: const EdgeInsets.only(bottom: 20),
+                            itemCount: listToShow.length,
+                            separatorBuilder: (_, __) => const SizedBox(height: 16),
+                            itemBuilder: (context, index) {
+                              final lokasi = listToShow[index];
+                              return ModernLokasiCard(
+                                lokasi: lokasi,
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (_) => AcListPage(lokasi: lokasi)),
+                                  );
+                                },
+                                // NOTE: client belum punya CRUD lokasi di API
+                                onEdit: () => _openForm(lokasi: lokasi),
+                                onDelete: () => _deleteLokasi(lokasi),
+                              );
+                            },
+                          ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 16),
-                    Expanded(
-                      child: ListView.separated(
-                        padding: const EdgeInsets.only(bottom: 20),
-                        itemCount: _filteredLokasi.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 16),
-                        itemBuilder: (context, index) {
-                          final lokasi = _filteredLokasi[index];
-                          return ModernLokasiCard(
-                            lokasi: lokasi,
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => AcListPage(lokasi: lokasi),
-                                ),
-                              );
-                            },
-                            onEdit: () => _openForm(lokasi: lokasi),
-                            onDelete: () => _deleteLokasi(lokasi),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                ),
+                  );
+                },
               ),
             ),
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _openForm(),
-        backgroundColor: kSecondaryColor,
-        foregroundColor: Colors.white,
-        elevation: 6,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: const Icon(Icons.add, size: 28),
-      ),
+      // floatingActionButton: FloatingActionButton(
+      //   onPressed: () async {
+      //     await context.read<ClientMasterProvider>().fetchLokasi();
+      //     _onSearchChanged();
+      //   },
+      //   backgroundColor: kSecondaryColor,
+      //   foregroundColor: Colors.white,
+      //   elevation: 6,
+      //   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      //   child: const Icon(Icons.refresh, size: 24),
+      // ),
     );
   }
 }

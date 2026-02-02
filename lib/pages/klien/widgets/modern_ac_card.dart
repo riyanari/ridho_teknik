@@ -6,14 +6,14 @@ import '../../../theme/theme.dart';
 class ModernAcCard extends StatelessWidget {
   final AcModel ac;
   final VoidCallback onTap;
-  final VoidCallback onEdit;
-  final VoidCallback onDelete;
+  // final VoidCallback onEdit;
+  // final VoidCallback onDelete;
 
   const ModernAcCard({
     required this.ac,
     required this.onTap,
-    required this.onEdit,
-    required this.onDelete,
+    // required this.onEdit,
+    // required this.onDelete,
   });
 
   Color _getStatusColor() {
@@ -139,71 +139,71 @@ class ModernAcCard extends StatelessWidget {
                       ),
                     ],
                   ),
-                  PopupMenuButton<String>(
-                    icon: Icon(
-                      Icons.more_vert_rounded,
-                      color: kGreyColor.withValues(alpha:0.7),
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 3,
-                    onSelected: (value) {
-                      if (value == 'edit') onEdit();
-                      if (value == 'delete') onDelete();
-                    },
-                    itemBuilder: (_) => [
-                      PopupMenuItem(
-                        value: 'edit',
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: BoxDecoration(
-                                color: kBoxMenuDarkBlueColor.withValues(alpha:0.1),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                Icons.edit_rounded,
-                                size: 16,
-                                color: kBoxMenuDarkBlueColor,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Text(
-                              'Edit AC',
-                              style: primaryTextStyle.copyWith(fontSize: 14),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const PopupMenuDivider(),
-                      PopupMenuItem(
-                        value: 'delete',
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: BoxDecoration(
-                                color: kBoxMenuRedColor.withValues(alpha:0.1),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                Icons.delete_rounded,
-                                size: 16,
-                                color: kBoxMenuRedColor,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Text(
-                              'Hapus AC',
-                              style: errorTextStyle.copyWith(fontSize: 14),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
+                  // PopupMenuButton<String>(
+                  //   icon: Icon(
+                  //     Icons.more_vert_rounded,
+                  //     color: kGreyColor.withValues(alpha:0.7),
+                  //   ),
+                  //   shape: RoundedRectangleBorder(
+                  //     borderRadius: BorderRadius.circular(12),
+                  //   ),
+                  //   elevation: 3,
+                  //   onSelected: (value) {
+                  //     if (value == 'edit') onEdit();
+                  //     if (value == 'delete') onDelete();
+                  //   },
+                  //   itemBuilder: (_) => [
+                  //     PopupMenuItem(
+                  //       value: 'edit',
+                  //       child: Row(
+                  //         children: [
+                  //           Container(
+                  //             padding: const EdgeInsets.all(4),
+                  //             decoration: BoxDecoration(
+                  //               color: kBoxMenuDarkBlueColor.withValues(alpha:0.1),
+                  //               shape: BoxShape.circle,
+                  //             ),
+                  //             child: Icon(
+                  //               Icons.edit_rounded,
+                  //               size: 16,
+                  //               color: kBoxMenuDarkBlueColor,
+                  //             ),
+                  //           ),
+                  //           const SizedBox(width: 12),
+                  //           Text(
+                  //             'Edit AC',
+                  //             style: primaryTextStyle.copyWith(fontSize: 14),
+                  //           ),
+                  //         ],
+                  //       ),
+                  //     ),
+                  //     const PopupMenuDivider(),
+                  //     PopupMenuItem(
+                  //       value: 'delete',
+                  //       child: Row(
+                  //         children: [
+                  //           Container(
+                  //             padding: const EdgeInsets.all(4),
+                  //             decoration: BoxDecoration(
+                  //               color: kBoxMenuRedColor.withValues(alpha:0.1),
+                  //               shape: BoxShape.circle,
+                  //             ),
+                  //             child: Icon(
+                  //               Icons.delete_rounded,
+                  //               size: 16,
+                  //               color: kBoxMenuRedColor,
+                  //             ),
+                  //           ),
+                  //           const SizedBox(width: 12),
+                  //           Text(
+                  //             'Hapus AC',
+                  //             style: errorTextStyle.copyWith(fontSize: 14),
+                  //           ),
+                  //         ],
+                  //       ),
+                  //     ),
+                  //   ],
+                  // ),
                 ],
               ),
 

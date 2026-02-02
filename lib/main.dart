@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:ridho_teknik/providers/client_ac_provider.dart';
+import 'package:ridho_teknik/providers/client_master_provider.dart';
+import 'package:ridho_teknik/services/client_master_service.dart';
 
+import 'api/api_client.dart';
 import 'pages/splash_page.dart';
 import 'pages/login_page.dart';
 import 'pages/home_page.dart';
@@ -28,12 +32,36 @@ class MyApp extends StatelessWidget {
       providers: [
         Provider<TokenStore>.value(value: _tokenStore),
         Provider<AuthService>.value(value: _authService),
+
+        // ApiClient (pakai tokenStore)
+        Provider<ApiClient>(
+          create: (_) => ApiClient(store: _tokenStore),
+        ),
+
+        // Auth Provider kamu (tetap)
         ChangeNotifierProvider(
           create: (context) => AuthProvider(
             service: context.read<AuthService>(),
             store: context.read<TokenStore>(),
           ),
         ),
+
+        // Client services + provider
+        Provider<ClientMasterService>(
+          create: (context) => ClientMasterService(api: context.read<ApiClient>()),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => ClientMasterProvider(
+            service: context.read<ClientMasterService>(),
+          ),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => ClientAcProvider(
+            service: context.read<ClientMasterService>(),
+          ),
+        ),
+
+
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
