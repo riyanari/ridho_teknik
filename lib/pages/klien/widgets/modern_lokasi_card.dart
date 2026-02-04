@@ -7,13 +7,13 @@ class ModernLokasiCard extends StatelessWidget {
   final LokasiModel lokasi;
   final VoidCallback onTap;
   final VoidCallback onEdit;
-  final VoidCallback onDelete;
+  // final VoidCallback onDelete;
 
   const ModernLokasiCard({super.key,
     required this.lokasi,
     required this.onTap,
     required this.onEdit,
-    required this.onDelete,
+    // required this.onDelete,
   });
 
   Color _getStatusColor() {
@@ -71,10 +71,11 @@ class ModernLokasiCard extends StatelessWidget {
           Text(
             statusText,
             style: primaryTextStyle.copyWith(
-              fontSize: 12,
+              fontSize: 10,
               fontWeight: medium,
               color: days <= 30 ? Colors.white : statusColor,
             ),
+            maxLines: 2,
           ),
         ],
       ),
@@ -170,7 +171,7 @@ class ModernLokasiCard extends StatelessWidget {
                     elevation: 3,
                     onSelected: (value) {
                       if (value == 'edit') onEdit();
-                      if (value == 'delete') onDelete();
+                      // if (value == 'delete') onDelete();
                     },
                     itemBuilder: (_) => [
                       PopupMenuItem(
@@ -197,31 +198,31 @@ class ModernLokasiCard extends StatelessWidget {
                           ],
                         ),
                       ),
-                      const PopupMenuDivider(),
-                      PopupMenuItem(
-                        value: 'delete',
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: BoxDecoration(
-                                color: kBoxMenuRedColor.withValues(alpha:0.1),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                Icons.delete_rounded,
-                                size: 16,
-                                color: kBoxMenuRedColor,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Text(
-                              'Hapus Lokasi',
-                              style: errorTextStyle.copyWith(fontSize: 14),
-                            ),
-                          ],
-                        ),
-                      ),
+                      // const PopupMenuDivider(),
+                      // PopupMenuItem(
+                      //   value: 'delete',
+                      //   child: Row(
+                      //     children: [
+                      //       Container(
+                      //         padding: const EdgeInsets.all(4),
+                      //         decoration: BoxDecoration(
+                      //           color: kBoxMenuRedColor.withValues(alpha:0.1),
+                      //           shape: BoxShape.circle,
+                      //         ),
+                      //         child: Icon(
+                      //           Icons.delete_rounded,
+                      //           size: 16,
+                      //           color: kBoxMenuRedColor,
+                      //         ),
+                      //       ),
+                      //       const SizedBox(width: 12),
+                      //       Text(
+                      //         'Hapus Lokasi',
+                      //         style: errorTextStyle.copyWith(fontSize: 14),
+                      //       ),
+                      //     ],
+                      //   ),
+                      // ),
                     ],
                   ),
                 ],
@@ -298,7 +299,7 @@ class ModernLokasiCard extends StatelessWidget {
             Text(
               text,
               style: primaryTextStyle.copyWith(
-                fontSize: 12,
+                fontSize: 10,
                 fontWeight: medium,
                 color: color,
               ),

@@ -11,7 +11,6 @@ import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 
-
 class KlienPage extends StatefulWidget {
   const KlienPage({super.key});
 
@@ -20,42 +19,9 @@ class KlienPage extends StatefulWidget {
 }
 
 class _KlienPageState extends State<KlienPage> {
-
-
-  final List<LokasiModel> lokasiList = [
-    LokasiModel(
-      id: 'L1',
-      nama: 'Rumah Pak Budi',
-      alamat: 'Jl. Sudirman No. 123, Jakarta Pusat',
-      jumlahAC: 3,
-      lastService: DateTime.now().subtract(const Duration(days: 15)),
-    ),
-    LokasiModel(
-      id: 'L2',
-      nama: 'Toko Bu Ani',
-      alamat: 'Jl. Ahmad Yani No. 45, Bekasi Barat',
-      jumlahAC: 2,
-      lastService: DateTime.now().subtract(const Duration(days: 45)),
-    ),
-    LokasiModel(
-      id: 'L3',
-      nama: 'Kantor PT Maju Jaya',
-      alamat: 'Gedung Graha, Lantai 8, Jakarta Selatan',
-      jumlahAC: 5,
-      lastService: DateTime.now().subtract(const Duration(days: 60)),
-    ),
-  ];
-
   // Untuk search
   final TextEditingController _searchController = TextEditingController();
   List<LokasiModel> _filteredLokasi = [];
-
-  // @override
-  // void initState() {
-  //   super.initState();
-  //   _filteredLokasi = lokasiList;
-  //   _searchController.addListener(_onSearchChanged);
-  // }
 
   @override
   void initState() {
@@ -93,16 +59,6 @@ class _KlienPageState extends State<KlienPage> {
     ).show();
   }
 
-
-  // void _onSearchChanged() {
-  //   final query = _searchController.text.toLowerCase();
-  //   setState(() {
-  //     _filteredLokasi = lokasiList.where((lokasi) {
-  //       return lokasi.nama.toLowerCase().contains(query) ||
-  //           lokasi.alamat.toLowerCase().contains(query);
-  //     }).toList();
-  //   });
-  // }
   void _onSearchChanged() {
     final query = _searchController.text.toLowerCase();
     final provider = context.read<ClientMasterProvider>();
@@ -116,7 +72,6 @@ class _KlienPageState extends State<KlienPage> {
     });
   }
 
-
   void _openForm({LokasiModel? lokasi}) async {
     final result = await showModalBottomSheet<LokasiModel>(
       context: context,
@@ -128,23 +83,16 @@ class _KlienPageState extends State<KlienPage> {
     if (result == null) return;
 
     setState(() {
-      final index = lokasiList.indexWhere((e) => e.id == result.id);
+      final index = _filteredLokasi.indexWhere((e) => e.id == result.id);
       if (index >= 0) {
-        lokasiList[index] = result;
+        _filteredLokasi[index] = result;
         _showSnackBar('Lokasi berhasil diperbarui', kBoxMenuGreenColor);
       } else {
-        lokasiList.add(result);
+        _filteredLokasi.add(result);
         _showSnackBar('Lokasi berhasil ditambahkan', kBoxMenuGreenColor);
       }
       _onSearchChanged();
     });
-  }
-
-  void _deleteLokasi(LokasiModel lokasi) {
-    showDialog(
-      context: context,
-      builder: (_) => _deleteDialog(lokasi),
-    );
   }
 
   void _showSnackBar(String message, Color color) {
@@ -158,80 +106,6 @@ class _KlienPageState extends State<KlienPage> {
     );
   }
 
-  Widget _deleteDialog(LokasiModel lokasi) {
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      backgroundColor: kWhiteColor,
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [kBoxMenuRedColor, Colors.red[700]!],
-                ),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(Icons.warning_amber_rounded, color: Colors.white, size: 32),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Hapus Lokasi?',
-              style: primaryTextStyle.copyWith(fontSize: 20, fontWeight: bold),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Lokasi "${lokasi.nama}" akan dihapus permanen. Tindakan ini tidak dapat dibatalkan.',
-              style: greyTextStyle.copyWith(fontSize: 14),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 28),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.pop(context),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      side: BorderSide(color: kGreyColor.withValues(alpha:0.5)),
-                    ),
-                    child: Text('Batal', style: blackTextStyle.copyWith(fontWeight: medium)),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      setState(() => lokasiList.removeWhere((e) => e.id == lokasi.id));
-                      Navigator.pop(context);
-                      _onSearchChanged();
-                      _showSnackBar('Lokasi berhasil dihapus', kBoxMenuRedColor);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: kBoxMenuRedColor,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      elevation: 2,
-                    ),
-                    child: Text('Hapus', style: whiteTextStyle.copyWith(fontWeight: bold)),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   String _getNamaUser(BuildContext context) {
     final auth = context.read<AuthProvider>();
     final name = auth.user?.name?.trim();
@@ -239,13 +113,117 @@ class _KlienPageState extends State<KlienPage> {
     return 'Klien';
   }
 
-
   Widget _buildHeaderStats() {
-    final totalAC = lokasiList.fold(0, (sum, lokasi) => sum + lokasi.jumlahAC);
-    final activeLocations = lokasiList.where((l) =>
-        l.lastService.isAfter(DateTime.now().subtract(const Duration(days: 30)))
-    ).length;
+    // Access the list of locations from the provider
+    final lokasiList = context.watch<ClientMasterProvider>().lokasi;
 
+    // Return an empty state or something else if lokasiList is empty
+    if (lokasiList.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [kPrimaryColor, Color(0xFF5D6BC0)],
+          ),
+          borderRadius: const BorderRadius.only(
+            bottomLeft: Radius.circular(30),
+            bottomRight: Radius.circular(30),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: kPrimaryColor.withValues(alpha: 0.3),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Halo, ${_getNamaUser(context)}!',
+                      style: whiteTextStyle.copyWith(
+                        fontSize: 16,
+                        fontWeight: bold,
+                      ),
+                    ),
+                    Text(
+                      'Kelola lokasi dan AC Anda',
+                      style: whiteTextStyle.copyWith(
+                        fontSize: 12,
+                        fontWeight: regular,
+                        color: Colors.white.withValues(alpha: 0.8),
+                      ),
+                    ),
+                  ],
+                ),
+                GestureDetector(
+                  onTap: () => _confirmLogout(context),
+                  child: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.logout_rounded,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+
+            // Search Bar
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(15),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.1),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  hintText: 'Cari lokasi...',
+                  hintStyle: greyTextStyle,
+                  prefixIcon: Icon(Icons.search, color: kPrimaryColor),
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(
+                    vertical: 10,
+                    horizontal: 20,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Display a message or empty state if there are no locations
+            Text(
+              'Belum ada lokasi',
+              style: whiteTextStyle.copyWith(fontSize: 16, fontWeight: bold),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Return the actual stats when lokasiList is not empty
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -260,7 +238,7 @@ class _KlienPageState extends State<KlienPage> {
         ),
         boxShadow: [
           BoxShadow(
-            color: kPrimaryColor.withValues(alpha:0.3),
+            color: kPrimaryColor.withValues(alpha: 0.3),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -287,7 +265,7 @@ class _KlienPageState extends State<KlienPage> {
                     style: whiteTextStyle.copyWith(
                       fontSize: 12,
                       fontWeight: regular,
-                      color: Colors.white.withValues(alpha:0.8),
+                      color: Colors.white.withValues(alpha: 0.8),
                     ),
                   ),
                 ],
@@ -318,7 +296,7 @@ class _KlienPageState extends State<KlienPage> {
               borderRadius: BorderRadius.circular(15),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha:0.1),
+                  color: Colors.black.withValues(alpha: 0.1),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -350,27 +328,29 @@ class _KlienPageState extends State<KlienPage> {
                   value: lokasiList.length.toString(),
                   icon: Icons.location_city_rounded,
                   color: Colors.white,
-                  bgColor: Colors.white.withValues(alpha:0.2),
+                  bgColor: Colors.white.withValues(alpha: 0.2),
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: _buildStatCard(
                   title: 'Total AC',
-                  value: totalAC.toString(),
+                  value: lokasiList.fold(0, (sum, lokasi) => sum + lokasi.jumlahAC).toString(),
                   icon: Icons.ac_unit_rounded,
                   color: Colors.white,
-                  bgColor: Colors.white.withValues(alpha:0.2),
+                  bgColor: Colors.white.withValues(alpha: 0.2),
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: _buildStatCard(
                   title: 'Aktif',
-                  value: activeLocations.toString(),
+                  value: lokasiList.where((l) =>
+                      l.lastService.isAfter(DateTime.now().subtract(const Duration(days: 30)))
+                  ).length.toString(),
                   icon: Icons.check_circle_rounded,
                   color: Colors.white,
-                  bgColor: Colors.white.withValues(alpha:0.2),
+                  bgColor: Colors.white.withValues(alpha: 0.2),
                 ),
               ),
             ],
@@ -420,7 +400,7 @@ class _KlienPageState extends State<KlienPage> {
             ),
           ],
         ));
-    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -508,7 +488,6 @@ class _KlienPageState extends State<KlienPage> {
                                 },
                                 // NOTE: client belum punya CRUD lokasi di API
                                 onEdit: () => _openForm(lokasi: lokasi),
-                                onDelete: () => _deleteLokasi(lokasi),
                               );
                             },
                           ),
@@ -522,17 +501,6 @@ class _KlienPageState extends State<KlienPage> {
           ],
         ),
       ),
-      // floatingActionButton: FloatingActionButton(
-      //   onPressed: () async {
-      //     await context.read<ClientMasterProvider>().fetchLokasi();
-      //     _onSearchChanged();
-      //   },
-      //   backgroundColor: kSecondaryColor,
-      //   foregroundColor: Colors.white,
-      //   elevation: 6,
-      //   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      //   child: const Icon(Icons.refresh, size: 24),
-      // ),
     );
   }
 }

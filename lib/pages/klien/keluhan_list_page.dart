@@ -1,8 +1,11 @@
 // lib/pages/klien/keluhan_list_page.dart
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:provider/provider.dart';
 import 'package:ridho_teknik/pages/klien/widgets/app_card.dart';
 import '../../models/keluhan_model.dart';
 import '../../models/lokasi_model.dart';
+import '../../providers/client_keluhan_provider.dart';
 import '../../theme/theme.dart';
 
 class KeluhanListPage extends StatefulWidget {
@@ -14,38 +17,26 @@ class KeluhanListPage extends StatefulWidget {
 }
 
 class _KeluhanListPageState extends State<KeluhanListPage> {
-  final List<KeluhanModel> _keluhanList = [
-    KeluhanModel(
-      id: 'K1',
-      lokasiId: 'L1',
-      acId: 'A1',
-      judul: 'AC Tidak Dingin',
-      deskripsi: 'AC di ruang tamu tidak dingin meski suhu sudah minimum',
-      status: KeluhanStatus.diproses,
-      prioritas: Prioritas.tinggi,
-      tanggalDiajukan: DateTime.now().subtract(const Duration(days: 2)),
-      assignedTo: 'S1',
-    ),
-    KeluhanModel(
-      id: 'K2',
-      lokasiId: 'L1',
-      acId: 'A2',
-      judul: 'AC Berisik',
-      deskripsi: 'AC mengeluarkan suara berisik saat dinyalakan',
-      status: KeluhanStatus.selesai,
-      prioritas: Prioritas.sedang,
-      tanggalDiajukan: DateTime.now().subtract(const Duration(days: 7)),
-      tanggalSelesai: DateTime.now().subtract(const Duration(days: 1)),
-      assignedTo: 'S2',
-    ),
-  ];
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<ClientKeluhanProvider>().fetchKeluhan();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    final filteredKeluhan = _keluhanList
-        .where((keluhan) => keluhan.lokasiId == widget.lokasi.id)
-        .toList();
+    // final filteredKeluhan = _keluhanList
+    //     .where((keluhan) => keluhan.lokasiId == widget.lokasi.id)
+    //     .toList();
 
+    return Consumer<ClientKeluhanProvider>(
+  builder: (context, prov, _) {
+    final filteredKeluhan = prov.keluhanList
+        .where((k) => k.lokasiId == widget.lokasi.id)
+        .toList();
     return Scaffold(
       appBar: AppBar(
         title: Text('Riwayat Keluhan', style: titleWhiteTextStyle.copyWith(fontSize: 18)),
@@ -136,6 +127,8 @@ class _KeluhanListPageState extends State<KeluhanListPage> {
         ),
       ),
     );
+  },
+);
   }
 
   Widget _buildStatItem(String label, String value, IconData icon, Color color) {

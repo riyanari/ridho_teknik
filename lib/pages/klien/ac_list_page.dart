@@ -1,6 +1,7 @@
 // lib/pages/klien/ac_list_page.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:ridho_teknik/pages/klien/servis_history_page.dart';
 import 'package:ridho_teknik/pages/klien/widgets/empty_state.dart';
 import 'package:ridho_teknik/pages/klien/widgets/modern_ac_card.dart';
 import '../../models/ac_model.dart';
@@ -8,7 +9,6 @@ import '../../models/lokasi_model.dart';
 import '../../providers/client_ac_provider.dart';
 import '../../theme/theme.dart';
 import 'keluhan_create_page.dart';
-import 'keluhan_list_page.dart';
 
 class AcListPage extends StatefulWidget {
   final LokasiModel lokasi;
@@ -53,136 +53,6 @@ class _AcListPageState extends State<AcListPage> {
       }).toList();
     });
   }
-
-
-  // Di dalam _AcListPageState class, update method _openAcForm:
-  // void _openAcForm({AcModel? ac}) async {
-  //   final result = await showModalBottomSheet<AcModel>(
-  //     context: context,
-  //     isScrollControlled: true,
-  //     backgroundColor: Colors.transparent,
-  //     builder: (_) => AcFormDialog(
-  //       initial: ac,
-  //       lokasiId: widget.lokasi.id,
-  //     ),
-  //   );
-  //
-  //   if (result == null) return;
-  //
-  //   setState(() {
-  //     final index = acList.indexWhere((e) => e.id == result.id);
-  //     if (index >= 0) {
-  //       acList[index] = result;
-  //       _showSnackBar(
-  //         ac == null
-  //             ? 'AC berhasil ditambahkan'
-  //             : 'AC berhasil diperbarui',
-  //         kBoxMenuGreenColor,
-  //       );
-  //     } else {
-  //       acList.add(result);
-  //       _showSnackBar('AC berhasil ditambahkan', kBoxMenuGreenColor);
-  //     }
-  //     _onSearchChanged();
-  //   });
-  // }
-
-// Tambahkan method _showSnackBar:
-  void _showSnackBar(String message, Color color) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message, style: whiteTextStyle.copyWith(fontWeight: medium)),
-        backgroundColor: color,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
-
-  // void _deleteAc(AcModel ac) {
-  //   showDialog(
-  //     context: context,
-  //     builder: (_) => Dialog(
-  //       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-  //       backgroundColor: kWhiteColor,
-  //       child: Padding(
-  //         padding: const EdgeInsets.all(24),
-  //         child: Column(
-  //           mainAxisSize: MainAxisSize.min,
-  //           children: [
-  //             Container(
-  //               padding: const EdgeInsets.all(16),
-  //               decoration: BoxDecoration(
-  //                 gradient: LinearGradient(
-  //                   colors: [kBoxMenuRedColor, Colors.red[700]!],
-  //                 ),
-  //                 shape: BoxShape.circle,
-  //               ),
-  //               child: const Icon(Icons.warning_amber_rounded, color: Colors.white, size: 32),
-  //             ),
-  //             const SizedBox(height: 16),
-  //             Text(
-  //               'Hapus AC?',
-  //               style: primaryTextStyle.copyWith(fontSize: 20, fontWeight: bold),
-  //             ),
-  //             const SizedBox(height: 12),
-  //             Text(
-  //               'AC "${ac.nama}" akan dihapus permanen. Tindakan ini tidak dapat dibatalkan.',
-  //               style: greyTextStyle.copyWith(fontSize: 14),
-  //               textAlign: TextAlign.center,
-  //             ),
-  //             const SizedBox(height: 28),
-  //             Row(
-  //               children: [
-  //                 Expanded(
-  //                   child: OutlinedButton(
-  //                     onPressed: () => Navigator.pop(context),
-  //                     style: OutlinedButton.styleFrom(
-  //                       padding: const EdgeInsets.symmetric(vertical: 14),
-  //                       shape: RoundedRectangleBorder(
-  //                         borderRadius: BorderRadius.circular(12),
-  //                       ),
-  //                       side: BorderSide(color: kGreyColor.withValues(alpha:0.5)),
-  //                     ),
-  //                     child: Text('Batal', style: blackTextStyle.copyWith(fontWeight: medium)),
-  //                   ),
-  //                 ),
-  //                 const SizedBox(width: 16),
-  //                 Expanded(
-  //                   child: ElevatedButton(
-  //                     onPressed: () {
-  //                       setState(() => acList.removeWhere((e) => e.id == ac.id));
-  //                       Navigator.pop(context);
-  //                       _onSearchChanged();
-  //                       ScaffoldMessenger.of(context).showSnackBar(
-  //                         SnackBar(
-  //                           content: Text(
-  //                             'AC "${ac.nama}" berhasil dihapus',
-  //                             style: whiteTextStyle.copyWith(fontWeight: medium),
-  //                           ),
-  //                           backgroundColor: kBoxMenuRedColor,
-  //                           behavior: SnackBarBehavior.floating,
-  //                         ),
-  //                       );
-  //                     },
-  //                     style: ElevatedButton.styleFrom(
-  //                       backgroundColor: kBoxMenuRedColor,
-  //                       padding: const EdgeInsets.symmetric(vertical: 14),
-  //                       shape: RoundedRectangleBorder(
-  //                         borderRadius: BorderRadius.circular(12),
-  //                       ),
-  //                       elevation: 2,
-  //                     ),
-  //                     child: Text('Hapus', style: whiteTextStyle.copyWith(fontWeight: bold)),
-  //                   ),
-  //                 ),
-  //               ],
-  //             ),
-  //           ],
-  //         ),
-  //       ),
-  //     ),
-  //   );
-  // }
 
   Widget _buildHeader(List<AcModel> list) {
     final totalAC = list.length;
@@ -259,7 +129,7 @@ class _AcListPageState extends State<AcListPage> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => KeluhanListPage(lokasi: widget.lokasi),
+                          builder: (_) => ServisHistoryPage(lokasi: widget.lokasi),
                         ),
                       );
                     },

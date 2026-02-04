@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:ridho_teknik/providers/client_ac_provider.dart';
+import 'package:ridho_teknik/providers/client_keluhan_provider.dart';
 import 'package:ridho_teknik/providers/client_master_provider.dart';
+import 'package:ridho_teknik/providers/client_servis_provider.dart';
+import 'package:ridho_teknik/services/client_keluhan_service.dart';
 import 'package:ridho_teknik/services/client_master_service.dart';
+import 'package:ridho_teknik/services/client_servis_service.dart';
 
 import 'api/api_client.dart';
 import 'pages/splash_page.dart';
@@ -32,10 +36,19 @@ class MyApp extends StatelessWidget {
       providers: [
         Provider<TokenStore>.value(value: _tokenStore),
         Provider<AuthService>.value(value: _authService),
-
         // ApiClient (pakai tokenStore)
         Provider<ApiClient>(
           create: (_) => ApiClient(store: _tokenStore),
+        ),
+        Provider<ClientMasterService>(
+          create: (context) => ClientMasterService(api: context.read<ApiClient>()),
+        ),
+        // Tambahkan provider untuk service-service baru
+        Provider<ClientKeluhanService>(
+          create: (context) => ClientKeluhanService(api: context.read<ApiClient>()),
+        ),
+        Provider<ClientServisService>(
+          create: (context) => ClientServisService(api: context.read<ApiClient>()),
         ),
 
         // Auth Provider kamu (tetap)
@@ -47,9 +60,6 @@ class MyApp extends StatelessWidget {
         ),
 
         // Client services + provider
-        Provider<ClientMasterService>(
-          create: (context) => ClientMasterService(api: context.read<ApiClient>()),
-        ),
         ChangeNotifierProvider(
           create: (context) => ClientMasterProvider(
             service: context.read<ClientMasterService>(),
@@ -60,7 +70,17 @@ class MyApp extends StatelessWidget {
             service: context.read<ClientMasterService>(),
           ),
         ),
-
+        // Tambahkan ChangeNotifierProvider untuk keluhan dan servis
+        ChangeNotifierProvider(
+          create: (context) => ClientKeluhanProvider(
+            service: context.read<ClientKeluhanService>(),
+          ),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => ClientServisProvider(
+            service: context.read<ClientServisService>(),
+          ),
+        ),
 
       ],
       child: MaterialApp(
