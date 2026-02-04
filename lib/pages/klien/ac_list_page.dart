@@ -9,6 +9,7 @@ import '../../models/lokasi_model.dart';
 import '../../providers/client_ac_provider.dart';
 import '../../theme/theme.dart';
 import 'keluhan_create_page.dart';
+import 'cuci_ac_page.dart'; // Halaman untuk cuci AC
 
 class AcListPage extends StatefulWidget {
   final LokasiModel lokasi;
@@ -19,7 +20,6 @@ class AcListPage extends StatefulWidget {
 }
 
 class _AcListPageState extends State<AcListPage> {
-
   final TextEditingController _searchController = TextEditingController();
   List<AcModel> _filteredAC = [];
 
@@ -33,7 +33,6 @@ class _AcListPageState extends State<AcListPage> {
       context.read<ClientAcProvider>().fetchAc(locationId: locId);
     });
   }
-
 
   @override
   void dispose() {
@@ -52,6 +51,32 @@ class _AcListPageState extends State<AcListPage> {
             ac.type.toLowerCase().contains(query));
       }).toList();
     });
+  }
+
+  void _openCuciAcPage() {
+    final listToShow = _searchController.text.isEmpty
+        ? context.read<ClientAcProvider>().ac
+        : _filteredAC;
+
+    if (listToShow.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Tidak ada AC di lokasi ini'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CuciAcPage(
+          lokasi: widget.lokasi,
+          acList: listToShow,
+        ),
+      ),
+    );
   }
 
   Widget _buildHeader(List<AcModel> list) {
@@ -142,18 +167,18 @@ class _AcListPageState extends State<AcListPage> {
                       child: const Icon(Icons.history_rounded, color: Colors.white, size: 20),
                     ),
                   ),
-                  // const SizedBox(width: 8),
-                  // GestureDetector(
-                  //   onTap: () => _openAcForm(),
-                  //   child: Container(
-                  //     padding: const EdgeInsets.all(8),
-                  //     decoration: BoxDecoration(
-                  //       color: Colors.white.withValues(alpha:0.2),
-                  //       shape: BoxShape.circle,
-                  //     ),
-                  //     child: const Icon(Icons.add, color: Colors.white, size: 20),
-                  //   ),
-                  // ),
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: _openCuciAcPage,
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha:0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.cleaning_services, color: Colors.white, size: 20),
+                    ),
+                  ),
                 ],
               ),
             ],
@@ -202,7 +227,7 @@ class _AcListPageState extends State<AcListPage> {
                   bgColor: Colors.white.withValues(alpha:0.2),
                 ),
               ),
-              SizedBox(width: 8,),
+              const SizedBox(width: 8),
               Expanded(
                 child: _buildStatCard(
                   title: 'Normal',
@@ -212,7 +237,7 @@ class _AcListPageState extends State<AcListPage> {
                   bgColor: Colors.white.withValues(alpha:0.2),
                 ),
               ),
-              SizedBox(width: 8,),
+              const SizedBox(width: 8),
               Expanded(
                 child: _buildStatCard(
                   title: 'Perlu Service',
@@ -296,14 +321,47 @@ class _AcListPageState extends State<AcListPage> {
               );
             }
 
-            // kalau search kosong => pakai prov.ac
-            // kalau search ada => pakai _filteredAC
             final listToShow =
             _searchController.text.isEmpty ? prov.ac : _filteredAC;
 
             return Column(
               children: [
                 _buildHeader(listToShow),
+
+                // Quick Action Button untuk Cuci AC
+                if (listToShow.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 16,
+                    ),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: _openCuciAcPage,
+                        icon: Icon(Icons.cleaning_services, size: 20),
+                        label: Text(
+                          'CUCI SEMUA AC DI LOKASI INI',
+                          style: whiteTextStyle.copyWith(
+                            fontSize: 13,
+                            fontWeight: bold,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: kPrimaryColor,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 14,
+                            horizontal: 20,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 3,
+                        ),
+                      ),
+                    ),
+                  ),
 
                 Expanded(
                   child: listToShow.isEmpty
@@ -343,7 +401,8 @@ class _AcListPageState extends State<AcListPage> {
                             ),
                             Text(
                               '${listToShow.length} ditemukan',
-                              style: greyTextStyle.copyWith(fontSize: 12),
+                              style:
+                              greyTextStyle.copyWith(fontSize: 12),
                             ),
                           ],
                         ),
@@ -368,8 +427,6 @@ class _AcListPageState extends State<AcListPage> {
                                     ),
                                   );
                                 },
-                                // onEdit: () => _openAcForm(ac: ac),
-                                // onDelete: () => _deleteAc(ac),
                               );
                             },
                           ),
