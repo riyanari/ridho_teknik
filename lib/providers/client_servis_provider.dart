@@ -1,4 +1,6 @@
 // lib/providers/client_servis_provider.dart
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:ridho_teknik/models/servis_model.dart';
 import 'package:ridho_teknik/services/client_servis_service.dart';
@@ -16,6 +18,9 @@ class ClientServisProvider extends ChangeNotifier {
   // State untuk request cuci
   bool submittingCuci = false;
   String? submitError;
+
+  bool submittingPerbaikan = false;
+  String? submitPerbaikanError;
 
   Future<void> fetchServis({String? acId, String? lokasiId}) async {
     loading = true;
@@ -132,12 +137,89 @@ class ClientServisProvider extends ChangeNotifier {
 
       return response;
 
-    } catch (e, stackTrace) {
+    } catch (e) {
       submitError = 'Gagal mengirim request cuci: ${e.toString()}';
       submittingCuci = false;
       notifyListeners();
       rethrow;
     }
+  }
+
+  Future<Map<String, dynamic>> requestPerbaikan({
+    required dynamic locationId,
+    required dynamic acUnitId,
+    required String keluhan,
+    required String priority,
+    List<File>? fotoKeluhan,
+    String? tanggalBerkunjung,
+  }) async {
+    submittingPerbaikan = true;
+    submitPerbaikanError = null;
+    notifyListeners();
+
+    try {
+      print('=== REQUEST PERBAIKAN FROM PROVIDER ===');
+
+      // Konversi locationId dan acUnitId ke int jika perlu
+      final int locationIdInt = _parseToInt(locationId);
+      final int acUnitIdInt = _parseToInt(acUnitId);
+
+      print('Location ID: $locationIdInt');
+      print('AC Unit ID: $acUnitIdInt');
+      print('Keluhan: $keluhan');
+      print('Priority: $priority');
+      print('Foto Keluhan count: ${fotoKeluhan?.length ?? 0}');
+      print('Tanggal Berkunjung: $tanggalBerkunjung');
+
+      // Panggil service
+      final response = await service.requestPerbaikan(
+        locationId: locationIdInt,
+        acUnitId: acUnitIdInt,
+        keluhan: keluhan,
+        priority: priority,
+        fotoKeluhan: fotoKeluhan,
+        tanggalBerkunjung: tanggalBerkunjung,
+      );
+
+      print('Response received in provider: $response');
+
+      // Tambahkan ke list servis jika berhasil
+      try {
+        final newServis = ServisModel.fromMap(response);
+        servisList.insert(0, newServis); // Tambahkan di awal list
+      } catch (e) {
+        print('Warning: Failed to parse new servis: $e');
+      }
+
+      // Reset state
+      submittingPerbaikan = false;
+      notifyListeners();
+
+      return response;
+
+    } catch (e) {
+      submitPerbaikanError = 'Gagal mengirim request perbaikan: ${e.toString()}';
+      submittingPerbaikan = false;
+      notifyListeners();
+      rethrow;
+    }
+  }
+
+  // Helper method untuk parse ke int
+  int _parseToInt(dynamic value) {
+    if (value is String) {
+      return int.parse(value);
+    } else if (value is int) {
+      return value;
+    } else {
+      throw Exception('Value harus String atau int');
+    }
+  }
+
+  // Clear errors untuk perbaikan
+  void clearPerbaikanError() {
+    submitPerbaikanError = null;
+    notifyListeners();
   }
 
   // Helper methods

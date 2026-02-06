@@ -47,7 +47,7 @@ class MyApp extends StatelessWidget {
         Provider<ApiClient>(create: (_) => ApiClient(store: _tokenStore),),
         Provider<ClientMasterService>(create: (context) => ClientMasterService(api: context.read<ApiClient>()),),
         // Provider<ClientKeluhanService>(create: (context) => ClientKeluhanService(api: context.read<ApiClient>()),),
-        Provider<ClientServisService>(create: (context) => ClientServisService(api: context.read<ApiClient>()),),
+        Provider<ClientServisService>(create: (context) => ClientServisService(api: context.read<ApiClient>(), store: _tokenStore),),
         Provider<ClientService>(create: (context) => ClientService(api: context.read<ApiClient>()),),
         Provider<TechnicianService>(create: (context) => TechnicianService(api: context.read<ApiClient>()),),
         Provider<LocationService>(create: (context) => LocationService(api: context.read<ApiClient>()),),
