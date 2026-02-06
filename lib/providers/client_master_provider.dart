@@ -27,6 +27,7 @@ class ClientMasterProvider extends ChangeNotifier {
         final id = (e['id'] ?? '').toString();
         final nama = (e['name'] ?? '').toString();
         final alamat = (e['address'] ?? '').toString();
+        final client_id = (e['client_id'] ?? '').toString();
 
         final jumlahAc = (e['jumlah_ac'] ?? e['ac_count'] ?? 0);
         final last = e['last_service'];
@@ -42,6 +43,7 @@ class ClientMasterProvider extends ChangeNotifier {
           alamat: alamat,
           jumlahAC: (jumlahAc is int) ? jumlahAc : int.tryParse(jumlahAc.toString()) ?? 0,
           lastService: lastService ?? DateTime.now(),
+          clientId: client_id,
         );
       }).toList();
     } catch (e) {

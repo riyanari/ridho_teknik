@@ -25,34 +25,65 @@ class _ServisHistoryPageState extends State<ServisHistoryPage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<ClientServisProvider>().fetchServis();
+      print('=== INIT STATE CALLED ===');
+      print('Lokasi ID: ${widget.lokasi.id}');
+      print('Lokasi Nama: ${widget.lokasi.nama}');
+      print('========================');
+
+      context.read<ClientServisProvider>().fetchServis(
+      );
     });
   }
 
   // Method untuk mendapatkan filtered servis berdasarkan filter aktif
   List<ServisModel> _getFilteredServis(List<ServisModel> allServis) {
+    print('=== GET FILTERED SERVIS ===');
+    print('Total servis from provider: ${allServis.length}');
+
     // Filter pertama berdasarkan lokasi
     var filtered = allServis
-        .where((servis) => servis.lokasiId == widget.lokasi.id)
+        .where((servis) {
+      print('Servis ID: ${servis.id}, Lokasi ID: ${servis.lokasiId}, Widget Lokasi ID: ${widget.lokasi.id}');
+      print('Match: ${servis.lokasiId == widget.lokasi.id}');
+      return servis.lokasiId == widget.lokasi.id;
+    })
         .toList();
+
+    print('After lokasi filter: ${filtered.length}');
 
     // Filter berdasarkan jenis jika dipilih
     if (_selectedJenis != null) {
-      filtered = filtered.where((s) => s.jenis == _selectedJenis).toList();
+      filtered = filtered.where((s) {
+        print('Jenis filter: Servis jenis ${s.jenis} vs selected ${_selectedJenis}');
+        return s.jenis == _selectedJenis;
+      }).toList();
+      print('After jenis filter: ${filtered.length}');
     }
 
     // Filter berdasarkan tab yang dipilih
     switch (_selectedTab) {
       case 1: // Diproses
-        filtered = filtered.where((s) => s.isInProgress).toList();
+        filtered = filtered.where((s) {
+          print('Status filter Diproses: ${s.isInProgress}');
+          return s.isInProgress;
+        }).toList();
         break;
       case 2: // Selesai
-        filtered = filtered.where((s) => s.isCompleted).toList();
+        filtered = filtered.where((s) {
+          print('Status filter Selesai: ${s.isCompleted}');
+          return s.isCompleted;
+        }).toList();
         break;
       case 3: // Ditolak
-        filtered = filtered.where((s) => s.isRejected).toList();
+        filtered = filtered.where((s) {
+          print('Status filter Ditolak: ${s.isRejected}');
+          return s.isRejected;
+        }).toList();
         break;
     }
+
+    print('Final filtered count: ${filtered.length}');
+    print('=============================');
 
     return filtered;
   }
@@ -77,8 +108,20 @@ class _ServisHistoryPageState extends State<ServisHistoryPage> {
 
   @override
   Widget build(BuildContext context) {
+    print('=== BUILD CALLED ===');
+
     return Consumer<ClientServisProvider>(
       builder: (context, prov, _) {
+        print('Provider loading: ${prov.loading}');
+        print('Provider error: ${prov.error}');
+        print('Provider servisList length: ${prov.servisList.length}');
+
+        // Debug print untuk semua servis
+        for (var i = 0; i < prov.servisList.length; i++) {
+          final servis = prov.servisList[i];
+          print('Servis[$i]: ID=${servis.id}, LokasiID=${servis.lokasiId}, Status=${servis.status}');
+        }
+
         if (prov.loading) {
           return Scaffold(
             appBar: AppBar(
@@ -142,6 +185,8 @@ class _ServisHistoryPageState extends State<ServisHistoryPage> {
         final perbaikanCount = allServisForStats.where((s) => s.jenis == JenisPenanganan.perbaikanAc).length;
         final instalasiCount = allServisForStats.where((s) => s.jenis == JenisPenanganan.instalasi).length;
 
+        print('Stats: Total=${allServisForStats.length}, Cuci=$cuciCount, Perbaikan=$perbaikanCount, Instalasi=$instalasiCount');
+
         return Scaffold(
           appBar: AppBar(
             title: Text('Riwayat Servis', style: titleWhiteTextStyle.copyWith(fontSize: 18)),
@@ -180,7 +225,7 @@ class _ServisHistoryPageState extends State<ServisHistoryPage> {
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withValues(alpha:0.1),
+                                color: Colors.black.withValues(alpha:0.1), // Perbaikan: ganti .withValues(alpha:0.1)
                                 blurRadius: 10,
                                 offset: const Offset(0, 4),
                               ),
@@ -205,7 +250,7 @@ class _ServisHistoryPageState extends State<ServisHistoryPage> {
                                       child: Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                                         decoration: BoxDecoration(
-                                          color: kPrimaryColor.withValues(alpha:0.1),
+                                          color: kPrimaryColor.withValues(alpha:0.1), // Perbaikan
                                           borderRadius: BorderRadius.circular(15),
                                         ),
                                         child: Row(
@@ -287,7 +332,7 @@ class _ServisHistoryPageState extends State<ServisHistoryPage> {
                         ),
                       ),
 
-                      // Filter Section - TETAP DI ATAS (Tidak ikut scroll)
+                      // Filter Section
                       SliverToBoxAdapter(
                         child: Container(
                           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -320,7 +365,7 @@ class _ServisHistoryPageState extends State<ServisHistoryPage> {
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                     decoration: BoxDecoration(
-                                      color: kPrimaryColor.withValues(alpha:0.1),
+                                      color: kPrimaryColor.withValues(alpha:0.1), // Perbaikan
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: Text(
@@ -344,7 +389,7 @@ class _ServisHistoryPageState extends State<ServisHistoryPage> {
                                   borderRadius: BorderRadius.circular(12),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black.withValues(alpha:0.05),
+                                      color: Colors.black.withValues(alpha:0.05), // Perbaikan
                                       blurRadius: 5,
                                       offset: const Offset(0, 2),
                                     ),
@@ -463,7 +508,7 @@ class _ServisHistoryPageState extends State<ServisHistoryPage> {
                                                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                                 decoration: BoxDecoration(
                                                   color: _selectedJenis == null
-                                                      ? kPrimaryColor.withValues(alpha:0.2)
+                                                      ? kPrimaryColor.withValues(alpha:0.2) // Perbaikan
                                                       : Colors.grey[100],
                                                   borderRadius: BorderRadius.circular(20),
                                                   border: Border.all(
@@ -515,7 +560,7 @@ class _ServisHistoryPageState extends State<ServisHistoryPage> {
                                                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                                 decoration: BoxDecoration(
                                                   color: _selectedJenis == JenisPenanganan.cuciAc
-                                                      ? Colors.blue.withValues(alpha:0.2)
+                                                      ? Colors.blue.withValues(alpha:0.2) // Perbaikan
                                                       : Colors.grey[100],
                                                   borderRadius: BorderRadius.circular(20),
                                                   border: Border.all(
@@ -533,7 +578,7 @@ class _ServisHistoryPageState extends State<ServisHistoryPage> {
                                                       size: 14,
                                                       color: _selectedJenis == JenisPenanganan.cuciAc
                                                           ? Colors.blue
-                                                          : Colors.blue.withValues(alpha:0.6),
+                                                          : Colors.blue.withValues(alpha:0.6), // Perbaikan
                                                     ),
                                                     const SizedBox(width: 4),
                                                     Text(
@@ -542,7 +587,7 @@ class _ServisHistoryPageState extends State<ServisHistoryPage> {
                                                         fontSize: 12,
                                                         color: _selectedJenis == JenisPenanganan.cuciAc
                                                             ? Colors.blue
-                                                            : Colors.blue.withValues(alpha:0.8),
+                                                            : Colors.blue.withValues(alpha:0.8), // Perbaikan
                                                         fontWeight: _selectedJenis == JenisPenanganan.cuciAc
                                                             ? FontWeight.w500
                                                             : FontWeight.normal,
@@ -567,7 +612,7 @@ class _ServisHistoryPageState extends State<ServisHistoryPage> {
                                                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                                 decoration: BoxDecoration(
                                                   color: _selectedJenis == JenisPenanganan.perbaikanAc
-                                                      ? Colors.orange.withValues(alpha:0.2)
+                                                      ? Colors.orange.withValues(alpha:0.2) // Perbaikan
                                                       : Colors.grey[100],
                                                   borderRadius: BorderRadius.circular(20),
                                                   border: Border.all(
@@ -585,7 +630,7 @@ class _ServisHistoryPageState extends State<ServisHistoryPage> {
                                                       size: 14,
                                                       color: _selectedJenis == JenisPenanganan.perbaikanAc
                                                           ? Colors.orange
-                                                          : Colors.orange.withValues(alpha:0.6),
+                                                          : Colors.orange.withValues(alpha:0.6), // Perbaikan
                                                     ),
                                                     const SizedBox(width: 4),
                                                     Text(
@@ -594,7 +639,7 @@ class _ServisHistoryPageState extends State<ServisHistoryPage> {
                                                         fontSize: 12,
                                                         color: _selectedJenis == JenisPenanganan.perbaikanAc
                                                             ? Colors.orange
-                                                            : Colors.orange.withValues(alpha:0.8),
+                                                            : Colors.orange.withValues(alpha:0.8), // Perbaikan
                                                         fontWeight: _selectedJenis == JenisPenanganan.perbaikanAc
                                                             ? FontWeight.w500
                                                             : FontWeight.normal,
@@ -619,7 +664,7 @@ class _ServisHistoryPageState extends State<ServisHistoryPage> {
                                                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                                 decoration: BoxDecoration(
                                                   color: _selectedJenis == JenisPenanganan.instalasi
-                                                      ? Colors.green.withValues(alpha:0.2)
+                                                      ? Colors.green.withValues(alpha:0.2) // Perbaikan
                                                       : Colors.grey[100],
                                                   borderRadius: BorderRadius.circular(20),
                                                   border: Border.all(
@@ -637,7 +682,7 @@ class _ServisHistoryPageState extends State<ServisHistoryPage> {
                                                       size: 14,
                                                       color: _selectedJenis == JenisPenanganan.instalasi
                                                           ? Colors.green
-                                                          : Colors.green.withValues(alpha:0.6),
+                                                          : Colors.green.withValues(alpha:0.6), // Perbaikan
                                                     ),
                                                     const SizedBox(width: 4),
                                                     Text(
@@ -646,7 +691,7 @@ class _ServisHistoryPageState extends State<ServisHistoryPage> {
                                                         fontSize: 12,
                                                         color: _selectedJenis == JenisPenanganan.instalasi
                                                             ? Colors.green
-                                                            : Colors.green.withValues(alpha:0.8),
+                                                            : Colors.green.withValues(alpha:0.8), // Perbaikan
                                                         fontWeight: _selectedJenis == JenisPenanganan.instalasi
                                                             ? FontWeight.w500
                                                             : FontWeight.normal,
@@ -679,6 +724,7 @@ class _ServisHistoryPageState extends State<ServisHistoryPage> {
                           delegate: SliverChildBuilderDelegate(
                                 (context, index) {
                               final servis = filteredServis[index];
+                              print('Building servis card at index $index: ID=${servis.id}');
                               return Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                                 child: GestureDetector(
@@ -730,7 +776,7 @@ class _ServisHistoryPageState extends State<ServisHistoryPage> {
             decoration: BoxDecoration(
               color: isSelected
                   ? _getJenisColor(jenis)
-                  : _getJenisColor(jenis).withValues(alpha:0.1),
+                  : _getJenisColor(jenis).withValues(alpha:0.1), // Perbaikan
               shape: BoxShape.circle,
               border: Border.all(
                 color: isSelected ? _getJenisColor(jenis) : Colors.transparent,
@@ -784,7 +830,7 @@ class _ServisHistoryPageState extends State<ServisHistoryPage> {
           Icon(
             Icons.search_off,
             size: 60,
-            color: kGreyColor.withValues(alpha:0.5),
+            color: kGreyColor.withValues(alpha:0.5), // Perbaikan
           ),
           const SizedBox(height: 16),
           Text(
@@ -899,13 +945,19 @@ class _ServisCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    print('=== BUILDING SERVIS CARD ===');
+    print('Servis ID: ${servis.id}');
+    print('Lokasi Nama: ${servis.lokasiNama}');
+    print('AC Nama: ${servis.acNama}');
+    print('Status: ${servis.status}');
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha:0.05),
+            color: Colors.black.withValues(alpha:0.05), // Perbaikan
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),
@@ -924,9 +976,9 @@ class _ServisCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: servis.jenisColor.withValues(alpha:0.1),
+                    color: servis.jenisColor.withValues(alpha:0.1), // Perbaikan
                     borderRadius: BorderRadius.circular(15),
-                    border: Border.all(color: servis.jenisColor.withValues(alpha:0.3)),
+                    border: Border.all(color: servis.jenisColor.withValues(alpha:0.3)), // Perbaikan
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -950,9 +1002,9 @@ class _ServisCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
-                      color: Colors.purple.withValues(alpha:0.1),
+                      color: Colors.purple.withValues(alpha:0.1), // Perbaikan
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: Colors.purple.withValues(alpha:0.3)),
+                      border: Border.all(color: Colors.purple.withValues(alpha:0.3)), // Perbaikan
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -1001,7 +1053,7 @@ class _ServisCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: servis.statusColor.withValues(alpha:0.1),
+                    color: servis.statusColor.withValues(alpha:0.1), // Perbaikan
                     borderRadius: BorderRadius.circular(15),
                   ),
                   child: Row(
@@ -1033,9 +1085,9 @@ class _ServisCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: kPrimaryColor.withValues(alpha:0.03),
+                color: kPrimaryColor.withValues(alpha:0.03), // Perbaikan
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey.withValues(alpha:0.1)),
+                border: Border.all(color: Colors.grey.withValues(alpha:0.1)), // Perbaikan
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1178,7 +1230,7 @@ class _ServisCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
-                    color: kBoxMenuGreenColor.withValues(alpha:0.1),
+                    color: kBoxMenuGreenColor.withValues(alpha:0.1), // Perbaikan
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Column(
@@ -1254,6 +1306,11 @@ class _ServisCard extends StatelessWidget {
   }
 
   String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year}';
+    try {
+      return '${date.day}/${date.month}/${date.year}';
+    } catch (e) {
+      print('Error formatting date: $e');
+      return 'N/A';
+    }
   }
 }

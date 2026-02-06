@@ -22,14 +22,14 @@ class _TeknisiLokasiListPageState extends State<TeknisiLokasiListPage> {
       nama: 'Rumah Pak Budi',
       alamat: 'Jl. Sudirman No. 123, Jakarta Pusat',
       jumlahAC: 3,
-      lastService: DateTime.now().subtract(const Duration(days: 15)),
+      lastService: DateTime.now().subtract(const Duration(days: 15)), clientId: '',
     ),
     LokasiModel(
       id: 'L2',
       nama: 'Toko Bu Ani',
       alamat: 'Jl. Ahmad Yani No. 45, Bekasi Barat',
       jumlahAC: 2,
-      lastService: DateTime.now().subtract(const Duration(days: 45)),
+      lastService: DateTime.now().subtract(const Duration(days: 45)), clientId: '',
     ),
   ];
 

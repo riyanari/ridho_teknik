@@ -222,17 +222,17 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ),
 
-                const SizedBox(height: 10),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text("Belum punya akun? ", style: greyTextStyle),
-                    Text(
-                      "Daftar",
-                      style: primaryTextStyle.copyWith(fontWeight: semiBold),
-                    ),
-                  ],
-                ),
+                // const SizedBox(height: 10),
+                // Row(
+                //   mainAxisAlignment: MainAxisAlignment.center,
+                //   children: [
+                //     Text("Belum punya akun? ", style: greyTextStyle),
+                //     Text(
+                //       "Daftar",
+                //       style: primaryTextStyle.copyWith(fontWeight: semiBold),
+                //     ),
+                //   ],
+                // ),
               ],
             ),
           ),

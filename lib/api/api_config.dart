@@ -1,47 +1,89 @@
 class ApiConfig {
   static const String baseUrl = "http://10.0.2.2:8000/api"; // android emulator
   // static const String baseUrl = "http://192.168.18.7:8000/api"; // ios simulator
+  // static const String baseUrl = "http://localhost:8000/api"; // web/flutter web
 
-  // AUTH
-  static String login = "$baseUrl/login";
-  static String logout = "$baseUrl/logout";
-  static String me = "$baseUrl/me";
+  // ===== AUTH =====
+  static String get login => "$baseUrl/login";
+  static String get logout => "$baseUrl/logout";
+  static String get me => "$baseUrl/me";
 
   // ===== OWNER =====
-  static String ownerClients = "$baseUrl/owner/clients";
-  static String ownerTeknisi = "$baseUrl/owner/teknisi";
 
-  static String ownerLokasiIndex = "$baseUrl/owner/lokasi";
-  static String ownerLokasiStore = "$baseUrl/owner/lokasi";
-  static String ownerLokasiUpdate(int id) => "$baseUrl/owner/lokasi/$id";
-  static String ownerLokasiDestroy(int id) => "$baseUrl/owner/lokasi/$id";
+  // Client CRUD
+  static String get ownerClients => "$baseUrl/owner/clients";
+  static String ownerClientDetail(int id) => "$baseUrl/owner/clients/$id";
+  static String ownerClientStats(int id) => "$baseUrl/owner/clients/$id/stats";
+  static String get ownerClientStore => "$baseUrl/owner/clients";
+  static String ownerClientUpdate(int id) => "$baseUrl/owner/clients/$id";
+  static String ownerClientDestroy(int id) => "$baseUrl/owner/clients/$id";
 
-  static String ownerAcIndex = "$baseUrl/owner/ac";
-  static String ownerAcStore = "$baseUrl/owner/ac";
-  static String ownerAcUpdate(int id) => "$baseUrl/owner/ac/$id";
-  static String ownerAcDestroy(int id) => "$baseUrl/owner/ac/$id";
+  // Technician CRUD
+  static String get ownerTechnicians => "$baseUrl/owner/technicians";
+  static String get ownerAvailableTechnicians => "$baseUrl/owner/technicians/available";
+  static String ownerTechnicianDetail(int id) => "$baseUrl/owner/technicians/$id";
+  static String get ownerTechnicianStore => "$baseUrl/owner/technicians";
+  static String ownerTechnicianUpdate(int id) => "$baseUrl/owner/technicians/$id";
+  static String ownerTechnicianDestroy(int id) => "$baseUrl/owner/technicians/$id";
 
-  static String ownerKeluhan = "$baseUrl/owner/keluhan";
-  static String ownerServis = "$baseUrl/owner/servis";
-  static String ownerServisAssign(int id) => "$baseUrl/owner/servis/$id/assign";
-  static String ownerServisConfirm(int id) => "$baseUrl/owner/servis/$id/confirm";
+  // Location CRUD
+  static String get ownerLocations => "$baseUrl/owner/locations";
+  static String get ownerLocationStore => "$baseUrl/owner/locations";
+  static String ownerLocationUpdate(int id) => "$baseUrl/owner/locations/$id";
+  static String ownerLocationDestroy(int id) => "$baseUrl/owner/locations/$id";
+
+  // AC Unit CRUD
+  static String get ownerAcUnits => "$baseUrl/owner/ac-units";
+  static String ownerAcUnitDetail(int id) => "$baseUrl/owner/ac-units/$id";
+  static String get ownerAcUnitStore => "$baseUrl/owner/ac-units";
+  static String ownerAcUnitUpdate(int id) => "$baseUrl/owner/ac-units/$id";
+  static String ownerAcUnitDestroy(int id) => "$baseUrl/owner/ac-units/$id";
+
+  // Service Management
+  static String get ownerServices => "$baseUrl/owner/servis";
+  static String ownerServiceDetail(int id) => "$baseUrl/owner/servis/$id";
+  static String ownerServiceUpdate(int id) => "$baseUrl/owner/servis/$id";
+  static String ownerServiceByStatus(String status) => "$baseUrl/owner/servis/status/$status";
+  static String ownerServiceConfirmRequest(int id) => "$baseUrl/owner/servis/$id/konfirmasi-request";
+  static String ownerServiceAssignTechnician(int id) => "$baseUrl/owner/servis/$id/assign-teknisi";
+  static String ownerServiceConfirmWork(int id) => "$baseUrl/owner/servis/$id/konfirmasi-pengerjaan";
+
+  // Dashboard & Reports
+  static String get ownerDashboardStats => "$baseUrl/owner/servis/dashboard";
+  static String get ownerFilterOptions => "$baseUrl/owner/servis/filter-options";
+  static String get ownerExport => "$baseUrl/owner/servis/export";
 
   // ===== CLIENT =====
-  static String clientLokasi = "$baseUrl/client/lokasi";
-  static String clientAc = "$baseUrl/client/ac";
 
-  static String clientKeluhanIndex = "$baseUrl/client/keluhan";
-  static String clientKeluhanStore = "$baseUrl/client/keluhan";
+  // Locations
+  static String get clientLocations => "$baseUrl/client/lokasi";
+  static String get clientAcUnits => "$baseUrl/client/ac";
 
-  static String clientServisIndex = "$baseUrl/client/servis";
-  static String clientServisStore = "$baseUrl/client/servis";
-  static String clientServisShow(int id) => "$baseUrl/client/servis/$id";
+  // Service Requests
+  static String get clientServiceCuci => "$baseUrl/client/servis/cuci";
+  static String get clientServicePerbaikan => "$baseUrl/client/servis/perbaikan";
+  static String get clientServiceInstalasi => "$baseUrl/client/servis/instalasi";
+  static String get clientServices => "$baseUrl/client/servis";
 
   // ===== TEKNISI =====
-  static String teknisiDashboard = "$baseUrl/teknisi/dashboard";
-  static String teknisiServisIndex = "$baseUrl/teknisi/servis";
-  static String teknisiServisShow(int id) => "$baseUrl/teknisi/servis/$id";
-  static String teknisiServisUpdateStatus(int id) => "$baseUrl/teknisi/servis/$id/status";
-  static String teknisiServisReport(int id) => "$baseUrl/teknisi/servis/$id/report";
-  static String teknisiServisUpload(int id) => "$baseUrl/teknisi/servis/$id/upload";
+
+  // Service Management
+  static String get technicianTasks => "$baseUrl/teknisi/servis/tugas";
+  static String technicianStartWork(int id) => "$baseUrl/teknisi/servis/$id/mulai";
+  static String technicianUploadPhotos(int id) => "$baseUrl/teknisi/servis/$id/upload-foto";
+  static String technicianCompleteWork(int id) => "$baseUrl/teknisi/servis/$id/selesaikan";
+
+  // Helper methods for query parameters
+  static String buildUrlWithParams(String baseUrl, Map<String, dynamic>? params) {
+    if (params == null || params.isEmpty) {
+      return baseUrl;
+    }
+
+    final uri = Uri.parse(baseUrl);
+    final queryParams = Map<String, String>.from(params.map((key, value) {
+      return MapEntry(key, value.toString());
+    }));
+
+    return uri.replace(queryParameters: queryParams).toString();
+  }
 }

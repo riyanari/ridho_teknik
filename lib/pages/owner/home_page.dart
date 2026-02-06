@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:ridho_teknik/pages/owner/client_list_page.dart';
+import 'package:ridho_teknik/pages/owner/technician_list_page.dart';
 import 'package:ridho_teknik/theme/theme.dart';
 import 'package:provider/provider.dart';
 import 'package:ridho_teknik/providers/auth_provider.dart';
 import 'package:awesome_dialog/awesome_dialog.dart';
 
 
-import 'arsip/arsip_page.dart';
+import '../arsip/arsip_page.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -47,16 +49,16 @@ class HomePage extends StatelessWidget {
               const SizedBox(height: 24),
 
               // Statistik Cepat dengan animasi
-              _buildQuickStats(),
-              const SizedBox(height: 24),
+              // _buildQuickStats(),
+              // const SizedBox(height: 24),
 
               // Menu Utama - Grid dengan efek modern
               _buildMainMenuGrid(),
               const SizedBox(height: 24),
 
               // Reminder Service dengan gradient
-              _buildServiceReminders(),
-              const SizedBox(height: 24),
+              // _buildServiceReminders(),
+              // const SizedBox(height: 24),
 
               // Jadwal Hari Ini dengan design card modern
               _buildTodaySchedule(),
@@ -378,61 +380,76 @@ class HomePage extends StatelessWidget {
   Widget _buildMainMenuGrid() {
     final List<MainMenu> mainMenus = [
       MainMenu(
-        icon: Iconsax.archive,
-        title: 'Arsip',
-        color: kPrimaryColor,
-        description: 'Data client dengan maps & keluhan',
-        gradient: [kPrimaryColor, kBoxMenuDarkBlueColor],
-      ),
-      MainMenu(
-        icon: Iconsax.receipt,
-        title: 'Invoice PDF',
-        color: kBoxMenuGreenColor,
-        description: 'Cetak invoice output PDF',
-        gradient: [kBoxMenuGreenColor, Color(0xFF1B998B)],
-      ),
-      MainMenu(
-        icon: Iconsax.box_tick,
-        title: 'Stok Baru',
-        color: kBoxMenuLightBlueColor,
-        description: 'Arsip stok barang B to C',
-        gradient: [kBoxMenuLightBlueColor, Color(0xFF2E3A7A)],
-      ),
-      MainMenu(
-        icon: Iconsax.box_remove,
-        title: 'Stok Rusak',
-        color: kBoxMenuRedColor,
-        description: 'Arsip stok barang rusak',
-        gradient: [kBoxMenuRedColor, Color(0xFFD1495B)],
-      ),
-      MainMenu(
-        icon: Iconsax.pen_tool,
-        title: 'Stok Alat',
-        color: kBoxMenuCoklatColor,
-        description: 'Management stok alat AC',
-        gradient: [kBoxMenuCoklatColor, Color(0xFF8B4513)],
-      ),
-      MainMenu(
-        icon: Iconsax.chart_square,
-        title: 'Finance',
-        color: kSecondaryColor,
-        description: 'Payroll, cashflow, operasional',
-        gradient: [kSecondaryColor, Color(0xFFFF6B35)],
-      ),
-      MainMenu(
         icon: Iconsax.calendar_edit,
         title: 'Jadwal',
         color: kBoxMenuDarkBlueColor,
-        description: 'Input jadwal service',
-        gradient: [kBoxMenuDarkBlueColor, Color(0xFF4851A5)],
+        description: 'List Jadwal service',
+        gradient: [kBoxMenuCoklatColor, Color(0xFF8B4513)],
       ),
       MainMenu(
-        icon: Iconsax.notification_bing,
-        title: 'Reminder',
-        color: Colors.purple,
-        description: 'Reminder WA 3 bulan',
-        gradient: [Colors.purple, Color(0xFF8B5CF6)],
+        icon: Iconsax.people,
+        title: 'Client',
+        color: kBoxMenuGreenColor,
+        description: 'Data data client',
+        gradient: [kBoxMenuGreenColor, Color(0xFF1B998B)],
       ),
+      // 🔵 TAMBAHKAN MENU TEKNISI
+      MainMenu(
+        icon: Iconsax.profile_2user,
+        title: 'Teknisi',
+        color: kBoxMenuLightBlueColor,
+        description: 'Data teknisi & rating',
+        gradient: [kBoxMenuLightBlueColor, Color(0xFF2E3A7A)],
+      ),
+      // MainMenu(
+      //   icon: Iconsax.archive,
+      //   title: 'Arsip',
+      //   color: kPrimaryColor,
+      //   description: 'Data client dengan maps & keluhan',
+      //   gradient: [kPrimaryColor, kBoxMenuDarkBlueColor],
+      // ),
+      // MainMenu(
+      //   icon: Iconsax.receipt,
+      //   title: 'Invoice PDF',
+      //   color: kBoxMenuGreenColor,
+      //   description: 'Cetak invoice output PDF',
+      //   gradient: [kBoxMenuGreenColor, Color(0xFF1B998B)],
+      // ),
+      // MainMenu(
+      //   icon: Iconsax.box_tick,
+      //   title: 'Stok Baru',
+      //   color: kBoxMenuLightBlueColor,
+      //   description: 'Arsip stok barang B to C',
+      //   gradient: [kBoxMenuLightBlueColor, Color(0xFF2E3A7A)],
+      // ),
+      // MainMenu(
+      //   icon: Iconsax.box_remove,
+      //   title: 'Stok Rusak',
+      //   color: kBoxMenuRedColor,
+      //   description: 'Arsip stok barang rusak',
+      //   gradient: [kBoxMenuRedColor, Color(0xFFD1495B)],
+      // ),
+      // MainMenu(
+      //   icon: Iconsax.pen_tool,
+      //   title: 'Stok Alat',
+      //   color: kBoxMenuCoklatColor,
+      //   description: 'Management stok alat AC',
+      //   gradient: [kBoxMenuCoklatColor, Color(0xFF8B4513)],
+      // ),
+      // MainMenu(
+      //   icon: Iconsax.chart_square,
+      //   title: 'Finance',
+      //   color: kSecondaryColor,
+      //   description: 'Payroll, cashflow, operasional',
+      //   gradient: [kSecondaryColor, Color(0xFFFF6B35)],
+      // ),
+      // MainMenu(
+      //   icon: Iconsax.notification_bing,
+      //   title: 'Reminder',
+      //   color: Colors.purple,
+      //   description: 'Reminder WA 3 bulan',
+      //   gradient: [Colors.purple, Color(0xFF8B5CF6)],
+      // ),
     ];
 
     return Column(
@@ -563,6 +580,20 @@ class HomePage extends StatelessWidget {
         Navigator.push(
           context,
           MaterialPageRoute(builder: (_) => const ArsipPage()),
+        );
+        break;
+      case 'Client':
+      // 🔵 Navigate ke halaman Client List
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const ClientListPage()),
+        );
+        break;
+      case 'Teknisi':
+      // 🔵 Navigate ke halaman Teknisi List
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const TechnicianListPage()),
         );
         break;
       case 'Invoice PDF':

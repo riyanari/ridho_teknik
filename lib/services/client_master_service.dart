@@ -6,14 +6,14 @@ class ClientMasterService {
   final ApiClient api;
 
   Future<List<Map<String, dynamic>>> getLokasi() async {
-    final json = await api.get(ApiConfig.clientLokasi);
+    final json = await api.get(ApiConfig.clientLocations);
     final data = (json['data'] as List?) ?? [];
     return data.cast<Map<String, dynamic>>();
   }
 
   Future<List<Map<String, dynamic>>> getAc({int? locationId}) async {
     final json = await api.get(
-      ApiConfig.clientAc,
+      ApiConfig.clientAcUnits,
       query: locationId == null ? null : {'location_id': locationId},
     );
     final data = (json['data'] as List?) ?? [];

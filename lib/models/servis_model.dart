@@ -51,6 +51,8 @@ class ServisModel {
   final List<String> fotoSesudah;
   final List<String> fotoSukuCadang;
 
+  // TANGGAL BARU DITAMBAHKAN
+  final DateTime? tanggalBerkunjung;
   final DateTime tanggalDitugaskan;
   final DateTime? tanggalMulai;
   final DateTime? tanggalSelesai;
@@ -82,6 +84,7 @@ class ServisModel {
     this.fotoPengerjaan = const [],
     this.fotoSesudah = const [],
     this.fotoSukuCadang = const [],
+    this.tanggalBerkunjung, // TAMBAHKAN DI CONSTRUCTOR
     required this.tanggalDitugaskan,
     this.tanggalMulai,
     this.tanggalSelesai,
@@ -164,6 +167,7 @@ class ServisModel {
     List<String>? fotoPengerjaan,
     List<String>? fotoSesudah,
     List<String>? fotoSukuCadang,
+    DateTime? tanggalBerkunjung, // TAMBAHKAN DI COPYWITH
     DateTime? tanggalDitugaskan,
     DateTime? tanggalMulai,
     DateTime? tanggalSelesai,
@@ -191,6 +195,7 @@ class ServisModel {
       fotoPengerjaan: fotoPengerjaan ?? this.fotoPengerjaan,
       fotoSesudah: fotoSesudah ?? this.fotoSesudah,
       fotoSukuCadang: fotoSukuCadang ?? this.fotoSukuCadang,
+      tanggalBerkunjung: tanggalBerkunjung ?? this.tanggalBerkunjung, // TAMBAHKAN
       tanggalDitugaskan: tanggalDitugaskan ?? this.tanggalDitugaskan,
       tanggalMulai: tanggalMulai ?? this.tanggalMulai,
       tanggalSelesai: tanggalSelesai ?? this.tanggalSelesai,
@@ -222,6 +227,7 @@ class ServisModel {
       'foto_pengerjaan': fotoPengerjaan,
       'foto_sesudah': fotoSesudah,
       'foto_suku_cadang': fotoSukuCadang,
+      'tanggal_berkunjung': tanggalBerkunjung?.toIso8601String(), // TAMBAHKAN
       'tanggal_ditugaskan': tanggalDitugaskan.toIso8601String(),
       'tanggal_mulai': tanggalMulai?.toIso8601String(),
       'tanggal_selesai': tanggalSelesai?.toIso8601String(),
@@ -293,8 +299,9 @@ class ServisModel {
       catatan: (map['catatan'] ?? '').toString(),
       fotoSebelum: parseFotoList(map['foto_sebelum']),
       fotoPengerjaan: parseFotoList(map['foto_pengerjaan']),
-      fotoSesudah: parseFotoList(map['foto_sesudah']), // PERBAIKAN: gunakan foto_sesudah, bukan foto_sebelum
+      fotoSesudah: parseFotoList(map['foto_sesudah']),
       fotoSukuCadang: parseFotoList(map['foto_suku_cadang']),
+      tanggalBerkunjung: _parseNullableDateTime(map['tanggal_berkunjung']), // TAMBAHKAN PARSING
       tanggalDitugaskan: _parseDateTime(map['tanggal_ditugaskan']),
       tanggalMulai: _parseNullableDateTime(map['tanggal_mulai']),
       tanggalSelesai: _parseNullableDateTime(map['tanggal_selesai']),
@@ -504,6 +511,22 @@ class ServisModel {
     }
   }
 
+  // Getter untuk format tanggal berkunjung
+  String get tanggalBerkunjungDisplay {
+    if (tanggalBerkunjung == null) return 'Belum ditentukan';
+    return _formatDateTime(tanggalBerkunjung!);
+  }
+
+  String get tanggalBerkunjungShort {
+    if (tanggalBerkunjung == null) return '-';
+    return '${tanggalBerkunjung!.day}/${tanggalBerkunjung!.month}/${tanggalBerkunjung!.year}';
+  }
+
+  String get waktuBerkunjung {
+    if (tanggalBerkunjung == null) return '-';
+    return '${tanggalBerkunjung!.hour.toString().padLeft(2, '0')}:${tanggalBerkunjung!.minute.toString().padLeft(2, '0')}';
+  }
+
   // Format currency helper
   String get formattedTotalBiaya {
     return _formatCurrency(totalBiaya);
@@ -524,6 +547,17 @@ class ServisModel {
     )}';
   }
 
+  static String _formatDateTime(DateTime date) {
+    final dayNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+    final monthNames = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+
+    return '${dayNames[date.weekday % 7]}, ${date.day} ${monthNames[date.month - 1]} ${date.year} '
+        '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+  }
+
   // Business logic helpers
   bool get isCompleted => status == ServisStatus.selesai;
   bool get isInProgress => [
@@ -537,6 +571,20 @@ class ServisModel {
 
   bool get requiresConfirmation => status == ServisStatus.menungguKonfirmasi;
   bool get isRejected => status == ServisStatus.ditolak;
+
+  // Helper untuk mengecek apakah tanggal berkunjung sudah lewat
+  bool get isTanggalBerkunjungTerlewat {
+    if (tanggalBerkunjung == null) return false;
+    return tanggalBerkunjung!.isBefore(DateTime.now());
+  }
+
+  // Helper untuk mengecek apakah tanggal berkunjung sudah dekat (dalam 2 hari)
+  bool get isTanggalBerkunjungMendekat {
+    if (tanggalBerkunjung == null) return false;
+    final now = DateTime.now();
+    final difference = tanggalBerkunjung!.difference(now);
+    return difference.inDays <= 2 && difference.inDays >= 0;
+  }
 
   Duration? get duration {
     if (tanggalMulai == null || tanggalSelesai == null) return null;
@@ -561,6 +609,8 @@ class ServisModel {
     print('=== DEBUG SERVIS MODEL DATA ===');
     print('ID: $id');
     print('Status: $statusDisplay');
+    print('Tanggal Berkunjung: $tanggalBerkunjung');
+    print('Tanggal Berkunjung Display: $tanggalBerkunjungDisplay');
     print('Lokasi Data exists: ${lokasiData != null}');
     print('Lokasi Data: $lokasiData');
     print('Lokasi Name from data: ${lokasiData?['name']}');

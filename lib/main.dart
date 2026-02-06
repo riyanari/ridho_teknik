@@ -1,17 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:ridho_teknik/pages/owner/client_list_page.dart';
+import 'package:ridho_teknik/pages/owner/technician_list_page.dart';
+import 'package:ridho_teknik/providers/ac_unit_provider.dart';
 import 'package:ridho_teknik/providers/client_ac_provider.dart';
-import 'package:ridho_teknik/providers/client_keluhan_provider.dart';
 import 'package:ridho_teknik/providers/client_master_provider.dart';
+import 'package:ridho_teknik/providers/client_provider.dart';
 import 'package:ridho_teknik/providers/client_servis_provider.dart';
-import 'package:ridho_teknik/services/client_keluhan_service.dart';
+import 'package:ridho_teknik/providers/location_provider.dart';
+import 'package:ridho_teknik/providers/technician_provider.dart';
+import 'package:ridho_teknik/services/ac_unit_service.dart';
 import 'package:ridho_teknik/services/client_master_service.dart';
+import 'package:ridho_teknik/services/client_service.dart';
 import 'package:ridho_teknik/services/client_servis_service.dart';
+import 'package:ridho_teknik/services/location_service.dart';
+import 'package:ridho_teknik/services/technician_service.dart';
 
 import 'api/api_client.dart';
 import 'pages/splash_page.dart';
 import 'pages/login_page.dart';
-import 'pages/home_page.dart';
+import 'pages/owner/home_page.dart';
 import 'pages/klien/klien_page.dart';
 import 'pages/teknisi/teknisi_dashboard_page.dart';
 
@@ -36,20 +44,14 @@ class MyApp extends StatelessWidget {
       providers: [
         Provider<TokenStore>.value(value: _tokenStore),
         Provider<AuthService>.value(value: _authService),
-        // ApiClient (pakai tokenStore)
-        Provider<ApiClient>(
-          create: (_) => ApiClient(store: _tokenStore),
-        ),
-        Provider<ClientMasterService>(
-          create: (context) => ClientMasterService(api: context.read<ApiClient>()),
-        ),
-        // Tambahkan provider untuk service-service baru
-        Provider<ClientKeluhanService>(
-          create: (context) => ClientKeluhanService(api: context.read<ApiClient>()),
-        ),
-        Provider<ClientServisService>(
-          create: (context) => ClientServisService(api: context.read<ApiClient>()),
-        ),
+        Provider<ApiClient>(create: (_) => ApiClient(store: _tokenStore),),
+        Provider<ClientMasterService>(create: (context) => ClientMasterService(api: context.read<ApiClient>()),),
+        // Provider<ClientKeluhanService>(create: (context) => ClientKeluhanService(api: context.read<ApiClient>()),),
+        Provider<ClientServisService>(create: (context) => ClientServisService(api: context.read<ApiClient>()),),
+        Provider<ClientService>(create: (context) => ClientService(api: context.read<ApiClient>()),),
+        Provider<TechnicianService>(create: (context) => TechnicianService(api: context.read<ApiClient>()),),
+        Provider<LocationService>(create: (context) => LocationService(api: context.read<ApiClient>()),),
+        Provider<AcUnitService>(create: (context) => AcUnitService(api: context.read<ApiClient>()),),
 
         // Auth Provider kamu (tetap)
         ChangeNotifierProvider(
@@ -71,14 +73,34 @@ class MyApp extends StatelessWidget {
           ),
         ),
         // Tambahkan ChangeNotifierProvider untuk keluhan dan servis
-        ChangeNotifierProvider(
-          create: (context) => ClientKeluhanProvider(
-            service: context.read<ClientKeluhanService>(),
-          ),
-        ),
+        // ChangeNotifierProvider(
+        //   create: (context) => ClientKeluhanProvider(
+        //     service: context.read<ClientKeluhanService>(),
+        //   ),
+        // ),
         ChangeNotifierProvider(
           create: (context) => ClientServisProvider(
             service: context.read<ClientServisService>(),
+          ),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => ClientProvider(
+            service: context.read<ClientService>(),
+          ),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => TechnicianProvider(
+            service: context.read<TechnicianService>(),
+          ),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => LocationProvider(
+            service: context.read<LocationService>(),
+          ),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => AcUnitProvider(
+            service: context.read<AcUnitService>(),
           ),
         ),
 
@@ -91,6 +113,8 @@ class MyApp extends StatelessWidget {
           '/home': (_) => const HomePage(),
           '/klien': (_) => const KlienPage(),
           '/teknisi': (_) => const TeknisiDashboardPage(),
+          '/client-list': (_) => const ClientListPage(), // 🔵 TAMBAHKAN
+          '/technician-list': (_) => const TechnicianListPage()
         },
       ),
     );
