@@ -72,7 +72,7 @@ class _TeknisiAcListPageState extends State<TeknisiAcListPage> {
       lokasiId: 'L1',
       acId: 'A1',
       teknisiId: 'T1',
-      status: ServisStatus.dalamPerjalanan,
+      status: ServisStatus.dalam_perjalanan,
       tindakan: [TindakanServis.pembersihan, TindakanServis.isiFreon],
       tanggalDitugaskan: DateTime.now().subtract(const Duration(hours: 2)),
       biayaServis: 250000,
@@ -122,16 +122,16 @@ class _TeknisiAcListPageState extends State<TeknisiAcListPage> {
 
   Widget _buildHeader() {
     final totalAC = _acDitugaskan.length;
-    final acDalamPerbaikan = _acDitugaskan.where((ac) {
+    final acdalam_perbaikan = _acDitugaskan.where((ac) {
       final servis = getServisByAcId(ac.id);
       if (servis == null) return false;
-      return servis.status.index >= ServisStatus.tibaDiLokasi.index &&
+      return servis.status.index >= ServisStatus.tiba_di_lokasi.index &&
           servis.status.index < ServisStatus.selesai.index;
     }).length;
 
     final acMenunggu = _acDitugaskan.where((ac) {
       final servis = getServisByAcId(ac.id);
-      return servis?.status == ServisStatus.menungguKonfirmasi;
+      return servis?.status == ServisStatus.menunggu_konfirmasi;
     }).length;
 
 
@@ -226,7 +226,7 @@ class _TeknisiAcListPageState extends State<TeknisiAcListPage> {
               Expanded(
                 child: _buildStatCard(
                   title: 'Dalam Perbaikan',
-                  value: acDalamPerbaikan.toString(),
+                  value: acdalam_perbaikan.toString(),
                   icon: Icons.build_rounded,
                   color: Colors.white,
                   bgColor: Colors.white.withValues(alpha:0.2),
@@ -310,22 +310,32 @@ class _TeknisiAcListPageState extends State<TeknisiAcListPage> {
       switch (servis.status) {
         case ServisStatus.ditugaskan:
           return Colors.blue;
-        case ServisStatus.dalamPerjalanan:
+        case ServisStatus.dalam_perjalanan:
           return Colors.orange;
-        case ServisStatus.tibaDiLokasi:
+        case ServisStatus.tiba_di_lokasi:
           return Colors.purple;
-        case ServisStatus.sedangDiperiksa:
+        case ServisStatus.sedang_diperiksa:
           return Colors.indigo;
-        case ServisStatus.dalamPerbaikan:
+        case ServisStatus.dalam_perbaikan:
           return Colors.red;
-        case ServisStatus.menungguSukuCadang:
+        case ServisStatus.menunggu_suku_cadang:
           return Colors.amber;
         case ServisStatus.selesai:
           return Colors.green;
         case ServisStatus.ditolak:
           return Colors.red[900]!;
-        case ServisStatus.menungguKonfirmasi:
+        case ServisStatus.menunggu_konfirmasi:
           return Colors.yellow[700]!;
+        case ServisStatus.dikerjakan:
+          return Colors.red;
+          // TODO: Handle this case.
+          throw UnimplementedError();
+        case ServisStatus.batal:
+          // TODO: Handle this case.
+          throw UnimplementedError();
+        case ServisStatus.menunggu_konfirmasi_owner:
+          // TODO: Handle this case.
+          throw UnimplementedError();
       }
     }
 
@@ -333,22 +343,31 @@ class _TeknisiAcListPageState extends State<TeknisiAcListPage> {
       switch (servis.status) {
         case ServisStatus.ditugaskan:
           return '📋';
-        case ServisStatus.dalamPerjalanan:
+        case ServisStatus.dalam_perjalanan:
           return '🚗';
-        case ServisStatus.tibaDiLokasi:
+        case ServisStatus.tiba_di_lokasi:
           return '📍';
-        case ServisStatus.sedangDiperiksa:
+        case ServisStatus.sedang_diperiksa:
           return '🔍';
-        case ServisStatus.dalamPerbaikan:
+        case ServisStatus.dalam_perbaikan:
           return '🔧';
-        case ServisStatus.menungguSukuCadang:
+        case ServisStatus.menunggu_suku_cadang:
           return '⏳';
         case ServisStatus.selesai:
           return '✅';
         case ServisStatus.ditolak:
           return '❌';
-        case ServisStatus.menungguKonfirmasi:
+        case ServisStatus.menunggu_konfirmasi:
           return '⏰';
+        case ServisStatus.dikerjakan:
+          // TODO: Handle this case.
+          throw UnimplementedError();
+        case ServisStatus.batal:
+          // TODO: Handle this case.
+          throw UnimplementedError();
+        case ServisStatus.menunggu_konfirmasi_owner:
+          // TODO: Handle this case.
+          throw UnimplementedError();
       }
     }
 

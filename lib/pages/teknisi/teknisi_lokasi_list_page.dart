@@ -65,7 +65,7 @@ class _TeknisiLokasiListPageState extends State<TeknisiLokasiListPage> {
       lokasiId: 'L1',
       acId: 'A1',
       teknisiId: 'T1',
-      status: ServisStatus.dalamPerjalanan,
+      status: ServisStatus.dalam_perjalanan,
       tanggalDitugaskan: DateTime.now().subtract(const Duration(hours: 2)),
     ),
     ServisModel(

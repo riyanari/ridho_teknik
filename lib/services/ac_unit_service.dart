@@ -17,7 +17,7 @@ class AcUnitService {
 
       final response = await api.get(ApiConfig.ownerAcUnits, query: query);
 
-      print('AC API Response: $response'); // Debug log
+      print('AC API Response (getAcUnits) owner: $response'); // Debug log
 
       if (response['data'] != null) {
         final acUnits = (response['data'] as List)

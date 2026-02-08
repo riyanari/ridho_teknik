@@ -13,7 +13,7 @@ class ClientService {
       final response = await api.get(ApiConfig.ownerClients);
 
       // Debug log
-      print('Client API Response: $response');
+      print('Client API Response (getClients) owner: $response');
 
       if (response['data'] != null) {
         final clients = (response['data'] as List)

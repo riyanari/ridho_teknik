@@ -1,17 +1,151 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:ridho_teknik/pages/owner/client_list_page.dart';
+import 'package:ridho_teknik/pages/owner/service_list_page.dart';
 import 'package:ridho_teknik/pages/owner/technician_list_page.dart';
 import 'package:ridho_teknik/theme/theme.dart';
 import 'package:provider/provider.dart';
 import 'package:ridho_teknik/providers/auth_provider.dart';
+import 'package:ridho_teknik/providers/owner_master_provider.dart';
 import 'package:awesome_dialog/awesome_dialog.dart';
+import 'package:intl/intl.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
+import '../../models/servis_model.dart';
+import '../../models/user_model.dart';
 
-import '../arsip/arsip_page.dart';
-
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  bool _isRefreshing = false;
+  bool _isDateFormatInitialized = false;
+  bool _isInitialLoadComplete = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeDateFormatting();
+  }
+
+
+  Future<void> _initializeDateFormatting() async {
+    await initializeDateFormatting('id_ID', null);
+    if (!mounted) return;
+
+    setState(() {
+      _isDateFormatInitialized = true;
+    });
+
+    // Panggil load data setelah frame pertama (context aman)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_isInitialLoadComplete) {
+        _isInitialLoadComplete = true;
+        _loadInitialData();
+      }
+    });
+  }
+
+
+  Future<void> _loadInitialData() async {
+    print('🚀 HomePage._loadInitialData() - Memulai');
+
+    final provider = context.read<OwnerMasterProvider>();
+    print('   Provider ditemukan: ${provider != null}');
+
+    setState(() {
+      _isRefreshing = true;
+    });
+
+    try {
+      print('⏳ Memulai loading data awal...');
+
+      final results = await Future.wait([
+        provider.fetchClients(),
+        provider.fetchTechnicians(),
+        provider.fetchServices(),
+        provider.fetchDashboardStats(),
+      ]);
+
+      print('✅ Data berhasil diload:');
+      print('   - Clients: ${provider.clients.length} data');
+      print('   - Technicians: ${provider.technicians.length} data');
+      print('   - Services: ${provider.services.length} data');
+
+      // Print detail data untuk debugging
+      _printDataDetails(provider);
+
+    } catch (e, stackTrace) {
+      print('❌ Error loading data: $e');
+      print('Stack trace: $stackTrace');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal memuat data: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isRefreshing = false;
+        });
+      }
+    }
+  }
+
+  void _printDataDetails(OwnerMasterProvider provider) {
+    print('\n📊 DETAIL DATA:');
+
+    // Print clients
+    if (provider.clients.isNotEmpty) {
+      print('📋 CLIENTS (${provider.clients.length}):');
+      for (var i = 0; i < provider.clients.length; i++) {
+        final client = provider.clients[i];
+        print('   ${i + 1}. ${client.name} (${client.email}) - ID: ${client.id}');
+      }
+    } else {
+      print('📋 CLIENTS: Kosong');
+    }
+
+    // Print technicians
+    if (provider.technicians.isNotEmpty) {
+      print('\n🔧 TECHNICIANS (${provider.technicians.length}):');
+      for (var i = 0; i < provider.technicians.length; i++) {
+        final tech = provider.technicians[i];
+        print('   ${i + 1}. ${tech.name} (${tech.email}) - Role: ${tech.role}');
+      }
+    } else {
+      print('\n🔧 TECHNICIANS: Kosong');
+    }
+
+    // Print services
+    if (provider.services.isNotEmpty) {
+      print('\n📅 SERVICES (${provider.services.length}):');
+      for (var i = 0; i < provider.services.length; i++) {
+        final service = provider.services[i];
+        print('   ${i + 1}. ${service.jenisDisplay} - ${service.statusDisplay} - Lokasi: ${service.lokasiNama}');
+        if (service.tanggalBerkunjung != null) {
+          print('       Tanggal: ${DateFormat('dd/MM/yyyy HH:mm').format(service.tanggalBerkunjung!)}');
+        }
+      }
+    } else {
+      print('\n📅 SERVICES: Kosong');
+    }
+
+    // Print dashboard stats jika ada
+    if (provider.dashboardStats != null) {
+      print('\n📈 DASHBOARD STATS:');
+      provider.dashboardStats!.forEach((key, value) {
+        print('   $key: $value');
+      });
+    }
+  }
 
   Future<void> _confirmLogout(BuildContext context) async {
     AwesomeDialog(
@@ -24,7 +158,6 @@ class HomePage extends StatelessWidget {
       btnOkText: 'Keluar',
       btnCancelOnPress: () {},
       btnOkOnPress: () async {
-        // IMPORTANT: AwesomeDialog btnOkOnPress boleh async
         await context.read<AuthProvider>().logout();
 
         if (!context.mounted) return;
@@ -33,47 +166,180 @@ class HomePage extends StatelessWidget {
     ).show();
   }
 
+  String _formatDate(DateTime date) {
+    if (!_isDateFormatInitialized) {
+      return DateFormat('EEEE, d MMMM y').format(date);
+    }
+    return DateFormat('EEEE, d MMMM y', 'id_ID').format(date);
+  }
 
   @override
   Widget build(BuildContext context) {
+    print('🏗️ HomePage.build() dipanggil');
+
+    if (!_isDateFormatInitialized) {
+      print('   Menunggu inisialisasi date formatting...');
+      return Scaffold(
+        backgroundColor: kBackgroundColor,
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(color: kPrimaryColor),
+              const SizedBox(height: 16),
+              Text(
+                'Menyiapkan aplikasi...',
+                style: primaryTextStyle.copyWith(fontSize: 14),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: kBackgroundColor,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 30),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header Welcome dengan info bisnis
-              _buildBusinessHeader(context),
-              const SizedBox(height: 24),
+        child: Consumer<OwnerMasterProvider>(
+          builder: (context, provider, child) {
+            // Debug print saat build
+            print('🔄 Building HomePage dengan data:');
+            print('   Clients: ${provider.clients.length}');
+            print('   Technicians: ${provider.technicians.length}');
+            print('   Services: ${provider.services.length}');
+            print('   Loading: ${provider.loading}');
+            print('   Error: ${provider.error}');
 
-              // Statistik Cepat dengan animasi
-              // _buildQuickStats(),
-              // const SizedBox(height: 24),
+            // Jika data masih kosong dan tidak sedang loading, tampilkan tombol refresh
+            final showRefreshButton = provider.clients.isEmpty &&
+                provider.technicians.isEmpty &&
+                provider.services.isEmpty &&
+                !_isRefreshing &&
+                !provider.loading;
 
-              // Menu Utama - Grid dengan efek modern
-              _buildMainMenuGrid(),
-              const SizedBox(height: 24),
+            return Stack(
+              children: [
+                RefreshIndicator(
+                  onRefresh: _loadInitialData,
+                  child: CustomScrollView(
+                    slivers: [
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Header dengan info bisnis
+                              _buildBusinessHeader(context, provider),
+                              const SizedBox(height: 20),
 
-              // Reminder Service dengan gradient
-              // _buildServiceReminders(),
-              // const SizedBox(height: 24),
+                              // Statistik Cepat
+                              _buildQuickStats(provider),
+                              const SizedBox(height: 20),
 
-              // Jadwal Hari Ini dengan design card modern
-              _buildTodaySchedule(),
-            ],
-          ),
+                              // Menu Utama
+                              _buildMainMenuTitle(),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      // Grid Menu
+                      SliverPadding(
+                        padding: const EdgeInsets.symmetric(horizontal: 18),
+                        sliver: SliverGrid(
+                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 3,
+                            crossAxisSpacing: 12,
+                            mainAxisSpacing: 12,
+                            childAspectRatio: 0.9,
+                          ),
+                          delegate: SliverChildBuilderDelegate(
+                                (context, index) {
+                              final menus = _getMainMenus();
+                              return _buildMainMenuCard(context, menus[index]);
+                            },
+                            childCount: _getMainMenus().length,
+                          ),
+                        ),
+                      ),
+
+                      // Jadwal Service Hari Ini
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
+                          child: _buildTodaySchedule(provider),
+                        ),
+                      ),
+
+                      // Client Terbaru
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 18),
+                          child: _buildRecentClients(provider),
+                        ),
+                      ),
+
+                      // Teknisi Aktif
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(18, 20, 18, 30),
+                          child: _buildActiveTechnicians(provider),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Tombol manual refresh jika data kosong
+                if (showRefreshButton)
+                  Positioned(
+                    bottom: 20,
+                    right: 20,
+                    child: FloatingActionButton(
+                      onPressed: _loadInitialData,
+                      backgroundColor: kPrimaryColor,
+                      child: const Icon(Iconsax.refresh, color: Colors.white),
+                    ),
+                  ),
+
+                // Loading overlay
+                if (_isRefreshing)
+                  Positioned.fill(
+                    child: Container(
+                      color: Colors.black.withOpacity(0.3),
+                      child: Center(
+                        child: CircularProgressIndicator(color: kPrimaryColor),
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          },
         ),
       ),
     );
   }
 
-  Widget _buildBusinessHeader(BuildContext context) {
-    DateTime now = DateTime.now();
-    String dayName = _getDayName(now.weekday);
-    String monthName = _getMonthName(now.month);
-    String formattedDate = '$dayName, ${now.day} $monthName ${now.year}';
+  Widget _buildBusinessHeader(BuildContext context, OwnerMasterProvider provider) {
+    final now = DateTime.now();
+    final formattedDate = _formatDate(now);
+
+    // Hitung statistik
+    final todayServices = provider.services.where((service) {
+      final visitDate = service.tanggalBerkunjung;
+      if (visitDate == null) return false;
+      return visitDate.year == now.year &&
+          visitDate.month == now.month &&
+          visitDate.day == now.day;
+    }).length;
+
+    final pendingServices = provider.getServicesByStatus('menunggu_konfirmasi').length;
+
+    print('📊 Statistik Header:');
+    print('   - Today services: $todayServices');
+    print('   - Pending services: $pendingServices');
+    print('   - Total services: ${provider.services.length}');
 
     return Container(
       width: double.infinity,
@@ -87,7 +353,7 @@ class HomePage extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: kPrimaryColor.withValues(alpha:0.3),
+            color: kPrimaryColor.withOpacity(0.3),
             blurRadius: 15,
             offset: const Offset(0, 5),
           ),
@@ -97,59 +363,59 @@ class HomePage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(Iconsax.personalcard, color: Colors.white, size: 20),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Ridho Teknik',
-                      style: whiteTextStyle.copyWith(
-                        fontSize: 14,
-                        fontWeight: semiBold,
-                      ),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    Text(
-                      'AC Service',
-                      style: whiteTextStyle.copyWith(
-                        fontSize: 10,
-                        fontWeight: regular,
+                    child: const Icon(Iconsax.building_3, color: Colors.white, size: 24),
+                  ),
+                  const SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Ridho Teknik',
+                        style: whiteTextStyle.copyWith(
+                          fontSize: 16,
+                          fontWeight: bold,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
+                      Text(
+                        'AC Service Specialist',
+                        style: whiteTextStyle.copyWith(
+                          fontSize: 12,
+                          fontWeight: regular,
+                          color: Colors.white.withOpacity(0.9),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-
-              // ✅ tombol logout
               GestureDetector(
                 onTap: () => _confirmLogout(context),
                 child: Container(
-                  padding: const EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
+                    color: Colors.white.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
                   ),
-                  child: const Icon(Iconsax.logout_1, color: Colors.white, size: 18),
+                  child: const Icon(Iconsax.logout_1, color: Colors.white, size: 20),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 20),
           Text(
             'Selamat Datang, Owner! 👋',
             style: whiteTextStyle.copyWith(
-              fontSize: 18,
+              fontSize: 20,
               fontWeight: bold,
             ),
           ),
@@ -158,16 +424,27 @@ class HomePage extends StatelessWidget {
             formattedDate,
             style: whiteTextStyle.copyWith(
               fontSize: 14,
-              fontWeight: regular,
-              color: Colors.white.withValues(alpha:0.8),
+              color: Colors.white.withOpacity(0.8),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           Row(
             children: [
-              _buildStatChip('${_getTodayServices()} Service Hari Ini', Iconsax.calendar_1),
+              Expanded(
+                child: _buildHeaderStat(
+                  icon: Iconsax.calendar_1,
+                  value: '$todayServices',
+                  label: 'Service Hari Ini',
+                ),
+              ),
               const SizedBox(width: 8),
-              _buildStatChip('${_getPendingReminders()} Reminder', Iconsax.notification_bing),
+              Expanded(
+                child: _buildHeaderStat(
+                  icon: Iconsax.notification_bing,
+                  value: '$pendingServices',
+                  label: 'Menunggu Konfirmasi',
+                ),
+              ),
             ],
           ),
         ],
@@ -175,62 +452,39 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  // Helper functions untuk data dinamis
-  String _getDayName(int weekday) {
-    switch (weekday) {
-      case 1: return 'Senin';
-      case 2: return 'Selasa';
-      case 3: return 'Rabu';
-      case 4: return 'Kamis';
-      case 5: return 'Jumat';
-      case 6: return 'Sabtu';
-      case 7: return 'Minggu';
-      default: return '';
-    }
-  }
-
-  String _getMonthName(int month) {
-    switch (month) {
-      case 1: return 'Januari';
-      case 2: return 'Februari';
-      case 3: return 'Maret';
-      case 4: return 'April';
-      case 5: return 'Mei';
-      case 6: return 'Juni';
-      case 7: return 'Juli';
-      case 8: return 'Agustus';
-      case 9: return 'September';
-      case 10: return 'Oktober';
-      case 11: return 'November';
-      case 12: return 'Desember';
-      default: return '';
-    }
-  }
-
-  int _getTodayServices() => 7; // 7 service hari ini
-  int _getPendingReminders() => 4; // 4 reminder
-  int _getTotalClients() => 156; // Total client
-  int _getMonthlyServices() => 42; // Service bulan ini
-  int _getPendingServices() => 3; // Pending service
-
-  Widget _buildStatChip(String text, IconData icon) {
+  Widget _buildHeaderStat({
+    required IconData icon,
+    required String value,
+    required String label,
+  }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha:0.2),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha:0.3)),
+        color: Colors.white.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
+      child: Column(
         children: [
-          Icon(icon, color: Colors.white, size: 14),
-          const SizedBox(width: 6),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: Colors.white, size: 16),
+              const SizedBox(width: 6),
+              Text(
+                value,
+                style: whiteTextStyle.copyWith(
+                  fontSize: 18,
+                  fontWeight: bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
           Text(
-            text,
+            label,
             style: whiteTextStyle.copyWith(
-              fontSize: 12,
-              fontWeight: medium,
+              fontSize: 11,
+              color: Colors.white.withOpacity(0.8),
             ),
           ),
         ],
@@ -238,7 +492,18 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  Widget _buildQuickStats() {
+  Widget _buildQuickStats(OwnerMasterProvider provider) {
+    final totalClients = provider.clients.length;
+    final totalTechnicians = provider.technicians.length;
+    final totalServices = provider.services.length;
+    final completedServices = provider.getServicesByStatus('selesai').length;
+
+    print('📈 Quick Stats:');
+    print('   - Total Clients: $totalClients');
+    print('   - Total Technicians: $totalTechnicians');
+    print('   - Total Services: $totalServices');
+    print('   - Completed Services: $completedServices');
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -246,7 +511,7 @@ class HomePage extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withValues(alpha:0.1),
+            color: Colors.grey.withOpacity(0.1),
             blurRadius: 20,
             offset: const Offset(0, 5),
           ),
@@ -254,33 +519,73 @@ class HomePage extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Expanded(
-            child: _buildStatCard(
-              'Total Client',
-              _getTotalClients().toString(),
-              Iconsax.people,
-              kBoxMenuGreenColor,
-              '↑ 15% dari bulan lalu',
-            ),
+          _buildStatItem(
+            title: 'Client',
+            value: totalClients,
+            icon: Iconsax.people,
+            color: kBoxMenuGreenColor,
+            subtitle: 'Total',
           ),
           const SizedBox(width: 12),
-          Expanded(
-            child: _buildStatCard(
-              'Service Bulan Ini',
-              _getMonthlyServices().toString(),
-              Iconsax.activity,
-              kSecondaryColor,
-              '↑ 12% dari target',
-            ),
+          _buildStatItem(
+            title: 'Teknisi',
+            value: totalTechnicians,
+            icon: Iconsax.profile_2user,
+            color: kSecondaryColor,
+            subtitle: 'Aktif',
           ),
           const SizedBox(width: 12),
-          Expanded(
-            child: _buildStatCard(
-              'Pending',
-              _getPendingServices().toString(),
-              Iconsax.clock,
-              kBoxMenuRedColor,
-              'Butuh konfirmasi',
+          _buildStatItem(
+            title: 'Service',
+            value: totalServices,
+            icon: Iconsax.activity,
+            color: kPrimaryColor,
+            subtitle: '$completedServices selesai',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatItem({
+    required String title,
+    required int value,
+    required IconData icon,
+    required Color color,
+    required String subtitle,
+  }) {
+    return Expanded(
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: color, size: 20),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            value.toString(),
+            style: primaryTextStyle.copyWith(
+              fontSize: 22,
+              fontWeight: bold,
+              color: color,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            title,
+            style: greyTextStyle.copyWith(
+              fontSize: 12,
+              fontWeight: medium,
+            ),
+          ),
+          Text(
+            subtitle,
+            style: greyTextStyle.copyWith(
+              fontSize: 10,
             ),
           ),
         ],
@@ -288,227 +593,86 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  Widget _buildStatCard(String title, String value, IconData icon, Color color, String subtitle) {
-    return ConstrainedBox(
-      constraints: const BoxConstraints(
-        minHeight: 100,
-        maxHeight: 160,
-      ),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(15),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              color.withValues(alpha:0.05),
-              color.withValues(alpha:0.02),
-            ],
-          ),
-          border: Border.all(color: color.withValues(alpha:0.1)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Column(
-              mainAxisAlignment: MainAxisAlignment.start,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: color.withValues(alpha:0.1),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Icon(icon, color: color, size: 18),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: color.withValues(alpha:0.1),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Icon(
-                        Iconsax.arrow_up_3,
-                        color: color,
-                        size: 12,
-                      ),
-                    ),
-                  ],
-                ),
-                Text(
-                  value,
-                  style: primaryTextStyle.copyWith(
-                    fontSize: 20,
-                    fontWeight: bold,
-                    color: color,
-                  ),
-                ),
-              ],
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 2),
-                Text(
-                  title,
-                  style: greyTextStyle.copyWith(
-                    fontSize: 11,
-                    fontWeight: medium,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: greyTextStyle.copyWith(
-                    fontSize: 9,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMainMenuGrid() {
-    final List<MainMenu> mainMenus = [
-      MainMenu(
-        icon: Iconsax.calendar_edit,
-        title: 'Jadwal',
-        color: kBoxMenuDarkBlueColor,
-        description: 'List Jadwal service',
-        gradient: [kBoxMenuCoklatColor, Color(0xFF8B4513)],
-      ),
-      MainMenu(
-        icon: Iconsax.people,
-        title: 'Client',
-        color: kBoxMenuGreenColor,
-        description: 'Data data client',
-        gradient: [kBoxMenuGreenColor, Color(0xFF1B998B)],
-      ),
-      // 🔵 TAMBAHKAN MENU TEKNISI
-      MainMenu(
-        icon: Iconsax.profile_2user,
-        title: 'Teknisi',
-        color: kBoxMenuLightBlueColor,
-        description: 'Data teknisi & rating',
-        gradient: [kBoxMenuLightBlueColor, Color(0xFF2E3A7A)],
-      ),
-      // MainMenu(
-      //   icon: Iconsax.archive,
-      //   title: 'Arsip',
-      //   color: kPrimaryColor,
-      //   description: 'Data client dengan maps & keluhan',
-      //   gradient: [kPrimaryColor, kBoxMenuDarkBlueColor],
-      // ),
-      // MainMenu(
-      //   icon: Iconsax.receipt,
-      //   title: 'Invoice PDF',
-      //   color: kBoxMenuGreenColor,
-      //   description: 'Cetak invoice output PDF',
-      //   gradient: [kBoxMenuGreenColor, Color(0xFF1B998B)],
-      // ),
-      // MainMenu(
-      //   icon: Iconsax.box_tick,
-      //   title: 'Stok Baru',
-      //   color: kBoxMenuLightBlueColor,
-      //   description: 'Arsip stok barang B to C',
-      //   gradient: [kBoxMenuLightBlueColor, Color(0xFF2E3A7A)],
-      // ),
-      // MainMenu(
-      //   icon: Iconsax.box_remove,
-      //   title: 'Stok Rusak',
-      //   color: kBoxMenuRedColor,
-      //   description: 'Arsip stok barang rusak',
-      //   gradient: [kBoxMenuRedColor, Color(0xFFD1495B)],
-      // ),
-      // MainMenu(
-      //   icon: Iconsax.pen_tool,
-      //   title: 'Stok Alat',
-      //   color: kBoxMenuCoklatColor,
-      //   description: 'Management stok alat AC',
-      //   gradient: [kBoxMenuCoklatColor, Color(0xFF8B4513)],
-      // ),
-      // MainMenu(
-      //   icon: Iconsax.chart_square,
-      //   title: 'Finance',
-      //   color: kSecondaryColor,
-      //   description: 'Payroll, cashflow, operasional',
-      //   gradient: [kSecondaryColor, Color(0xFFFF6B35)],
-      // ),
-      // MainMenu(
-      //   icon: Iconsax.notification_bing,
-      //   title: 'Reminder',
-      //   color: Colors.purple,
-      //   description: 'Reminder WA 3 bulan',
-      //   gradient: [Colors.purple, Color(0xFF8B5CF6)],
-      // ),
-    ];
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildMainMenuTitle() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Menu Utama',
-                style: primaryTextStyle.copyWith(
-                  fontSize: 18,
-                  fontWeight: bold,
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: kPrimaryColor.withValues(alpha:0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  '${mainMenus.length} Menu',
-                  style: primaryTextStyle.copyWith(
-                    fontSize: 12,
-                    fontWeight: medium,
-                    color: kPrimaryColor,
-                  ),
-                ),
-              ),
-            ],
+        Text(
+          'Menu Utama',
+          style: primaryTextStyle.copyWith(
+            fontSize: 18,
+            fontWeight: bold,
           ),
         ),
-        const SizedBox(height: 16),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            childAspectRatio: 0.9,
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          decoration: BoxDecoration(
+            color: kPrimaryColor.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(20),
           ),
-          itemCount: mainMenus.length,
-          itemBuilder: (context, index) {
-            return _buildMainMenuCard(context, mainMenus[index]);
-          },
+          child: Text(
+            '${_getMainMenus().length} Menu',
+            style: primaryTextStyle.copyWith(
+              fontSize: 12,
+              fontWeight: medium,
+              color: kPrimaryColor,
+            ),
+          ),
         ),
       ],
     );
   }
 
+  List<MainMenu> _getMainMenus() {
+    return [
+      MainMenu(
+        icon: Iconsax.calendar_edit,
+        title: 'Service',
+        color: kBoxMenuDarkBlueColor,
+        description: 'List jadwal service',
+        gradient: [kBoxMenuCoklatColor, const Color(0xFF8B4513)],
+      ),
+      MainMenu(
+        icon: Iconsax.people,
+        title: 'Client',
+        color: kBoxMenuGreenColor,
+        description: 'Data-data client',
+        gradient: [kBoxMenuGreenColor, const Color(0xFF1B998B)],
+      ),
+      MainMenu(
+        icon: Iconsax.profile_2user,
+        title: 'Teknisi',
+        color: kBoxMenuLightBlueColor,
+        description: 'Data teknisi & rating',
+        gradient: [kBoxMenuLightBlueColor, const Color(0xFF2E3A7A)],
+      ),
+      MainMenu(
+        icon: Iconsax.location,
+        title: 'Lokasi',
+        color: kPrimaryColor,
+        description: 'Data lokasi client',
+        gradient: [kPrimaryColor, kBoxMenuDarkBlueColor],
+      ),
+      MainMenu(
+        icon: Iconsax.cpu,
+        title: 'AC Units',
+        color: kBoxMenuGreenColor,
+        description: 'Data unit AC',
+        gradient: [kBoxMenuGreenColor, const Color(0xFF1B998B)],
+      ),
+      MainMenu(
+        icon: Iconsax.chart_square,
+        title: 'Dashboard',
+        color: kSecondaryColor,
+        description: 'Statistik lengkap',
+        gradient: [kSecondaryColor, const Color(0xFFFF6B35)],
+      ),
+    ];
+  }
+
   Widget _buildMainMenuCard(BuildContext context, MainMenu menu) {
     return GestureDetector(
-      onTap: () {
-        _navigateToPage(context, menu.title);
-      },
+      onTap: () => _navigateToMenu(context, menu.title),
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
@@ -520,7 +684,7 @@ class HomePage extends StatelessWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color: menu.color.withValues(alpha:0.3),
+              color: menu.color.withOpacity(0.3),
               blurRadius: 8,
               offset: const Offset(0, 3),
             ),
@@ -534,7 +698,7 @@ class HomePage extends StatelessWidget {
               width: 32,
               height: 32,
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha:0.2),
+                color: Colors.white.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
@@ -560,7 +724,7 @@ class HomePage extends StatelessWidget {
                   style: whiteTextStyle.copyWith(
                     fontSize: 9,
                     fontWeight: regular,
-                    color: Colors.white.withValues(alpha:0.8),
+                    color: Colors.white.withOpacity(0.8),
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -573,390 +737,119 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  void _navigateToPage(BuildContext context, String menuTitle) {
+  void _navigateToMenu(BuildContext context, String menuTitle) {
+    print('👉 Navigasi ke menu: $menuTitle');
     switch (menuTitle) {
-      case 'Arsip':
-      // Navigate to Arsip page
+      case 'Service':
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => const ArsipPage()),
+          MaterialPageRoute(builder: (_) => const ServiceListPage()),
         );
         break;
       case 'Client':
-      // 🔵 Navigate ke halaman Client List
         Navigator.push(
           context,
           MaterialPageRoute(builder: (_) => const ClientListPage()),
         );
         break;
       case 'Teknisi':
-      // 🔵 Navigate ke halaman Teknisi List
         Navigator.push(
           context,
           MaterialPageRoute(builder: (_) => const TechnicianListPage()),
         );
         break;
-      case 'Invoice PDF':
-      // Navigate to Invoice PDF Output
-        break;
-      case 'Stok Baru':
-      // Navigate to Arsip stok barang baru B to C
-        break;
-      case 'Stok Rusak':
-      // Navigate to Arsip stok barang rusak
-        break;
-      case 'Stok Alat':
-      // Navigate to Stok alat AC
-        break;
-      case 'Finance':
-      // Navigate to Finance Tracker
-        break;
-      case 'Jadwal':
-      // Navigate to Jadwal Internal
-        break;
-      case 'Reminder':
-      // Navigate to Reminder WA
-        break;
+      default:
+        _showComingSoon(context, 'Halaman $menuTitle');
     }
   }
 
-  Widget _buildServiceReminders() {
-    final List<ReminderItem> reminders = [
-      ReminderItem(
-        name: 'Bapak Ahmad Rizki',
-        service: 'Service AC Split - Terakhir 15 Sep 2024',
-        phone: '08123456789',
-        icon: Iconsax.profile_circle,
-        daysLeft: 2,
+  void _showComingSoon(BuildContext context, String feature) {
+    print('🚧 Coming Soon: $feature');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('$feature akan segera tersedia'),
+        backgroundColor: kPrimaryColor,
+        duration: const Duration(seconds: 2),
       ),
-      ReminderItem(
-        name: 'Ibu Sari Dewi',
-        service: 'Service AC Standing - Terakhir 18 Sep 2024',
-        phone: '08129876543',
-        icon: Iconsax.profile_2user,
-        daysLeft: 5,
-      ),
-      ReminderItem(
-        name: 'PT. Maju Jaya Abadi',
-        service: 'Service Central AC - Terakhir 20 Sep 2024',
-        phone: '081511223344',
-        icon: Iconsax.building,
-        daysLeft: 7,
-      ),
-      ReminderItem(
-        name: 'Bapak Hendra Gunawan',
-        service: 'Service AC Cassette - Terakhir 22 Sep 2024',
-        phone: '081355667788',
-        icon: Iconsax.profile_circle,
-        daysLeft: 1,
-      ),
-    ];
+    );
+  }
 
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            kSecondaryColor.withValues(alpha:0.1),
-            kSecondaryColor.withValues(alpha:0.05),
-          ],
+  Widget _buildTodaySchedule(OwnerMasterProvider provider) {
+    final todayServices = provider.services.where((service) {
+      final visitDate = service.tanggalBerkunjung;
+      if (visitDate == null) return false;
+      final now = DateTime.now();
+      return visitDate.year == now.year &&
+          visitDate.month == now.month &&
+          visitDate.day == now.day;
+    }).toList();
+
+    print('📅 Today Schedule: ${todayServices.length} service hari ini');
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader(
+          icon: Iconsax.calendar_1,
+          title: 'Jadwal Service Hari Ini',
+          count: todayServices.length,
+          color: kPrimaryColor,
         ),
-        border: Border.all(color: kSecondaryColor.withValues(alpha:0.2)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      clipBehavior: Clip.none,
-                      child: Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              color: kSecondaryColor.withValues(alpha:0.2),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Icon(Iconsax.notification, color: kSecondaryColor, size: 20),
-                          ),
-                          Positioned(
-                            top: -4,
-                            right: -4,
-                            child: Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: const BoxDecoration(
-                                color: Colors.red,
-                                shape: BoxShape.circle,
-                              ),
-                              child: Text(
-                                reminders.length.toString(),
-                                style: whiteTextStyle.copyWith(
-                                  fontSize: 8,
-                                  fontWeight: bold,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Text(
-                      'Reminder Service 3 Bulan',
-                      style: primaryTextStyle.copyWith(
-                        fontSize: 14,
-                        fontWeight: bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(20),
-                bottomRight: Radius.circular(20),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.withValues(alpha:0.1),
-                  blurRadius: 10,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Column(
-              children: reminders.map((reminder) => _buildReminderItem(reminder)).toList(),
-            ),
-          ),
-        ],
-      ),
+        const SizedBox(height: 12),
+        todayServices.isEmpty
+            ? _buildEmptyState(
+          icon: Iconsax.calendar_remove,
+          message: 'Tidak ada jadwal service hari ini',
+        )
+            : Column(
+          children: todayServices
+              .take(3)
+              .map((service) => _buildServiceItem(service))
+              .toList(),
+        ),
+      ],
     );
   }
 
-  Widget _buildReminderItem(ReminderItem reminder) {
-    Color statusColor = reminder.daysLeft <= 2 ? Colors.red : kSecondaryColor;
+  Widget _buildServiceItem(ServisModel service) {
+    final time = service.tanggalBerkunjung != null
+        ? DateFormat('HH:mm').format(service.tanggalBerkunjung!)
+        : 'Belum dijadwalkan';
+
+    print('   Service Item: ${service.jenisDisplay} - ${service.statusDisplay} - $time');
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: kBackgroundColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.withValues(alpha:0.1)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: statusColor.withValues(alpha:0.1),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(reminder.icon, color: statusColor, size: 20),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  reminder.name,
-                  style: primaryTextStyle.copyWith(
-                    fontSize: 14,
-                    fontWeight: semiBold,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  reminder.service,
-                  style: greyTextStyle.copyWith(fontSize: 11),
-                ),
-                Text(
-                  reminder.phone,
-                  style: greyTextStyle.copyWith(fontSize: 10),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(width: 8,),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: statusColor.withValues(alpha:0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              '${reminder.daysLeft}h',
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: bold,
-                color: statusColor,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTodaySchedule() {
-    final List<ScheduleItem> schedules = [
-      ScheduleItem(
-        title: 'Service AC Split - Bapak Budi Santoso',
-        time: '08:00 - 10:00',
-        address: 'Jl. Merdeka No. 123, Jakarta Pusat',
-        color: kPrimaryColor,
-        icon: Iconsax.home,
-        type: 'Regular Service',
-      ),
-      ScheduleItem(
-        title: 'Pemasangan AC Baru - Ibu Ani Wijaya',
-        time: '11:00 - 13:00',
-        address: 'Perumahan Griya Asri Blok C5, Bekasi',
-        color: kBoxMenuGreenColor,
-        icon: Iconsax.home_hashtag,
-        type: 'Installation',
-      ),
-      ScheduleItem(
-        title: 'Maintenance Central AC - Hotel Grand Palace',
-        time: '14:00 - 17:00',
-        address: 'Jl. Sudirman No. 456, Jakarta Selatan',
-        color: kSecondaryColor,
-        icon: Iconsax.building,
-        type: 'Maintenance',
-      ),
-      ScheduleItem(
-        title: 'Troubleshoot AC - Kantor PT. Sejahtera',
-        time: '19:00 - 21:00',
-        address: 'Kuningan City Lt. 15, Jakarta Selatan',
-        color: Colors.purple,
-        icon: Iconsax.buildings,
-        type: 'Emergency',
-      ),
-    ];
-
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
         color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withValues(alpha:0.1),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
           ),
         ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      clipBehavior: Clip.none,
-                      child: Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              color: kPrimaryColor.withValues(alpha:0.1),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Icon(Iconsax.calendar_1, color: kPrimaryColor, size: 20),
-                          ),
-                          Positioned(
-                            top: -4,
-                            right: -4,
-                            child: Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: const BoxDecoration(
-                                color: Colors.blue,
-                                shape: BoxShape.circle,
-                              ),
-                              child: Text(
-                                schedules.length.toString(),
-                                style: whiteTextStyle.copyWith(
-                                  fontSize: 8,
-                                  fontWeight: bold,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Text(
-                      'Jadwal Service Hari Ini',
-                      style: primaryTextStyle.copyWith(
-                        fontSize: 14,
-                        fontWeight: bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
-            child: Column(
-              children: schedules.map((schedule) => _buildScheduleItem(schedule)).toList(),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildScheduleItem(ScheduleItem schedule) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: schedule.color.withValues(alpha:0.05),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: schedule.color.withValues(alpha:0.2)),
       ),
       child: Row(
         children: [
           Container(
-            width: 40,
-            height: 40,
+            width: 48,
+            height: 48,
             decoration: BoxDecoration(
-              color: schedule.color.withValues(alpha:0.1),
+              color: kPrimaryColor.withOpacity(0.1),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(schedule.icon, color: schedule.color, size: 20),
+            child: Icon(Iconsax.calendar_1, color: kPrimaryColor, size: 24),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  schedule.title,
+                  'Service ${service.jenisDisplay}',
                   style: primaryTextStyle.copyWith(
                     fontSize: 14,
                     fontWeight: semiBold,
@@ -965,43 +858,128 @@ class HomePage extends StatelessWidget {
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    Icon(Iconsax.clock, size: 12, color: schedule.color),
+                    Icon(Iconsax.clock, size: 14, color: kPrimaryColor),
                     const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        schedule.time,
-                        style: greyTextStyle.copyWith(fontSize: 10),
-                      ),
+                    Text(
+                      time,
+                      style: greyTextStyle.copyWith(fontSize: 12),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 12),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
-                        color: schedule.color.withValues(alpha:0.1),
-                        borderRadius: BorderRadius.circular(4),
+                        color: service.statusColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
-                        schedule.type,
+                        service.statusDisplay,
                         style: TextStyle(
-                          fontSize: 9,
+                          fontSize: 10,
                           fontWeight: bold,
-                          color: schedule.color,
+                          color: service.statusColor,
                         ),
                       ),
                     ),
-
                   ],
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 4),
+                Text(
+                  service.lokasiNama,
+                  style: greyTextStyle.copyWith(fontSize: 12),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          Icon(Iconsax.arrow_right_3, color: kPrimaryColor, size: 20),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRecentClients(OwnerMasterProvider provider) {
+    final recentClients = provider.clients.take(3).toList();
+
+    print('👥 Recent Clients: ${recentClients.length} dari total ${provider.clients.length}');
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader(
+          icon: Iconsax.people,
+          title: 'Client Terbaru',
+          count: provider.clients.length,
+          color: kBoxMenuGreenColor,
+        ),
+        const SizedBox(height: 12),
+        recentClients.isEmpty
+            ? _buildEmptyState(
+          icon: Iconsax.people,
+          message: 'Belum ada data client',
+        )
+            : Column(
+          children: recentClients
+              .map((client) {
+            print('   Client: ${client.name} (${client.email})');
+            return _buildClientItem(client);
+          })
+              .toList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildClientItem(UserModel client) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: kBoxMenuGreenColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(Iconsax.profile_circle, color: kBoxMenuGreenColor, size: 24),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  client.name ?? 'Nama tidak tersedia',
+                  style: primaryTextStyle.copyWith(
+                    fontSize: 14,
+                    fontWeight: semiBold,
+                  ),
+                ),
+                const SizedBox(height: 4),
                 Row(
                   children: [
-                    Icon(Iconsax.location, size: 12, color: schedule.color),
+                    Icon(Iconsax.sms, size: 14, color: kBoxMenuGreenColor),
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(
-                        schedule.address,
-                        style: greyTextStyle.copyWith(fontSize: 11),
-                        maxLines: 1,
+                        client.email ?? 'Email tidak tersedia',
+                        style: greyTextStyle.copyWith(fontSize: 12),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
@@ -1010,14 +988,187 @@ class HomePage extends StatelessWidget {
               ],
             ),
           ),
-          SizedBox(width: 8,),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActiveTechnicians(OwnerMasterProvider provider) {
+    final activeTechnicians = provider.technicians.take(3).toList();
+
+    print('🔧 Active Technicians: ${activeTechnicians.length} dari total ${provider.technicians.length}');
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader(
+          icon: Iconsax.profile_2user,
+          title: 'Teknisi Aktif',
+          count: provider.technicians.length,
+          color: kSecondaryColor,
+        ),
+        const SizedBox(height: 12),
+        activeTechnicians.isEmpty
+            ? _buildEmptyState(
+          icon: Iconsax.profile_2user,
+          message: 'Belum ada data teknisi',
+        )
+            : Column(
+          children: activeTechnicians
+              .map((technician) {
+            print('   Technician: ${technician.name} (${technician.email}) - ${technician.role}');
+            return _buildTechnicianItem(technician);
+          })
+              .toList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTechnicianItem(UserModel technician) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
           Container(
-            padding: const EdgeInsets.all(6),
+            width: 48,
+            height: 48,
             decoration: BoxDecoration(
-              color: schedule.color.withValues(alpha:0.1),
-              borderRadius: BorderRadius.circular(8),
+              color: kSecondaryColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(Iconsax.arrow_right_3, color: schedule.color, size: 16),
+            child: Icon(Iconsax.profile_circle, color: kSecondaryColor, size: 24),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  technician.name ?? 'Nama tidak tersedia',
+                  style: primaryTextStyle.copyWith(
+                    fontSize: 14,
+                    fontWeight: semiBold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Icon(Iconsax.sms, size: 14, color: kSecondaryColor),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        technician.email ?? 'Email tidak tersedia',
+                        style: greyTextStyle.copyWith(fontSize: 12),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Icon(Iconsax.crown1, size: 14, color: kSecondaryColor),
+                    const SizedBox(width: 4),
+                    Text(
+                      technician.role?.toUpperCase() ?? 'TEKNISI',
+                      style: greyTextStyle.copyWith(
+                        fontSize: 12,
+                        fontWeight: medium,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader({
+    required IconData icon,
+    required String title,
+    required int count,
+    required Color color,
+  }) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, color: color, size: 20),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              title,
+              style: primaryTextStyle.copyWith(
+                fontSize: 16,
+                fontWeight: bold,
+              ),
+            ),
+          ],
+        ),
+        Text(
+          '$count Total',
+          style: greyTextStyle.copyWith(
+            fontSize: 12,
+            fontWeight: medium,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEmptyState({
+    required IconData icon,
+    required String message,
+  }) {
+    print('   Empty State: $message');
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 40),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Icon(
+            icon,
+            color: Colors.grey[400],
+            size: 48,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            message,
+            style: greyTextStyle.copyWith(fontSize: 14),
           ),
         ],
       ),
@@ -1038,39 +1189,5 @@ class MainMenu {
     required this.color,
     required this.description,
     required this.gradient,
-  });
-}
-
-class ReminderItem {
-  final String name;
-  final String service;
-  final String phone;
-  final IconData icon;
-  final int daysLeft;
-
-  ReminderItem({
-    required this.name,
-    required this.service,
-    required this.phone,
-    required this.icon,
-    required this.daysLeft,
-  });
-}
-
-class ScheduleItem {
-  final String title;
-  final String time;
-  final String address;
-  final Color color;
-  final IconData icon;
-  final String type;
-
-  ScheduleItem({
-    required this.title,
-    required this.time,
-    required this.address,
-    required this.color,
-    required this.icon,
-    required this.type,
   });
 }

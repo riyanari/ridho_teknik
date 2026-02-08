@@ -48,6 +48,11 @@ class ApiConfig {
   static String ownerServiceAssignTechnician(int id) => "$baseUrl/owner/servis/$id/assign-teknisi";
   static String ownerServiceConfirmWork(int id) => "$baseUrl/owner/servis/$id/konfirmasi-pengerjaan";
 
+  // Di class ApiConfig, tambahkan:
+// Service Management - Multiple Technicians
+  static String ownerServiceAssignMultipleTechnicians(int id) => "$baseUrl/owner/servis/$id/assign-multiple-teknisi";
+  static String ownerServiceReassignTechnician(int id) => "$baseUrl/owner/servis/$id/reassign-teknisi";
+
   // Dashboard & Reports
   static String get ownerDashboardStats => "$baseUrl/owner/servis/dashboard";
   static String get ownerFilterOptions => "$baseUrl/owner/servis/filter-options";

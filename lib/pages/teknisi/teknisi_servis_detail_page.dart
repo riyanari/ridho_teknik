@@ -84,11 +84,11 @@ class _TeknisiServisDetailPageState extends State<TeknisiServisDetailPage> {
     });
 
     // Logika untuk status tertentu
-    if (newStatus == ServisStatus.dalamPerjalanan) {
+    if (newStatus == ServisStatus.dalam_perjalanan) {
       _showSnackBar('Status diperbarui: Dalam Perjalanan');
-    } else if (newStatus == ServisStatus.tibaDiLokasi) {
+    } else if (newStatus == ServisStatus.tiba_di_lokasi) {
       _showSnackBar('Status diperbarui: Tiba di Lokasi');
-    } else if (newStatus == ServisStatus.menungguKonfirmasi) {
+    } else if (newStatus == ServisStatus.menunggu_konfirmasi) {
       _showSnackBar('Laporan dikirim, menunggu konfirmasi owner');
     }
   }
@@ -120,7 +120,7 @@ class _TeknisiServisDetailPageState extends State<TeknisiServisDetailPage> {
     }
 
     // Simulasi pengiriman laporan
-    _updateStatus(ServisStatus.menungguKonfirmasi);
+    _updateStatus(ServisStatus.menunggu_konfirmasi);
 
     _showSnackBar(
       'Laporan berhasil dikirim! Menunggu konfirmasi owner CVRT',
@@ -308,32 +308,32 @@ class _TeknisiServisDetailPageState extends State<TeknisiServisDetailPage> {
       case JenisPenanganan.cuciAc:
         return [
           ServisStatus.ditugaskan,
-          ServisStatus.dalamPerjalanan,
-          ServisStatus.tibaDiLokasi,
-          ServisStatus.sedangDiperiksa,       // bisa ganti jadi "Sedang Dikerjakan"
-          ServisStatus.menungguKonfirmasi,
+          ServisStatus.dalam_perjalanan,
+          ServisStatus.tiba_di_lokasi,
+          ServisStatus.sedang_diperiksa,       // bisa ganti jadi "Sedang Dikerjakan"
+          ServisStatus.menunggu_konfirmasi,
           ServisStatus.selesai,
         ];
 
       case JenisPenanganan.perbaikanAc:
         return [
           ServisStatus.ditugaskan,
-          ServisStatus.dalamPerjalanan,
-          ServisStatus.tibaDiLokasi,
-          ServisStatus.sedangDiperiksa,
-          ServisStatus.dalamPerbaikan,
-          ServisStatus.menungguSukuCadang,
-          ServisStatus.menungguKonfirmasi,
+          ServisStatus.dalam_perjalanan,
+          ServisStatus.tiba_di_lokasi,
+          ServisStatus.sedang_diperiksa,
+          ServisStatus.dalam_perbaikan,
+          ServisStatus.menunggu_suku_cadang,
+          ServisStatus.menunggu_konfirmasi,
           ServisStatus.selesai,
         ];
 
       case JenisPenanganan.instalasi:
         return [
           ServisStatus.ditugaskan,
-          ServisStatus.dalamPerjalanan,
-          ServisStatus.tibaDiLokasi,
-          ServisStatus.dalamPerbaikan,        // bisa kamu artikan "Pemasangan"
-          ServisStatus.menungguKonfirmasi,
+          ServisStatus.dalam_perjalanan,
+          ServisStatus.tiba_di_lokasi,
+          ServisStatus.dalam_perbaikan,        // bisa kamu artikan "Pemasangan"
+          ServisStatus.menunggu_konfirmasi,
           ServisStatus.selesai,
         ];
     }
@@ -652,7 +652,7 @@ class _TeknisiServisDetailPageState extends State<TeknisiServisDetailPage> {
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
-          if (_currentStatus == ServisStatus.menungguKonfirmasi)
+          if (_currentStatus == ServisStatus.menunggu_konfirmasi)
             IconButton(
               icon: const Icon(Icons.check_circle_outline),
               onPressed: () {},
@@ -818,8 +818,8 @@ class _TeknisiServisDetailPageState extends State<TeknisiServisDetailPage> {
             ),
 
             // Tombol Kirim Laporan
-            if (_currentStatus.index >= ServisStatus.sedangDiperiksa.index &&
-                _currentStatus.index < ServisStatus.menungguKonfirmasi.index)
+            if (_currentStatus.index >= ServisStatus.sedang_diperiksa.index &&
+                _currentStatus.index < ServisStatus.menunggu_konfirmasi.index)
               ElevatedButton(
                 onPressed: _kirimLaporan,
                 style: ElevatedButton.styleFrom(

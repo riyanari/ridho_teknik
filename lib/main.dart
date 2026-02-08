@@ -8,12 +8,14 @@ import 'package:ridho_teknik/providers/client_master_provider.dart';
 import 'package:ridho_teknik/providers/client_provider.dart';
 import 'package:ridho_teknik/providers/client_servis_provider.dart';
 import 'package:ridho_teknik/providers/location_provider.dart';
+import 'package:ridho_teknik/providers/owner_master_provider.dart';
 import 'package:ridho_teknik/providers/technician_provider.dart';
 import 'package:ridho_teknik/services/ac_unit_service.dart';
 import 'package:ridho_teknik/services/client_master_service.dart';
 import 'package:ridho_teknik/services/client_service.dart';
 import 'package:ridho_teknik/services/client_servis_service.dart';
 import 'package:ridho_teknik/services/location_service.dart';
+import 'package:ridho_teknik/services/owner_master_service.dart' hide ClientMasterService;
 import 'package:ridho_teknik/services/technician_service.dart';
 
 import 'api/api_client.dart';
@@ -52,6 +54,7 @@ class MyApp extends StatelessWidget {
         Provider<TechnicianService>(create: (context) => TechnicianService(api: context.read<ApiClient>()),),
         Provider<LocationService>(create: (context) => LocationService(api: context.read<ApiClient>()),),
         Provider<AcUnitService>(create: (context) => AcUnitService(api: context.read<ApiClient>()),),
+        Provider<OwnerMasterService>(create: (context) => OwnerMasterService(api: context.read<ApiClient>())),
 
         // Auth Provider kamu (tetap)
         ChangeNotifierProvider(
@@ -101,6 +104,11 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (context) => AcUnitProvider(
             service: context.read<AcUnitService>(),
+          ),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => OwnerMasterProvider(
+            service: context.read<OwnerMasterService>(),
           ),
         ),
 

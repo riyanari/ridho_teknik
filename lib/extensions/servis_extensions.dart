@@ -5,42 +5,69 @@ extension ServisStatusX on ServisStatus {
   String get text {
     switch (this) {
       case ServisStatus.ditugaskan: return 'Ditugaskan';
-      case ServisStatus.dalamPerjalanan: return 'Dalam Perjalanan';
-      case ServisStatus.tibaDiLokasi: return 'Tiba di Lokasi';
-      case ServisStatus.sedangDiperiksa: return 'Sedang Diperiksa';
-      case ServisStatus.dalamPerbaikan: return 'Dalam Perbaikan';
-      case ServisStatus.menungguSukuCadang: return 'Menunggu Suku Cadang';
+      case ServisStatus.dalam_perjalanan: return 'Dalam Perjalanan';
+      case ServisStatus.tiba_di_lokasi: return 'Tiba di Lokasi';
+      case ServisStatus.sedang_diperiksa: return 'Sedang Diperiksa';
+      case ServisStatus.dalam_perbaikan: return 'Dalam Perbaikan';
+      case ServisStatus.menunggu_suku_cadang: return 'Menunggu Suku Cadang';
       case ServisStatus.selesai: return 'Selesai';
       case ServisStatus.ditolak: return 'Ditolak';
-      case ServisStatus.menungguKonfirmasi: return 'Menunggu Konfirmasi';
+      case ServisStatus.menunggu_konfirmasi: return 'Menunggu Konfirmasi';
+      case ServisStatus.dikerjakan:
+        // TODO: Handle this case.
+        throw UnimplementedError();
+      case ServisStatus.batal:
+        // TODO: Handle this case.
+        throw UnimplementedError();
+      case ServisStatus.menunggu_konfirmasi_owner:
+        // TODO: Handle this case.
+        throw UnimplementedError();
     }
   }
 
   Color get color {
     switch (this) {
       case ServisStatus.ditugaskan: return Colors.blue;
-      case ServisStatus.dalamPerjalanan: return Colors.orange;
-      case ServisStatus.tibaDiLokasi: return Colors.purple;
-      case ServisStatus.sedangDiperiksa: return Colors.indigo;
-      case ServisStatus.dalamPerbaikan: return Colors.red;
-      case ServisStatus.menungguSukuCadang: return Colors.amber;
+      case ServisStatus.dalam_perjalanan: return Colors.orange;
+      case ServisStatus.tiba_di_lokasi: return Colors.purple;
+      case ServisStatus.sedang_diperiksa: return Colors.indigo;
+      case ServisStatus.dalam_perbaikan: return Colors.red;
+      case ServisStatus.menunggu_suku_cadang: return Colors.amber;
       case ServisStatus.selesai: return Colors.green;
       case ServisStatus.ditolak: return Colors.red.shade900;
-      case ServisStatus.menungguKonfirmasi: return Colors.yellow.shade700;
+      case ServisStatus.menunggu_konfirmasi: return Colors.yellow.shade700;
+      case ServisStatus.dikerjakan:
+        // TODO: Handle this case.
+        throw UnimplementedError();
+      case ServisStatus.batal:
+        // TODO: Handle this case.
+        throw UnimplementedError();
+      case ServisStatus.menunggu_konfirmasi_owner:
+        // TODO: Handle this case.
+        throw UnimplementedError();
     }
   }
 
   String get shortText {
     switch (this) {
       case ServisStatus.ditugaskan: return 'Tugas';
-      case ServisStatus.dalamPerjalanan: return 'Jalan';
-      case ServisStatus.tibaDiLokasi: return 'Tiba';
-      case ServisStatus.sedangDiperiksa: return 'Periksa';
-      case ServisStatus.dalamPerbaikan: return 'Perbaiki';
-      case ServisStatus.menungguSukuCadang: return 'Tunggu';
-      case ServisStatus.menungguKonfirmasi: return 'Konfirm';
+      case ServisStatus.dalam_perjalanan: return 'Jalan';
+      case ServisStatus.tiba_di_lokasi: return 'Tiba';
+      case ServisStatus.sedang_diperiksa: return 'Periksa';
+      case ServisStatus.dalam_perbaikan: return 'Perbaiki';
+      case ServisStatus.menunggu_suku_cadang: return 'Tunggu';
+      case ServisStatus.menunggu_konfirmasi: return 'Konfirm';
       case ServisStatus.selesai: return 'Selesai';
       case ServisStatus.ditolak: return 'Tolak';
+      case ServisStatus.dikerjakan:
+        // TODO: Handle this case.
+        throw UnimplementedError();
+      case ServisStatus.batal:
+        // TODO: Handle this case.
+        throw UnimplementedError();
+      case ServisStatus.menunggu_konfirmasi_owner:
+        // TODO: Handle this case.
+        throw UnimplementedError();
     }
   }
 }

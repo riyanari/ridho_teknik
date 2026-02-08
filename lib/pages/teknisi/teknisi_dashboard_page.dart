@@ -47,7 +47,7 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
       lokasiId: 'L1',
       acId: 'A1',
       teknisiId: 'T1',
-      status: ServisStatus.dalamPerjalanan,
+      status: ServisStatus.dalam_perjalanan,
       tindakan: [TindakanServis.pembersihan, TindakanServis.isiFreon],
       tanggalDitugaskan: DateTime.now().subtract(const Duration(hours: 2)),
       biayaServis: 250000,
@@ -59,7 +59,7 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
       lokasiId: 'L2',
       acId: 'A2',
       teknisiId: 'T1',
-      status: ServisStatus.menungguKonfirmasi,
+      status: ServisStatus.menunggu_konfirmasi,
       tindakan: [TindakanServis.gantiKapasitor],
       tanggalDitugaskan: DateTime.now().subtract(const Duration(days: 1)),
       tanggalSelesai: DateTime.now().subtract(const Duration(hours: 3)),
@@ -107,7 +107,7 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
       .where((s) => s.status.index < ServisStatus.selesai.index)
       .length;
   int get _menungguKonfirmasi => _servisList
-      .where((s) => s.status == ServisStatus.menungguKonfirmasi)
+      .where((s) => s.status == ServisStatus.menunggu_konfirmasi)
       .length;
   int get _tugasSelesai => _servisList
       .where((s) => s.status == ServisStatus.selesai)

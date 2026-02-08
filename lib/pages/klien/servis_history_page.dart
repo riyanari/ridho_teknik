@@ -1286,22 +1286,31 @@ class _ServisCard extends StatelessWidget {
     switch (status) {
       case ServisStatus.ditugaskan:
         return Icons.assignment;
-      case ServisStatus.dalamPerjalanan:
+      case ServisStatus.dalam_perjalanan:
         return Icons.directions_car;
-      case ServisStatus.tibaDiLokasi:
+      case ServisStatus.tiba_di_lokasi:
         return Icons.location_on;
-      case ServisStatus.sedangDiperiksa:
+      case ServisStatus.sedang_diperiksa:
         return Icons.search;
-      case ServisStatus.dalamPerbaikan:
+      case ServisStatus.dalam_perbaikan:
         return Icons.build;
-      case ServisStatus.menungguSukuCadang:
+      case ServisStatus.menunggu_suku_cadang:
         return Icons.inventory;
       case ServisStatus.selesai:
         return Icons.check_circle;
       case ServisStatus.ditolak:
         return Icons.cancel;
-      case ServisStatus.menungguKonfirmasi:
+      case ServisStatus.menunggu_konfirmasi:
         return Icons.hourglass_empty;
+      case ServisStatus.dikerjakan:
+        // TODO: Handle this case.
+        throw UnimplementedError();
+      case ServisStatus.batal:
+        // TODO: Handle this case.
+        throw UnimplementedError();
+      case ServisStatus.menunggu_konfirmasi_owner:
+        // TODO: Handle this case.
+        throw UnimplementedError();
     }
   }
 

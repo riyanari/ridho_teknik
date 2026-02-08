@@ -3,15 +3,20 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 
 enum ServisStatus {
+  menunggu_konfirmasi,
   ditugaskan,
-  dalamPerjalanan,
-  tibaDiLokasi,
-  sedangDiperiksa,
-  dalamPerbaikan,
-  menungguSukuCadang,
+  dikerjakan,
   selesai,
+  batal,
+
+  // Status lain untuk kompatibilitas
+  dalam_perjalanan,
+  tiba_di_lokasi,
+  sedang_diperiksa,
+  dalam_perbaikan,
+  menunggu_suku_cadang,
   ditolak,
-  menungguKonfirmasi,
+  menunggu_konfirmasi_owner,
 }
 
 enum TindakanServis {
@@ -37,12 +42,18 @@ class ServisModel {
   final String keluhanId;
   final String lokasiId;
   final String acId;
-  final String teknisiId;
-  final JenisPenanganan jenis;
 
+  // SINGLE TECHNICIAN (untuk backward compatibility)
+  final String teknisiId;
+
+  // MULTIPLE TECHNICIANS - PENAMBAHAN BARU
+  final List<int>? technicianIds;
+  final String? technicianIdsJson;
+
+  final int? jumlahAc;
+  final JenisPenanganan jenis;
   final ServisStatus status;
   final List<TindakanServis> tindakan;
-
   final String diagnosa;
   final String catatan;
 
@@ -51,7 +62,7 @@ class ServisModel {
   final List<String> fotoSesudah;
   final List<String> fotoSukuCadang;
 
-  // TANGGAL BARU DITAMBAHKAN
+  // TANGGAL
   final DateTime? tanggalBerkunjung;
   final DateTime tanggalDitugaskan;
   final DateTime? tanggalMulai;
@@ -60,7 +71,6 @@ class ServisModel {
 
   final double biayaServis;
   final double biayaSukuCadang;
-
   final String? noInvoice;
 
   // Data relasional dari API
@@ -68,6 +78,9 @@ class ServisModel {
   final Map<String, dynamic>? acData;
   final Map<String, dynamic>? teknisiData;
   final Map<String, dynamic>? keluhanData;
+  // MULTIPLE TECHNICIANS DETAIL DARI API (nama, pivot, dll)
+  final List<Map<String, dynamic>> techniciansData;
+
 
   const ServisModel({
     required this.id,
@@ -75,8 +88,14 @@ class ServisModel {
     required this.lokasiId,
     required this.acId,
     required this.teknisiId,
+
+    // PENAMBAHAN BARU
+    this.technicianIds,
+    this.technicianIdsJson,
+
+    this.jumlahAc,
     this.jenis = JenisPenanganan.perbaikanAc,
-    this.status = ServisStatus.ditugaskan,
+    this.status = ServisStatus.menunggu_konfirmasi,
     this.tindakan = const [],
     this.diagnosa = '',
     this.catatan = '',
@@ -84,7 +103,7 @@ class ServisModel {
     this.fotoPengerjaan = const [],
     this.fotoSesudah = const [],
     this.fotoSukuCadang = const [],
-    this.tanggalBerkunjung, // TAMBAHKAN DI CONSTRUCTOR
+    this.tanggalBerkunjung,
     required this.tanggalDitugaskan,
     this.tanggalMulai,
     this.tanggalSelesai,
@@ -92,22 +111,116 @@ class ServisModel {
     this.biayaServis = 0,
     this.biayaSukuCadang = 0,
     this.noInvoice,
-    // Data relasional
+
     this.lokasiData,
     this.acData,
     this.teknisiData,
     this.keluhanData,
+
+    this.techniciansData = const [],
   });
 
   double get totalBiaya => biayaServis + biayaSukuCadang;
 
-  // Helper method untuk mendapatkan string dari map dengan null safety
+  // ===== MULTIPLE TECHNICIANS GETTERS =====
+
+  /// Get semua technician IDs (dari multiple atau single)
+  List<int> get allTechnicianIds {
+    if (technicianIds != null && technicianIds!.isNotEmpty) {
+      return technicianIds!;
+    }
+    // Fallback ke teknisiId lama jika ada
+    if (teknisiId.isNotEmpty) {
+      final id = int.tryParse(teknisiId);
+      if (id != null) {
+        return [id];
+      }
+    }
+    return [];
+  }
+
+  /// Cek apakah teknisi sudah ditugaskan
+  bool isTechnicianAssigned(int technicianId) {
+    return allTechnicianIds.contains(technicianId);
+  }
+
+  /// Display untuk multiple technicians
+  String get techniciansDisplay {
+    final ids = allTechnicianIds;
+    if (ids.isEmpty) {
+      return teknisiNama ?? 'Belum ditugaskan';
+    }
+
+    if (ids.length == 1) {
+      return teknisiNama ?? '1 teknisi';
+    }
+    return '${ids.length} teknisi';
+  }
+
+  /// Ambil nama-nama teknisi yang ditugaskan (prioritas: technicians[] -> teknisi{} -> fallback id)
+  List<String> get technicianNames {
+    // 1) kalau API ngirim technicians array (multi)
+    if (techniciansData.isNotEmpty) {
+      final names = techniciansData
+          .map((t) => (t['name'] ?? '').toString().trim())
+          .where((n) => n.isNotEmpty)
+          .toList();
+      if (names.isNotEmpty) return names;
+    }
+
+    // 2) fallback ke teknisiData (single)
+    if (teknisiData != null) {
+      final name = (teknisiData!['name'] ?? '').toString().trim();
+      if (name.isNotEmpty) return [name];
+    }
+
+    // 3) fallback terakhir: dari id
+    final ids = allTechnicianIds;
+    if (ids.isNotEmpty) return ids.map((id) => 'Teknisi #$id').toList();
+
+    return [];
+  }
+
+  /// Tampilkan nama teknisi sebagai string (contoh: "Andi, Rina")
+  String get techniciansNamesDisplay {
+    final names = technicianNames;
+    if (names.isEmpty) return 'Belum ditugaskan';
+    return names.join(', ');
+  }
+
+  /// Versi pendek untuk card (contoh: "Andi +1")
+  String get techniciansShortDisplay {
+    final names = technicianNames;
+    if (names.isEmpty) return 'Belum ditugaskan';
+    if (names.length == 1) return names.first;
+    return '${names.first} +${names.length - 1}';
+  }
+
+  /// Untuk kompatibilitas dengan kode lama
+  String? get primaryTechnicianName {
+    if (technicianIds != null && technicianIds!.isNotEmpty) {
+      return 'Tim (${technicianIds!.length} orang)';
+    }
+    return teknisiNama;
+  }
+
+  /// Get nama-nama semua teknisi (jika ada data teknisiData)
+  // List<String> get technicianNames {
+  //   final names = <String>[];
+  //   for (final id in allTechnicianIds) {
+  //     // Anda mungkin perlu menambahkan logic untuk mendapatkan nama dari provider
+  //     names.add('Teknisi #$id');
+  //   }
+  //   return names;
+  // }
+
+  // ===== HELPER METHODS UNTUK DATA RELASIONAL =====
+
   String _getStringFromMap(Map<String, dynamic>? map, String key, [String defaultValue = '']) {
     if (map == null || map[key] == null) return defaultValue;
     return map[key].toString();
   }
 
-  // Getter untuk data relasional dengan null safety yang sudah diperbaiki
   String get lokasiNama => _getStringFromMap(lokasiData, 'name', 'Tidak Diketahui');
   String get lokasiAlamat => _getStringFromMap(lokasiData, 'address', 'Tidak Diketahui');
 
@@ -152,12 +265,17 @@ class ServisModel {
     }
   }
 
+  // ===== COPY WITH METHOD =====
+
   ServisModel copyWith({
     String? id,
     String? keluhanId,
     String? lokasiId,
     String? acId,
     String? teknisiId,
+    List<int>? technicianIds,
+    String? technicianIdsJson,
+    int? jumlahAc,
     JenisPenanganan? jenis,
     ServisStatus? status,
     List<TindakanServis>? tindakan,
@@ -167,7 +285,7 @@ class ServisModel {
     List<String>? fotoPengerjaan,
     List<String>? fotoSesudah,
     List<String>? fotoSukuCadang,
-    DateTime? tanggalBerkunjung, // TAMBAHKAN DI COPYWITH
+    DateTime? tanggalBerkunjung,
     DateTime? tanggalDitugaskan,
     DateTime? tanggalMulai,
     DateTime? tanggalSelesai,
@@ -186,6 +304,9 @@ class ServisModel {
       lokasiId: lokasiId ?? this.lokasiId,
       acId: acId ?? this.acId,
       teknisiId: teknisiId ?? this.teknisiId,
+      technicianIds: technicianIds ?? this.technicianIds,
+      technicianIdsJson: technicianIdsJson ?? this.technicianIdsJson,
+      jumlahAc: jumlahAc ?? this.jumlahAc,
       jenis: jenis ?? this.jenis,
       status: status ?? this.status,
       tindakan: tindakan ?? this.tindakan,
@@ -195,7 +316,7 @@ class ServisModel {
       fotoPengerjaan: fotoPengerjaan ?? this.fotoPengerjaan,
       fotoSesudah: fotoSesudah ?? this.fotoSesudah,
       fotoSukuCadang: fotoSukuCadang ?? this.fotoSukuCadang,
-      tanggalBerkunjung: tanggalBerkunjung ?? this.tanggalBerkunjung, // TAMBAHKAN
+      tanggalBerkunjung: tanggalBerkunjung ?? this.tanggalBerkunjung,
       tanggalDitugaskan: tanggalDitugaskan ?? this.tanggalDitugaskan,
       tanggalMulai: tanggalMulai ?? this.tanggalMulai,
       tanggalSelesai: tanggalSelesai ?? this.tanggalSelesai,
@@ -210,7 +331,8 @@ class ServisModel {
     );
   }
 
-  /// Konversi ke Map untuk API (snake_case)
+  // ===== SERIALIZATION METHODS =====
+
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -218,6 +340,8 @@ class ServisModel {
       'location_id': lokasiId,
       'ac_unit_id': acId,
       'technician_id': teknisiId,
+      'technician_ids': technicianIds, // PENAMBAHAN BARU
+      'jumlah_ac': jumlahAc,
       'jenis': _convertJenisToApi(jenis),
       'status': _convertStatusToApi(status),
       'tindakan': tindakan.map((e) => _convertTindakanToApi(e)).toList(),
@@ -227,7 +351,7 @@ class ServisModel {
       'foto_pengerjaan': fotoPengerjaan,
       'foto_sesudah': fotoSesudah,
       'foto_suku_cadang': fotoSukuCadang,
-      'tanggal_berkunjung': tanggalBerkunjung?.toIso8601String(), // TAMBAHKAN
+      'tanggal_berkunjung': tanggalBerkunjung?.toIso8601String(),
       'tanggal_ditugaskan': tanggalDitugaskan.toIso8601String(),
       'tanggal_mulai': tanggalMulai?.toIso8601String(),
       'tanggal_selesai': tanggalSelesai?.toIso8601String(),
@@ -235,7 +359,6 @@ class ServisModel {
       'biaya_servis': biayaServis,
       'biaya_suku_cadang': biayaSukuCadang,
       'no_invoice': noInvoice,
-      // Data relasional (opsional untuk disimpan)
       if (lokasiData != null) 'lokasi': lokasiData,
       if (acData != null) 'ac': acData,
       if (teknisiData != null) 'teknisi': teknisiData,
@@ -243,21 +366,89 @@ class ServisModel {
     };
   }
 
-  /// Konversi dari API response (snake_case) ke ServisModel
   factory ServisModel.fromMap(Map<String, dynamic> map) {
-    // Debug untuk melihat struktur data
-    print('=== DEBUG SERVIS MODEL ===');
-    print('Full map keys: ${map.keys.toList()}');
-
-    // Parse data yang diperlukan
+    // Parse data dasar
     final String id = (map['id'] ?? '').toString();
     final String keluhanId = (map['complaint_id'] ?? map['keluhan_id'] ?? '').toString();
     final String lokasiId = (map['location_id'] ?? map['lokasi_id'] ?? '').toString();
     final String acId = (map['ac_unit_id'] ?? map['ac_id'] ?? '').toString();
     final String teknisiId = (map['technician_id'] ?? map['teknisi_id'] ?? '').toString();
+    final int jumlahAC = (map['jumlah_ac'] ?? 0);
 
-    // Parse enums dari API (snake_case) ke Dart enum
-    final String statusApi = (map['status'] ?? 'ditugaskan').toString();
+    // ===== PARSE MULTIPLE TECHNICIANS - PENAMBAHAN BARU =====
+    List<int>? parsedTechnicianIds;
+    String? technicianIdsJson;
+
+    // ✅ Parse technicians array dari API
+    List<Map<String, dynamic>> parsedTechniciansData = [];
+    if (map['technicians'] is List) {
+      parsedTechniciansData = (map['technicians'] as List)
+          .where((e) => e is Map)
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .toList();
+    }
+
+// Kalau technicians ada, kita bisa ambil ids langsung dari situ (lebih valid)
+    if (parsedTechniciansData.isNotEmpty) {
+      final idsFromTechnicians = parsedTechniciansData
+          .map((t) => int.tryParse((t['id'] ?? '').toString()) ?? 0)
+          .where((id) => id > 0)
+          .toList();
+      if (idsFromTechnicians.isNotEmpty) {
+        parsedTechnicianIds = idsFromTechnicians;
+      }
+    }
+
+
+    // Coba parse technician_ids dari berbagai format
+    if (map['technician_ids'] != null) {
+      technicianIdsJson = map['technician_ids']?.toString();
+
+      if (map['technician_ids'] is List) {
+        try {
+          parsedTechnicianIds = (map['technician_ids'] as List)
+              .where((id) => id != null)
+              .map((id) => int.tryParse(id.toString()) ?? 0)
+              .where((id) => id > 0)
+              .toList();
+        } catch (e) {
+          print('❌ Error parsing technician_ids as List: $e');
+        }
+      } else if (map['technician_ids'] is String) {
+        final jsonString = map['technician_ids'] as String;
+        technicianIdsJson = jsonString;
+
+        try {
+          if (jsonString.startsWith('[')) {
+            final parsed = jsonDecode(jsonString) as List;
+            parsedTechnicianIds = parsed
+                .where((id) => id != null)
+                .map((id) => int.tryParse(id.toString()) ?? 0)
+                .where((id) => id > 0)
+                .toList();
+          } else {
+            // Mungkin single ID sebagai string
+            final id = int.tryParse(jsonString);
+            if (id != null && id > 0) {
+              parsedTechnicianIds = [id];
+            }
+          }
+        } catch (e) {
+          print('❌ Error parsing technician_ids as JSON string: $e');
+        }
+      }
+    }
+
+    // Jika technician_ids kosong, coba dari teknisiId (single)
+    if ((parsedTechnicianIds == null || parsedTechnicianIds.isEmpty) && teknisiId.isNotEmpty) {
+      final id = int.tryParse(teknisiId);
+      if (id != null && id > 0) {
+        parsedTechnicianIds = [id];
+      }
+    }
+
+    // Parse enums dari API
+    final String statusApi = (map['status'] ?? 'menunggu_konfirmasi').toString();
     final ServisStatus status = _parseStatusFromApi(statusApi);
 
     final String jenisApi = (map['jenis'] ?? 'perbaikan').toString();
@@ -266,12 +457,6 @@ class ServisModel {
     final List<TindakanServis> tindakanList = _parseTindakanFromApi(
         map['tindakan'] as List<dynamic>? ?? []);
 
-    // Debug foto untuk verifikasi
-    print('foto_sebelum: ${map['foto_sebelum']}');
-    print('foto_pengerjaan: ${map['foto_pengerjaan']}');
-    print('foto_sesudah: ${map['foto_sesudah']}');
-    print('foto_suku_cadang: ${map['foto_suku_cadang']}');
-
     // Parse foto dengan lebih aman
     List<String> parseFotoList(dynamic fotoData) {
       if (fotoData == null) return [];
@@ -279,7 +464,6 @@ class ServisModel {
         try {
           return fotoData.map((e) => e.toString()).toList();
         } catch (e) {
-          print('Error parsing foto list: $e');
           return [];
         }
       }
@@ -292,6 +476,12 @@ class ServisModel {
       lokasiId: lokasiId,
       acId: acId,
       teknisiId: teknisiId,
+
+      // PENAMBAHAN BARU
+      technicianIds: parsedTechnicianIds,
+      technicianIdsJson: technicianIdsJson,
+
+      jumlahAc: jumlahAC > 0 ? jumlahAC : null,
       jenis: jenis,
       status: status,
       tindakan: tindakanList,
@@ -301,7 +491,7 @@ class ServisModel {
       fotoPengerjaan: parseFotoList(map['foto_pengerjaan']),
       fotoSesudah: parseFotoList(map['foto_sesudah']),
       fotoSukuCadang: parseFotoList(map['foto_suku_cadang']),
-      tanggalBerkunjung: _parseNullableDateTime(map['tanggal_berkunjung']), // TAMBAHKAN PARSING
+      tanggalBerkunjung: _parseNullableDateTime(map['tanggal_berkunjung']),
       tanggalDitugaskan: _parseDateTime(map['tanggal_ditugaskan']),
       tanggalMulai: _parseNullableDateTime(map['tanggal_mulai']),
       tanggalSelesai: _parseNullableDateTime(map['tanggal_selesai']),
@@ -309,15 +499,18 @@ class ServisModel {
       biayaServis: _parseDouble(map['biaya_servis']),
       biayaSukuCadang: _parseDouble(map['biaya_suku_cadang']),
       noInvoice: map['no_invoice'] as String?,
-      // Data relasional - pastikan tipe Map<String, dynamic>
+
       lokasiData: _convertToMap(map['lokasi']),
       acData: _convertToMap(map['ac']),
       teknisiData: _convertToMap(map['teknisi']),
       keluhanData: _convertToMap(map['keluhan']),
+
+      techniciansData: parsedTechniciansData,
     );
   }
 
-  /// Parse double dengan error handling
+
+  // ===== HELPER STATIC METHODS =====
   static double _parseDouble(dynamic value) {
     if (value == null) return 0.0;
     try {
@@ -326,12 +519,10 @@ class ServisModel {
       if (value is String) return double.tryParse(value) ?? 0.0;
       return 0.0;
     } catch (e) {
-      print('Error parsing double: $value, error: $e');
       return 0.0;
     }
   }
 
-  /// Helper untuk mengonversi ke Map<String, dynamic>
   static Map<String, dynamic>? _convertToMap(dynamic value) {
     if (value == null) return null;
     if (value is Map<String, dynamic>) return value;
@@ -341,16 +532,12 @@ class ServisModel {
     return null;
   }
 
-  /// Konversi dari JSON string
   factory ServisModel.fromJson(String jsonString) {
     final map = jsonDecode(jsonString) as Map<String, dynamic>;
     return ServisModel.fromMap(map);
   }
 
-  /// Konversi ke JSON string
   String toJson() => jsonEncode(toMap());
-
-  // === HELPER METHODS ===
 
   // Parse DateTime dengan error handling
   static DateTime _parseDateTime(dynamic dateValue) {
@@ -358,7 +545,6 @@ class ServisModel {
     try {
       return DateTime.parse(dateValue.toString());
     } catch (e) {
-      print('Error parsing date: $dateValue, error: $e');
       return DateTime.now();
     }
   }
@@ -368,40 +554,39 @@ class ServisModel {
     try {
       return DateTime.parse(dateValue.toString());
     } catch (e) {
-      print('Error parsing nullable date: $dateValue, error: $e');
       return null;
     }
   }
 
-  // Parse status dari API (snake_case) ke enum
+  // ===== ENUM PARSING =====
+
   static ServisStatus _parseStatusFromApi(String status) {
     final Map<String, ServisStatus> statusMap = {
+      'menunggu_konfirmasi': ServisStatus.menunggu_konfirmasi,
       'ditugaskan': ServisStatus.ditugaskan,
-      'dalam_perjalanan': ServisStatus.dalamPerjalanan,
-      'tiba_di_lokasi': ServisStatus.tibaDiLokasi,
-      'sedang_diperiksa': ServisStatus.sedangDiperiksa,
-      'dalam_perbaikan': ServisStatus.dalamPerbaikan,
-      'menunggu_suku_cadang': ServisStatus.menungguSukuCadang,
+      'dikerjakan': ServisStatus.dikerjakan,
       'selesai': ServisStatus.selesai,
+      'batal': ServisStatus.batal,
+      'dalam_perjalanan': ServisStatus.dalam_perjalanan,
+      'tiba_di_lokasi': ServisStatus.tiba_di_lokasi,
+      'sedang_diperiksa': ServisStatus.sedang_diperiksa,
+      'dalam_perbaikan': ServisStatus.dalam_perbaikan,
+      'menunggu_suku_cadang': ServisStatus.menunggu_suku_cadang,
       'ditolak': ServisStatus.ditolak,
-      'menunggu_konfirmasi': ServisStatus.menungguKonfirmasi,
+      'menunggu_konfirmasi_owner': ServisStatus.menunggu_konfirmasi_owner,
     };
-    return statusMap[status] ?? ServisStatus.ditugaskan;
+    return statusMap[status.toLowerCase()] ?? ServisStatus.menunggu_konfirmasi;
   }
 
-  // Parse jenis dari API ke enum
   static JenisPenanganan _parseJenisFromApi(String jenis) {
     final Map<String, JenisPenanganan> jenisMap = {
       'cuci': JenisPenanganan.cuciAc,
       'perbaikan': JenisPenanganan.perbaikanAc,
       'instalasi': JenisPenanganan.instalasi,
-      'cuci_ac': JenisPenanganan.cuciAc,
-      'perbaikan_ac': JenisPenanganan.perbaikanAc,
     };
-    return jenisMap[jenis] ?? JenisPenanganan.perbaikanAc;
+    return jenisMap[jenis.toLowerCase()] ?? JenisPenanganan.perbaikanAc;
   }
 
-  // Parse tindakan dari API (snake_case) ke enum
   static List<TindakanServis> _parseTindakanFromApi(List<dynamic> tindakanList) {
     final Map<String, TindakanServis> tindakanMap = {
       'pembersihan': TindakanServis.pembersihan,
@@ -420,18 +605,20 @@ class ServisModel {
         .toList();
   }
 
-  // Convert enum ke format API (snake_case)
   static String _convertStatusToApi(ServisStatus status) {
     switch (status) {
+      case ServisStatus.menunggu_konfirmasi: return 'menunggu_konfirmasi';
       case ServisStatus.ditugaskan: return 'ditugaskan';
-      case ServisStatus.dalamPerjalanan: return 'dalam_perjalanan';
-      case ServisStatus.tibaDiLokasi: return 'tiba_di_lokasi';
-      case ServisStatus.sedangDiperiksa: return 'sedang_diperiksa';
-      case ServisStatus.dalamPerbaikan: return 'dalam_perbaikan';
-      case ServisStatus.menungguSukuCadang: return 'menunggu_suku_cadang';
+      case ServisStatus.dikerjakan: return 'dikerjakan';
       case ServisStatus.selesai: return 'selesai';
+      case ServisStatus.batal: return 'batal';
+      case ServisStatus.dalam_perjalanan: return 'dalam_perjalanan';
+      case ServisStatus.tiba_di_lokasi: return 'tiba_di_lokasi';
+      case ServisStatus.sedang_diperiksa: return 'sedang_diperiksa';
+      case ServisStatus.dalam_perbaikan: return 'dalam_perbaikan';
+      case ServisStatus.menunggu_suku_cadang: return 'menunggu_suku_cadang';
       case ServisStatus.ditolak: return 'ditolak';
-      case ServisStatus.menungguKonfirmasi: return 'menunggu_konfirmasi';
+      case ServisStatus.menunggu_konfirmasi_owner: return 'menunggu_konfirmasi_owner';
     }
   }
 
@@ -457,33 +644,39 @@ class ServisModel {
     }
   }
 
-  // === DISPLAY PROPERTIES ===
+  // ===== DISPLAY PROPERTIES =====
 
   String get statusDisplay {
     switch (status) {
+      case ServisStatus.menunggu_konfirmasi: return 'Menunggu Konfirmasi';
       case ServisStatus.ditugaskan: return 'Ditugaskan';
-      case ServisStatus.dalamPerjalanan: return 'Dalam Perjalanan';
-      case ServisStatus.tibaDiLokasi: return 'Tiba di Lokasi';
-      case ServisStatus.sedangDiperiksa: return 'Sedang Diperiksa';
-      case ServisStatus.dalamPerbaikan: return 'Dalam Perbaikan';
-      case ServisStatus.menungguSukuCadang: return 'Menunggu Suku Cadang';
+      case ServisStatus.dikerjakan: return 'Dikerjakan';
       case ServisStatus.selesai: return 'Selesai';
+      case ServisStatus.batal: return 'Dibatalkan';
+      case ServisStatus.dalam_perjalanan: return 'Dalam Perjalanan';
+      case ServisStatus.tiba_di_lokasi: return 'Tiba di Lokasi';
+      case ServisStatus.sedang_diperiksa: return 'Sedang Diperiksa';
+      case ServisStatus.dalam_perbaikan: return 'Dalam Perbaikan';
+      case ServisStatus.menunggu_suku_cadang: return 'Menunggu Suku Cadang';
       case ServisStatus.ditolak: return 'Ditolak';
-      case ServisStatus.menungguKonfirmasi: return 'Menunggu Konfirmasi';
+      case ServisStatus.menunggu_konfirmasi_owner: return 'Menunggu Konfirmasi Owner';
     }
   }
 
   Color get statusColor {
     switch (status) {
+      case ServisStatus.menunggu_konfirmasi: return Colors.orange;
       case ServisStatus.ditugaskan: return Colors.blue;
-      case ServisStatus.dalamPerjalanan: return Colors.orange;
-      case ServisStatus.tibaDiLokasi: return Colors.orange[300]!;
-      case ServisStatus.sedangDiperiksa: return Colors.purple;
-      case ServisStatus.dalamPerbaikan: return Colors.purple[300]!;
-      case ServisStatus.menungguSukuCadang: return Colors.yellow[700]!;
+      case ServisStatus.dikerjakan: return Colors.purple;
       case ServisStatus.selesai: return Colors.green;
+      case ServisStatus.batal: return Colors.red;
+      case ServisStatus.dalam_perjalanan: return Colors.cyan;
+      case ServisStatus.tiba_di_lokasi: return Colors.orange[300]!;
+      case ServisStatus.sedang_diperiksa: return Colors.purple;
+      case ServisStatus.dalam_perbaikan: return Colors.purple[300]!;
+      case ServisStatus.menunggu_suku_cadang: return Colors.yellow[700]!;
       case ServisStatus.ditolak: return Colors.red;
-      case ServisStatus.menungguKonfirmasi: return Colors.yellow[700]!;
+      case ServisStatus.menunggu_konfirmasi_owner: return Colors.amber;
     }
   }
 
@@ -558,27 +751,19 @@ class ServisModel {
         '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
   }
 
-  // Business logic helpers
+  // ===== BUSINESS LOGIC HELPERS =====
+
   bool get isCompleted => status == ServisStatus.selesai;
-  bool get isInProgress => [
-    ServisStatus.ditugaskan,
-    ServisStatus.dalamPerjalanan,
-    ServisStatus.tibaDiLokasi,
-    ServisStatus.sedangDiperiksa,
-    ServisStatus.dalamPerbaikan,
-    ServisStatus.menungguSukuCadang,
-  ].contains(status);
-
-  bool get requiresConfirmation => status == ServisStatus.menungguKonfirmasi;
+  bool get isInProgress => status == ServisStatus.ditugaskan || status == ServisStatus.dikerjakan;
+  bool get requiresConfirmation => status == ServisStatus.menunggu_konfirmasi;
   bool get isRejected => status == ServisStatus.ditolak;
+  bool get isCancelled => status == ServisStatus.batal;
 
-  // Helper untuk mengecek apakah tanggal berkunjung sudah lewat
   bool get isTanggalBerkunjungTerlewat {
     if (tanggalBerkunjung == null) return false;
     return tanggalBerkunjung!.isBefore(DateTime.now());
   }
 
-  // Helper untuk mengecek apakah tanggal berkunjung sudah dekat (dalam 2 hari)
   bool get isTanggalBerkunjungMendekat {
     if (tanggalBerkunjung == null) return false;
     final now = DateTime.now();
@@ -602,24 +787,6 @@ class ServisModel {
     } else {
       return '${dur.inDays} hari';
     }
-  }
-
-  // Debug method untuk mengecek data
-  void debugData() {
-    print('=== DEBUG SERVIS MODEL DATA ===');
-    print('ID: $id');
-    print('Status: $statusDisplay');
-    print('Tanggal Berkunjung: $tanggalBerkunjung');
-    print('Tanggal Berkunjung Display: $tanggalBerkunjungDisplay');
-    print('Lokasi Data exists: ${lokasiData != null}');
-    print('Lokasi Data: $lokasiData');
-    print('Lokasi Name from data: ${lokasiData?['name']}');
-    print('Lokasi Name from getter: $lokasiNama');
-    print('AC Data: $acData');
-    print('AC Name from getter: $acNama');
-    print('Teknisi Data: $teknisiData');
-    print('Teknisi Name from getter: $teknisiNama');
-    print('===============================');
   }
 
   @override
