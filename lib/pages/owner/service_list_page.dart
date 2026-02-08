@@ -9,7 +9,6 @@ import 'package:ridho_teknik/providers/owner_master_provider.dart';
 import 'package:ridho_teknik/theme/theme.dart';
 import 'package:ridho_teknik/models/servis_model.dart';
 
-import '../../api/api_config.dart';
 import '../../models/user_model.dart';
 
 class ServiceListPage extends StatefulWidget {
@@ -45,12 +44,6 @@ class _ServiceListPageState extends State<ServiceListPage> {
     {'value': 'instalasi', 'display': 'Instalasi AC'},
   ];
 
-  // PERBAIKAN: Mapping untuk API - karena API menggunakan 'cuci', 'perbaikan', 'instalasi'
-  final Map<String, String> _jenisApiMapping = {
-    'cuci': 'cuci',
-    'perbaikan': 'perbaikan',
-    'instalasi': 'instalasi',
-  };
 
   @override
   void initState() {
@@ -105,7 +98,7 @@ class _ServiceListPageState extends State<ServiceListPage> {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.2),
+            color: Colors.grey.withValues(alpha:0.2),
             blurRadius: 10,
             offset: const Offset(0, -3),
           ),
@@ -265,7 +258,7 @@ class _ServiceListPageState extends State<ServiceListPage> {
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.grey.withOpacity(0.1),
+                        color: Colors.grey.withValues(alpha:0.1),
                         blurRadius: 10,
                         offset: const Offset(0, 3),
                       ),
@@ -329,7 +322,7 @@ class _ServiceListPageState extends State<ServiceListPage> {
                         ),
                         selected: isSelected,
                         selectedColor: statusChip['color'] as Color,
-                        backgroundColor: (statusChip['color'] as Color).withOpacity(0.1),
+                        backgroundColor: (statusChip['color'] as Color).withValues(alpha:0.1),
                         onSelected: (selected) {
                           setState(() => _selectedStatus = statusChip['value'] as String);
                           _refreshData();
@@ -342,7 +335,7 @@ class _ServiceListPageState extends State<ServiceListPage> {
                           side: BorderSide(
                             color: isSelected
                                 ? Colors.transparent
-                                : (statusChip['color'] as Color).withOpacity(0.3),
+                                : (statusChip['color'] as Color).withValues(alpha:0.3),
                           ),
                         ),
                       ),
@@ -361,7 +354,7 @@ class _ServiceListPageState extends State<ServiceListPage> {
                     borderRadius: BorderRadius.circular(10),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.grey.withOpacity(0.1),
+                        color: Colors.grey.withValues(alpha:0.1),
                         blurRadius: 5,
                         offset: const Offset(0, 2),
                       ),
@@ -418,7 +411,7 @@ class _ServiceListPageState extends State<ServiceListPage> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: Colors.blue.withOpacity(0.1),
+                        color: Colors.blue.withValues(alpha:0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
@@ -567,7 +560,7 @@ class _ServiceListPageState extends State<ServiceListPage> {
                     contentPadding: EdgeInsets.zero,
                     leading: CircleAvatar(
                       radius: 16,
-                      backgroundColor: kPrimaryColor.withOpacity(0.1),
+                      backgroundColor: kPrimaryColor.withValues(alpha:0.1),
                       child: Text(
                         tech.name?.substring(0, 1) ?? 'T',
                         style: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.bold),
@@ -605,7 +598,7 @@ class _ServiceListPageState extends State<ServiceListPage> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 15, offset: const Offset(0, 4))],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha:0.05), blurRadius: 15, offset: const Offset(0, 4))],
         border: Border.all(color: Colors.grey[100]!, width: 1),
       ),
       child: ClipRRect(
@@ -619,9 +612,9 @@ class _ServiceListPageState extends State<ServiceListPage> {
                 gradient: LinearGradient(
                   begin: Alignment.centerLeft,
                   end: Alignment.centerRight,
-                  colors: [statusColor.withOpacity(0.1), statusColor.withOpacity(0.05)],
+                  colors: [statusColor.withValues(alpha:0.1), statusColor.withValues(alpha:0.05)],
                 ),
-                border: Border(bottom: BorderSide(color: statusColor.withOpacity(0.2), width: 1)),
+                border: Border(bottom: BorderSide(color: statusColor.withValues(alpha:0.2), width: 1)),
               ),
               child: Row(
                 children: [
@@ -630,7 +623,7 @@ class _ServiceListPageState extends State<ServiceListPage> {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
-                      boxShadow: [BoxShadow(color: statusColor.withOpacity(0.1), blurRadius: 8, offset: const Offset(0, 2))],
+                      boxShadow: [BoxShadow(color: statusColor.withValues(alpha:0.1), blurRadius: 8, offset: const Offset(0, 2))],
                     ),
                     child: Icon(_getServiceIcon(service.jenisDisplay), color: statusColor, size: 20),
                   ),
@@ -659,9 +652,9 @@ class _ServiceListPageState extends State<ServiceListPage> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: statusColor.withOpacity(0.15),
+                      color: statusColor.withValues(alpha:0.15),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: statusColor.withOpacity(0.3), width: 1),
+                      border: Border.all(color: statusColor.withValues(alpha:0.3), width: 1),
                     ),
                     child: Text(
                       statusDisplay,
@@ -686,7 +679,7 @@ class _ServiceListPageState extends State<ServiceListPage> {
                           title: 'Lokasi',
                           value: service.lokasiNama,
                           iconColor: kPrimaryColor,
-                          backgroundColor: kPrimaryColor.withOpacity(0.05),
+                          backgroundColor: kPrimaryColor.withValues(alpha:0.05),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -698,7 +691,7 @@ class _ServiceListPageState extends State<ServiceListPage> {
                               : (service.technicianIds!.length == 1 ? 'Teknisi' : 'Tim Teknisi'),
                           value: service.techniciansNamesDisplay, // ✅ tampil "Andi Teknisi, Rina Teknisi"
                           iconColor: Colors.blue,
-                          backgroundColor: Colors.blue.withOpacity(0.05),
+                          backgroundColor: Colors.blue.withValues(alpha:0.05),
                         ),
                       ),
                     ],
@@ -749,7 +742,7 @@ class _ServiceListPageState extends State<ServiceListPage> {
                     ),
                   ],
 
-                  if (service.catatan != null && service.catatan!.isNotEmpty) ...[
+                  if (service.catatan!.isNotEmpty) ...[
                     const SizedBox(height: 16),
                     Container(
                       padding: const EdgeInsets.all(12),
@@ -765,7 +758,7 @@ class _ServiceListPageState extends State<ServiceListPage> {
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              service.catatan!,
+                              service.catatan,
                               style: TextStyle(fontSize: 12, color: Colors.amber[800]),
                             ),
                           ),
@@ -797,7 +790,7 @@ class _ServiceListPageState extends State<ServiceListPage> {
       decoration: BoxDecoration(
         color: backgroundColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: iconColor.withOpacity(0.1)),
+        border: Border.all(color: iconColor.withValues(alpha:0.1)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -829,9 +822,9 @@ class _ServiceListPageState extends State<ServiceListPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha:0.1),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withOpacity(0.2)),
+        border: Border.all(color: color.withValues(alpha:0.2)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -863,7 +856,7 @@ class _ServiceListPageState extends State<ServiceListPage> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   elevation: 2,
-                  shadowColor: kPrimaryColor.withOpacity(0.3),
+                  shadowColor: kPrimaryColor.withValues(alpha:0.3),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -914,9 +907,9 @@ class _ServiceListPageState extends State<ServiceListPage> {
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
                 decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.1),
+                  color: Colors.blue.withValues(alpha:0.1),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                  border: Border.all(color: Colors.blue.withValues(alpha:0.3)),
                 ),
                 child: const Center(
                   child: Text(
@@ -933,9 +926,9 @@ class _ServiceListPageState extends State<ServiceListPage> {
         return Container(
           padding: const EdgeInsets.symmetric(vertical: 14),
           decoration: BoxDecoration(
-            color: Colors.purple.withOpacity(0.1),
+            color: Colors.purple.withValues(alpha:0.1),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.purple.withOpacity(0.3)),
+            border: Border.all(color: Colors.purple.withValues(alpha:0.3)),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -977,9 +970,9 @@ class _ServiceListPageState extends State<ServiceListPage> {
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.1),
+                  color: Colors.green.withValues(alpha:0.1),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.green.withOpacity(0.3)),
+                  border: Border.all(color: Colors.green.withValues(alpha:0.3)),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -1214,7 +1207,7 @@ class _ServiceListPageState extends State<ServiceListPage> {
                             width: 40,
                             height: 40,
                             decoration: BoxDecoration(
-                              color: kPrimaryColor.withOpacity(0.1),
+                              color: kPrimaryColor.withValues(alpha:0.1),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Icon(
@@ -1341,7 +1334,7 @@ class _ServiceListPageState extends State<ServiceListPage> {
                               margin: const EdgeInsets.symmetric(vertical: 4),
                               child: Material(
                                 color: isSelected
-                                    ? kPrimaryColor.withOpacity(0.08)
+                                    ? kPrimaryColor.withValues(alpha:0.08)
                                     : Colors.white,
                                 borderRadius: BorderRadius.circular(12),
                                 elevation: isSelected ? 1 : 0,
@@ -1525,13 +1518,13 @@ class _ServiceListPageState extends State<ServiceListPage> {
   Color _getTechAvailabilityColor(String availability) {
     switch (availability.toLowerCase()) {
       case 'available':
-        return Colors.green.withOpacity(0.1);
+        return Colors.green.withValues(alpha:0.1);
       case 'busy':
-        return Colors.orange.withOpacity(0.1);
+        return Colors.orange.withValues(alpha:0.1);
       case 'off':
-        return Colors.red.withOpacity(0.1);
+        return Colors.red.withValues(alpha:0.1);
       default:
-        return Colors.grey.withOpacity(0.1);
+        return Colors.grey.withValues(alpha:0.1);
     }
   }
 
@@ -1561,85 +1554,4 @@ class _ServiceListPageState extends State<ServiceListPage> {
     }
   }
 
-  Future<void> _confirmService(int serviceId) async {
-    final provider = context.read<OwnerMasterProvider>();
-    try {
-      final success = await provider.confirmServiceRequest(serviceId);
-      if (!mounted) return;
-
-      if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Service berhasil dikonfirmasi dan siap ditugaskan'),
-            backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-        await _refreshData();
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Gagal mengkonfirmasi: ${provider.submitError}'),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Gagal mengkonfirmasi: $e'),
-          backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    }
-  }
-
-  Future<void> _startService(int serviceId) async {
-    try {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Service telah dimulai'),
-          backgroundColor: Colors.blue,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-      await _refreshData();
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Gagal memulai: $e'),
-          backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    }
-  }
-
-  Future<void> _completeService(int serviceId) async {
-    try {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Service telah selesai'),
-          backgroundColor: Colors.green,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-      await _refreshData();
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Gagal menyelesaikan: $e'),
-          backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    }
-  }
 }
