@@ -28,12 +28,13 @@ class ClientServisProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      print('=== FETCHING SERVIS ===');
+      print('=== FETCHING SERVIS klien ===');
       print('acId: $acId, lokasiId: $lokasiId');
 
       final data = await service.getServis(acId: acId, lokasiId: lokasiId);
 
       print('Data received from service: ${data.length} items');
+
 
       if (data.isNotEmpty) {
         print('First item structure: ${data.first.keys}');

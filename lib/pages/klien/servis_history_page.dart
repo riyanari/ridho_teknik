@@ -1,4 +1,3 @@
-// lib/pages/klien/servis_history_page.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:ridho_teknik/pages/klien/servis_detail_page.dart';
@@ -18,110 +17,116 @@ class ServisHistoryPage extends StatefulWidget {
 
 class _ServisHistoryPageState extends State<ServisHistoryPage> {
   JenisPenanganan? _selectedJenis;
-  ServisStatus? _selectedStatus;
-  int _selectedTab = 0; // 0: semua, 1: diproses, 2: selesai, 3: ditolak
+  ServisStatus? _selectedTabStatus; // ✅ ini tab status
+// kalau gak dipakai boleh hapus
+
+  // ✅ helper: normalisasi id ke int agar perbandingan selalu match
+  int? _asInt(dynamic v) {
+    if (v == null) return null;
+    if (v is int) return v;
+    if (v is String) return int.tryParse(v);
+    return int.tryParse(v.toString());
+  }
+
+  int get _lokasiId => _asInt(widget.lokasi.id) ?? -1;
+
+  Widget _statusChip({
+    required String label,
+    required ServisStatus? value, // null = semua
+    required IconData icon,
+    required Color color,
+  }) {
+    final selected = _selectedTabStatus == value;
+
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: GestureDetector(
+        onTap: () => setState(() => _selectedTabStatus = value),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: selected ? color.withValues(alpha: 0.18) : Colors.grey[100],
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: selected ? color : Colors.grey[300]!,
+              width: selected ? 1.5 : 1,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 14, color: selected ? color : color.withValues(alpha: 0.7)),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                  color: selected ? color : Colors.black87,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      print('=== INIT STATE CALLED ===');
-      print('Lokasi ID: ${widget.lokasi.id}');
-      print('Lokasi Nama: ${widget.lokasi.nama}');
-      print('========================');
-
+      // ✅ lebih aman: ambil servis khusus lokasi ini (kalau backend mendukung)
       context.read<ClientServisProvider>().fetchServis(
+        // lokasiId: widget.lokasi.id.toString(),
       );
     });
   }
 
-  // Method untuk mendapatkan filtered servis berdasarkan filter aktif
   List<ServisModel> _getFilteredServis(List<ServisModel> allServis) {
-    print('=== GET FILTERED SERVIS ===');
-    print('Total servis from provider: ${allServis.length}');
+    var filtered = List<ServisModel>.from(allServis);
 
-    // Filter pertama berdasarkan lokasi
-    var filtered = allServis
-        .where((servis) {
-      print('Servis ID: ${servis.id}, Lokasi ID: ${servis.lokasiId}, Widget Lokasi ID: ${widget.lokasi.id}');
-      print('Match: ${servis.lokasiId == widget.lokasi.id}');
-      return servis.lokasiId == widget.lokasi.id;
-    })
-        .toList();
+    // ✅ filter status (tab)
+    if (_selectedTabStatus != null) {
+      filtered = filtered.where((s) => s.status == _selectedTabStatus).toList();
+    }
 
-    print('After lokasi filter: ${filtered.length}');
-
-    // Filter berdasarkan jenis jika dipilih
+    // ✅ filter jenis (dropdown)
     if (_selectedJenis != null) {
-      filtered = filtered.where((s) {
-        print('Jenis filter: Servis jenis ${s.jenis} vs selected ${_selectedJenis}');
-        return s.jenis == _selectedJenis;
-      }).toList();
-      print('After jenis filter: ${filtered.length}');
+      filtered = filtered.where((s) => s.jenis == _selectedJenis).toList();
     }
 
-    // Filter berdasarkan tab yang dipilih
-    switch (_selectedTab) {
-      case 1: // Diproses
-        filtered = filtered.where((s) {
-          print('Status filter Diproses: ${s.isInProgress}');
-          return s.isInProgress;
-        }).toList();
-        break;
-      case 2: // Selesai
-        filtered = filtered.where((s) {
-          print('Status filter Selesai: ${s.isCompleted}');
-          return s.isCompleted;
-        }).toList();
-        break;
-      case 3: // Ditolak
-        filtered = filtered.where((s) {
-          print('Status filter Ditolak: ${s.isRejected}');
-          return s.isRejected;
-        }).toList();
-        break;
-    }
-
-    print('Final filtered count: ${filtered.length}');
-    print('=============================');
+    filtered.sort((a, b) {
+      final da = a.tanggalDitugaskan;
+      final db = b.tanggalDitugaskan;
+      return db.compareTo(da);
+    });
 
     return filtered;
   }
 
-  // Method untuk reset semua filter
+
   void _resetFilters() {
     setState(() {
       _selectedJenis = null;
-      _selectedStatus = null;
-      _selectedTab = 0;
+      _selectedTabStatus = null;
+// kalau gak kepakai, hapus field ini sekalian
     });
   }
 
-  // Hitung jumlah filter aktif
+
   int _getActiveFilterCount() {
     int count = 0;
     if (_selectedJenis != null) count++;
-    if (_selectedStatus != null) count++;
-    if (_selectedTab != 0) count++;
+    if (_selectedTabStatus != null) count++;
     return count;
   }
 
   @override
   Widget build(BuildContext context) {
-    print('=== BUILD CALLED ===');
-
     return Consumer<ClientServisProvider>(
       builder: (context, prov, _) {
-        print('Provider loading: ${prov.loading}');
-        print('Provider error: ${prov.error}');
-        print('Provider servisList length: ${prov.servisList.length}');
-
-        // Debug print untuk semua servis
-        for (var i = 0; i < prov.servisList.length; i++) {
-          final servis = prov.servisList[i];
-          print('Servis[$i]: ID=${servis.id}, LokasiID=${servis.lokasiId}, Status=${servis.status}');
-        }
-
         if (prov.loading) {
           return Scaffold(
             appBar: AppBar(
@@ -151,19 +156,13 @@ class _ServisHistoryPageState extends State<ServisHistoryPage> {
                       style: primaryTextStyle.copyWith(fontSize: 18, fontWeight: bold),
                     ),
                     const SizedBox(height: 8),
-                    Text(
-                      prov.error!,
-                      style: greyTextStyle,
-                      textAlign: TextAlign.center,
-                    ),
+                    Text(prov.error!, style: greyTextStyle, textAlign: TextAlign.center),
                     const SizedBox(height: 20),
                     ElevatedButton(
-                      onPressed: () => prov.fetchServis(),
+                      onPressed: () => prov.fetchServis(lokasiId: widget.lokasi.id.toString()),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: kPrimaryColor,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       ),
                       child: Text('Coba Lagi', style: whiteTextStyle),
                     ),
@@ -176,16 +175,12 @@ class _ServisHistoryPageState extends State<ServisHistoryPage> {
 
         final filteredServis = _getFilteredServis(prov.servisList);
 
-        // Stats untuk semua data (tanpa filter)
-        final allServisForStats = prov.servisList
-            .where((servis) => servis.lokasiId == widget.lokasi.id)
-            .toList();
+        // ✅ stats pakai cara yang sama (int compare)
+        final allServisForStats = prov.servisList.where((s) => _asInt(s.lokasiId) == _lokasiId).toList();
 
         final cuciCount = allServisForStats.where((s) => s.jenis == JenisPenanganan.cuciAc).length;
         final perbaikanCount = allServisForStats.where((s) => s.jenis == JenisPenanganan.perbaikanAc).length;
         final instalasiCount = allServisForStats.where((s) => s.jenis == JenisPenanganan.instalasi).length;
-
-        print('Stats: Total=${allServisForStats.length}, Cuci=$cuciCount, Perbaikan=$perbaikanCount, Instalasi=$instalasiCount');
 
         return Scaffold(
           appBar: AppBar(
@@ -198,10 +193,9 @@ class _ServisHistoryPageState extends State<ServisHistoryPage> {
               onPressed: () => Navigator.pop(context),
             ),
             actions: [
-              // Reset filter button
               if (_getActiveFilterCount() > 0)
                 IconButton(
-                  icon: Icon(Icons.filter_alt_off, color: Colors.white),
+                  icon: const Icon(Icons.filter_alt_off, color: Colors.white),
                   onPressed: _resetFilters,
                   tooltip: 'Reset Filter',
                 ),
@@ -209,13 +203,12 @@ class _ServisHistoryPageState extends State<ServisHistoryPage> {
           ),
           body: Column(
             children: [
-              // Container untuk konten yang bisa discroll
               Expanded(
                 child: Container(
                   color: kBackgroundColor,
                   child: CustomScrollView(
                     slivers: [
-                      // Stats Cards dengan Jenis
+                      // Stats
                       SliverToBoxAdapter(
                         child: Container(
                           margin: const EdgeInsets.all(16),
@@ -225,7 +218,7 @@ class _ServisHistoryPageState extends State<ServisHistoryPage> {
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withValues(alpha:0.1), // Perbaikan: ganti .withValues(alpha:0.1)
+                                color: Colors.black.withValues(alpha: 0.1),
                                 blurRadius: 10,
                                 offset: const Offset(0, 4),
                               ),
@@ -238,41 +231,20 @@ class _ServisHistoryPageState extends State<ServisHistoryPage> {
                                 children: [
                                   Text(
                                     'Ringkasan Servis',
-                                    style: primaryTextStyle.copyWith(
-                                      fontSize: 16,
-                                      fontWeight: bold,
-                                    ),
+                                    style: primaryTextStyle.copyWith(fontSize: 16, fontWeight: bold),
                                   ),
-                                  // Info filter aktif
                                   if (_getActiveFilterCount() > 0)
                                     GestureDetector(
                                       onTap: _resetFilters,
                                       child: Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                                         decoration: BoxDecoration(
-                                          color: kPrimaryColor.withValues(alpha:0.1), // Perbaikan
+                                          color: kPrimaryColor.withValues(alpha: 0.1),
                                           borderRadius: BorderRadius.circular(15),
                                         ),
                                         child: Row(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
-                                            if (_selectedTab != 0)
-                                              Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                                margin: const EdgeInsets.only(right: 4),
-                                                decoration: BoxDecoration(
-                                                  color: _getTabColor(_selectedTab),
-                                                  borderRadius: BorderRadius.circular(10),
-                                                ),
-                                                child: Text(
-                                                  _getTabText(_selectedTab),
-                                                  style: const TextStyle(
-                                                    fontSize: 10,
-                                                    color: Colors.white,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                                ),
-                                              ),
                                             if (_selectedJenis != null)
                                               Container(
                                                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -287,10 +259,7 @@ class _ServisHistoryPageState extends State<ServisHistoryPage> {
                                                     const SizedBox(width: 2),
                                                     Text(
                                                       _getJenisText(_selectedJenis!),
-                                                      style: const TextStyle(
-                                                        fontSize: 10,
-                                                        color: Colors.white,
-                                                      ),
+                                                      style: const TextStyle(fontSize: 10, color: Colors.white),
                                                     ),
                                                   ],
                                                 ),
@@ -332,14 +301,13 @@ class _ServisHistoryPageState extends State<ServisHistoryPage> {
                         ),
                       ),
 
-                      // Filter Section
+                      // Filters
                       SliverToBoxAdapter(
                         child: Container(
                           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Header List dengan hasil filter
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
@@ -349,23 +317,17 @@ class _ServisHistoryPageState extends State<ServisHistoryPage> {
                                       children: [
                                         Text(
                                           _getListTitle(),
-                                          style: primaryTextStyle.copyWith(
-                                            fontSize: 16,
-                                            fontWeight: bold,
-                                          ),
+                                          style: primaryTextStyle.copyWith(fontSize: 16, fontWeight: bold),
                                         ),
                                         const SizedBox(height: 4),
-                                        Text(
-                                          'Lokasi: ${widget.lokasi.nama}',
-                                          style: greyTextStyle.copyWith(fontSize: 12),
-                                        ),
+                                        Text('Lokasi: ${widget.lokasi.nama}', style: greyTextStyle.copyWith(fontSize: 12)),
                                       ],
                                     ),
                                   ),
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                     decoration: BoxDecoration(
-                                      color: kPrimaryColor.withValues(alpha:0.1), // Perbaikan
+                                      color: kPrimaryColor.withValues(alpha: 0.1),
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: Text(
@@ -381,7 +343,6 @@ class _ServisHistoryPageState extends State<ServisHistoryPage> {
                               ),
                               const SizedBox(height: 12),
 
-                              // Filter Container
                               Container(
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
@@ -389,7 +350,7 @@ class _ServisHistoryPageState extends State<ServisHistoryPage> {
                                   borderRadius: BorderRadius.circular(12),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black.withValues(alpha:0.05), // Perbaikan
+                                      color: Colors.black.withValues(alpha: 0.05),
                                       blurRadius: 5,
                                       offset: const Offset(0, 2),
                                     ),
@@ -398,22 +359,25 @@ class _ServisHistoryPageState extends State<ServisHistoryPage> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    // Status Utama Dropdown
+                                    // Tab status
+                                    // ✅ Jenis Servis (Dropdown) - TARUH DI ATAS
                                     Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
-                                        Icon(Icons.filter_list, size: 16, color: kPrimaryColor),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          'Status:',
-                                          style: primaryTextStyle.copyWith(
-                                            fontSize: 13,
-                                            fontWeight: medium,
-                                          ),
+                                        Row(
+                                          children: [
+                                            Icon(Icons.category, size: 16, color: kPrimaryColor),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              'Jenis Servis:',
+                                              style: primaryTextStyle.copyWith(fontSize: 13, fontWeight: medium),
+                                            ),
+                                          ],
                                         ),
-                                        const SizedBox(width: 12),
+                                        SizedBox(width: 10,),
                                         Expanded(
                                           child: Container(
-                                            height: 36,
+                                            height: 42,
                                             padding: const EdgeInsets.symmetric(horizontal: 12),
                                             decoration: BoxDecoration(
                                               color: Colors.grey[50],
@@ -421,319 +385,118 @@ class _ServisHistoryPageState extends State<ServisHistoryPage> {
                                               border: Border.all(color: Colors.grey[300]!),
                                             ),
                                             child: DropdownButtonHideUnderline(
-                                              child: DropdownButton<int>(
-                                                value: _selectedTab,
+                                              child: DropdownButton<JenisPenanganan?>(
+                                                value: _selectedJenis,
                                                 isExpanded: true,
                                                 icon: Icon(Icons.arrow_drop_down, color: kGreyColor),
                                                 style: primaryTextStyle.copyWith(fontSize: 13),
-                                                items: [
-                                                  DropdownMenuItem(
-                                                    value: 0,
-                                                    child: Row(
-                                                      children: [
-                                                        Icon(Icons.list, size: 16, color: kGreyColor),
-                                                        const SizedBox(width: 8),
-                                                        Text('Semua Status', style: primaryTextStyle.copyWith(fontSize: 13)),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                  DropdownMenuItem(
-                                                    value: 1,
-                                                    child: Row(
-                                                      children: [
-                                                        Icon(Icons.hourglass_top, size: 16, color: Colors.orange),
-                                                        const SizedBox(width: 8),
-                                                        Text('Diproses', style: primaryTextStyle.copyWith(fontSize: 13)),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                  DropdownMenuItem(
-                                                    value: 2,
-                                                    child: Row(
-                                                      children: [
-                                                        Icon(Icons.check_circle, size: 16, color: kBoxMenuGreenColor),
-                                                        const SizedBox(width: 8),
-                                                        Text('Selesai', style: primaryTextStyle.copyWith(fontSize: 13)),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                  DropdownMenuItem(
-                                                    value: 3,
-                                                    child: Row(
-                                                      children: [
-                                                        Icon(Icons.cancel, size: 16, color: Colors.red),
-                                                        const SizedBox(width: 8),
-                                                        Text('Ditolak', style: primaryTextStyle.copyWith(fontSize: 13)),
-                                                      ],
-                                                    ),
-                                                  ),
+                                                items: const [
+                                                  DropdownMenuItem(value: null, child: Text('Semua Jenis')),
+                                                  DropdownMenuItem(value: JenisPenanganan.cuciAc, child: Text('Cuci')),
+                                                  DropdownMenuItem(value: JenisPenanganan.perbaikanAc, child: Text('Perbaikan')),
+                                                  DropdownMenuItem(value: JenisPenanganan.instalasi, child: Text('Instalasi')),
                                                 ],
-                                                onChanged: (value) {
-                                                  setState(() {
-                                                    _selectedTab = value ?? 0;
-                                                  });
-                                                },
+                                                onChanged: (v) => setState(() => _selectedJenis = v),
                                               ),
                                             ),
                                           ),
                                         ),
                                       ],
                                     ),
-                                    const SizedBox(height: 12),
 
-                                    // Jenis Servis - Grid satu baris kecil
-                                    Text(
-                                      'Jenis Servis:',
-                                      style: primaryTextStyle.copyWith(
-                                        fontSize: 13,
-                                        fontWeight: medium,
-                                      ),
+
+
+                                    const SizedBox(height: 14),
+
+                                    Row(
+                                      children: [
+                                        Icon(Icons.filter_list, size: 16, color: kPrimaryColor),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          'Status:',
+                                          style: primaryTextStyle.copyWith(fontSize: 13, fontWeight: medium),
+                                        ),
+                                      ],
                                     ),
-                                    const SizedBox(height: 8),
+                                    const SizedBox(height: 10),
+
                                     SizedBox(
                                       height: 40,
                                       child: ListView(
                                         scrollDirection: Axis.horizontal,
                                         children: [
-                                          // Semua Jenis
-                                          Padding(
-                                            padding: const EdgeInsets.only(right: 8),
-                                            child: GestureDetector(
-                                              onTap: () {
-                                                setState(() {
-                                                  _selectedJenis = null;
-                                                });
-                                              },
-                                              child: Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                                decoration: BoxDecoration(
-                                                  color: _selectedJenis == null
-                                                      ? kPrimaryColor.withValues(alpha:0.2) // Perbaikan
-                                                      : Colors.grey[100],
-                                                  borderRadius: BorderRadius.circular(20),
-                                                  border: Border.all(
-                                                    color: _selectedJenis == null
-                                                        ? kPrimaryColor
-                                                        : Colors.grey[300]!,
-                                                    width: _selectedJenis == null ? 1.5 : 1,
-                                                  ),
-                                                ),
-                                                child: Row(
-                                                  mainAxisSize: MainAxisSize.min,
-                                                  children: [
-                                                    Icon(
-                                                      Icons.all_inclusive,
-                                                      size: 14,
-                                                      color: _selectedJenis == null
-                                                          ? kPrimaryColor
-                                                          : Colors.grey[600],
-                                                    ),
-                                                    const SizedBox(width: 4),
-                                                    Text(
-                                                      'Semua',
-                                                      style: TextStyle(
-                                                        fontSize: 12,
-                                                        color: _selectedJenis == null
-                                                            ? kPrimaryColor
-                                                            : Colors.grey[600],
-                                                        fontWeight: _selectedJenis == null
-                                                            ? FontWeight.w500
-                                                            : FontWeight.normal,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-
-                                          // Cuci
-                                          Padding(
-                                            padding: const EdgeInsets.only(right: 8),
-                                            child: GestureDetector(
-                                              onTap: () {
-                                                setState(() {
-                                                  _selectedJenis = JenisPenanganan.cuciAc;
-                                                });
-                                              },
-                                              child: Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                                decoration: BoxDecoration(
-                                                  color: _selectedJenis == JenisPenanganan.cuciAc
-                                                      ? Colors.blue.withValues(alpha:0.2) // Perbaikan
-                                                      : Colors.grey[100],
-                                                  borderRadius: BorderRadius.circular(20),
-                                                  border: Border.all(
-                                                    color: _selectedJenis == JenisPenanganan.cuciAc
-                                                        ? Colors.blue
-                                                        : Colors.grey[300]!,
-                                                    width: _selectedJenis == JenisPenanganan.cuciAc ? 1.5 : 1,
-                                                  ),
-                                                ),
-                                                child: Row(
-                                                  mainAxisSize: MainAxisSize.min,
-                                                  children: [
-                                                    Icon(
-                                                      Icons.clean_hands,
-                                                      size: 14,
-                                                      color: _selectedJenis == JenisPenanganan.cuciAc
-                                                          ? Colors.blue
-                                                          : Colors.blue.withValues(alpha:0.6), // Perbaikan
-                                                    ),
-                                                    const SizedBox(width: 4),
-                                                    Text(
-                                                      'Cuci',
-                                                      style: TextStyle(
-                                                        fontSize: 12,
-                                                        color: _selectedJenis == JenisPenanganan.cuciAc
-                                                            ? Colors.blue
-                                                            : Colors.blue.withValues(alpha:0.8), // Perbaikan
-                                                        fontWeight: _selectedJenis == JenisPenanganan.cuciAc
-                                                            ? FontWeight.w500
-                                                            : FontWeight.normal,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-
-                                          // Perbaikan
-                                          Padding(
-                                            padding: const EdgeInsets.only(right: 8),
-                                            child: GestureDetector(
-                                              onTap: () {
-                                                setState(() {
-                                                  _selectedJenis = JenisPenanganan.perbaikanAc;
-                                                });
-                                              },
-                                              child: Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                                decoration: BoxDecoration(
-                                                  color: _selectedJenis == JenisPenanganan.perbaikanAc
-                                                      ? Colors.orange.withValues(alpha:0.2) // Perbaikan
-                                                      : Colors.grey[100],
-                                                  borderRadius: BorderRadius.circular(20),
-                                                  border: Border.all(
-                                                    color: _selectedJenis == JenisPenanganan.perbaikanAc
-                                                        ? Colors.orange
-                                                        : Colors.grey[300]!,
-                                                    width: _selectedJenis == JenisPenanganan.perbaikanAc ? 1.5 : 1,
-                                                  ),
-                                                ),
-                                                child: Row(
-                                                  mainAxisSize: MainAxisSize.min,
-                                                  children: [
-                                                    Icon(
-                                                      Icons.build,
-                                                      size: 14,
-                                                      color: _selectedJenis == JenisPenanganan.perbaikanAc
-                                                          ? Colors.orange
-                                                          : Colors.orange.withValues(alpha:0.6), // Perbaikan
-                                                    ),
-                                                    const SizedBox(width: 4),
-                                                    Text(
-                                                      'Perbaikan',
-                                                      style: TextStyle(
-                                                        fontSize: 12,
-                                                        color: _selectedJenis == JenisPenanganan.perbaikanAc
-                                                            ? Colors.orange
-                                                            : Colors.orange.withValues(alpha:0.8), // Perbaikan
-                                                        fontWeight: _selectedJenis == JenisPenanganan.perbaikanAc
-                                                            ? FontWeight.w500
-                                                            : FontWeight.normal,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-
-                                          // Instalasi
-                                          Padding(
-                                            padding: const EdgeInsets.only(right: 8),
-                                            child: GestureDetector(
-                                              onTap: () {
-                                                setState(() {
-                                                  _selectedJenis = JenisPenanganan.instalasi;
-                                                });
-                                              },
-                                              child: Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                                decoration: BoxDecoration(
-                                                  color: _selectedJenis == JenisPenanganan.instalasi
-                                                      ? Colors.green.withValues(alpha:0.2) // Perbaikan
-                                                      : Colors.grey[100],
-                                                  borderRadius: BorderRadius.circular(20),
-                                                  border: Border.all(
-                                                    color: _selectedJenis == JenisPenanganan.instalasi
-                                                        ? Colors.green
-                                                        : Colors.grey[300]!,
-                                                    width: _selectedJenis == JenisPenanganan.instalasi ? 1.5 : 1,
-                                                  ),
-                                                ),
-                                                child: Row(
-                                                  mainAxisSize: MainAxisSize.min,
-                                                  children: [
-                                                    Icon(
-                                                      Icons.install_desktop,
-                                                      size: 14,
-                                                      color: _selectedJenis == JenisPenanganan.instalasi
-                                                          ? Colors.green
-                                                          : Colors.green.withValues(alpha:0.6), // Perbaikan
-                                                    ),
-                                                    const SizedBox(width: 4),
-                                                    Text(
-                                                      'Instalasi',
-                                                      style: TextStyle(
-                                                        fontSize: 12,
-                                                        color: _selectedJenis == JenisPenanganan.instalasi
-                                                            ? Colors.green
-                                                            : Colors.green.withValues(alpha:0.8), // Perbaikan
-                                                        fontWeight: _selectedJenis == JenisPenanganan.instalasi
-                                                            ? FontWeight.w500
-                                                            : FontWeight.normal,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            ),
-                                          ),
+                                          _statusChip(label: 'Semua', value: null, icon: Icons.all_inclusive, color: kPrimaryColor),
+                                          _statusChip(label: 'Menunggu', value: ServisStatus.menunggu_konfirmasi, icon: Icons.hourglass_empty, color: Colors.orange),
+                                          _statusChip(label: 'Ditugaskan', value: ServisStatus.ditugaskan, icon: Icons.assignment, color: Colors.blue),
+                                          _statusChip(label: 'Dikerjakan', value: ServisStatus.dikerjakan, icon: Icons.play_circle_fill, color: Colors.purple),
+                                          _statusChip(label: 'Selesai', value: ServisStatus.selesai, icon: Icons.check_circle, color: kBoxMenuGreenColor),
+                                          _statusChip(label: 'Batal', value: ServisStatus.batal, icon: Icons.cancel, color: Colors.red),
                                         ],
                                       ),
                                     ),
+
+                                    const SizedBox(height: 12),
+
+
+                                    // SizedBox(
+                                    //   height: 40,
+                                    //   child: ListView(
+                                    //     scrollDirection: Axis.horizontal,
+                                    //     children: [
+                                    //       _jenisChip(
+                                    //         label: 'Semua',
+                                    //         icon: Icons.all_inclusive,
+                                    //         color: kPrimaryColor,
+                                    //         selected: _selectedJenis == null,
+                                    //         onTap: () => setState(() => _selectedJenis = null),
+                                    //       ),
+                                    //       _jenisChip(
+                                    //         label: 'Cuci',
+                                    //         icon: Icons.clean_hands,
+                                    //         color: Colors.blue,
+                                    //         selected: _selectedJenis == JenisPenanganan.cuciAc,
+                                    //         onTap: () => setState(() => _selectedJenis = JenisPenanganan.cuciAc),
+                                    //       ),
+                                    //       _jenisChip(
+                                    //         label: 'Perbaikan',
+                                    //         icon: Icons.build,
+                                    //         color: Colors.orange,
+                                    //         selected: _selectedJenis == JenisPenanganan.perbaikanAc,
+                                    //         onTap: () => setState(() => _selectedJenis = JenisPenanganan.perbaikanAc),
+                                    //       ),
+                                    //       _jenisChip(
+                                    //         label: 'Instalasi',
+                                    //         icon: Icons.install_desktop,
+                                    //         color: Colors.green,
+                                    //         selected: _selectedJenis == JenisPenanganan.instalasi,
+                                    //         onTap: () => setState(() => _selectedJenis = JenisPenanganan.instalasi),
+                                    //       ),
+                                    //     ],
+                                    //   ),
+                                    // ),
                                   ],
                                 ),
                               ),
-                              const SizedBox(height: 16),
                             ],
                           ),
                         ),
                       ),
 
-                      // List Servis
+                      // List
                       if (filteredServis.isEmpty)
-                        SliverToBoxAdapter(
-                          child: _buildEmptyState(),
-                        )
+                        SliverToBoxAdapter(child: _buildEmptyState())
                       else
                         SliverList(
                           delegate: SliverChildBuilderDelegate(
                                 (context, index) {
                               final servis = filteredServis[index];
-                              print('Building servis card at index $index: ID=${servis.id}');
                               return Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                                 child: GestureDetector(
                                   onTap: () {
                                     Navigator.push(
                                       context,
-                                      MaterialPageRoute(
-                                        builder: (_) => ServisDetailPage(servis: servis),
-                                      ),
+                                      MaterialPageRoute(builder: (_) => ServisDetailPage(servis: servis)),
                                     );
                                   },
                                   child: _ServisCard(servis: servis),
@@ -754,7 +517,7 @@ class _ServisHistoryPageState extends State<ServisHistoryPage> {
     );
   }
 
-  // Widget untuk statistik jenis servis
+
   Widget _buildJenisStatCard({
     required JenisPenanganan jenis,
     required int count,
@@ -764,19 +527,13 @@ class _ServisHistoryPageState extends State<ServisHistoryPage> {
     final percentage = total > 0 ? (count / total * 100).toInt() : 0;
 
     return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedJenis = isSelected ? null : jenis;
-        });
-      },
+      onTap: () => setState(() => _selectedJenis = isSelected ? null : jenis),
       child: Column(
         children: [
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: isSelected
-                  ? _getJenisColor(jenis)
-                  : _getJenisColor(jenis).withValues(alpha:0.1), // Perbaikan
+              color: isSelected ? _getJenisColor(jenis) : _getJenisColor(jenis).withValues(alpha: 0.1),
               shape: BoxShape.circle,
               border: Border.all(
                 color: isSelected ? _getJenisColor(jenis) : Colors.transparent,
@@ -819,7 +576,6 @@ class _ServisHistoryPageState extends State<ServisHistoryPage> {
     );
   }
 
-  // Widget untuk empty state
   Widget _buildEmptyState() {
     return Container(
       height: 300,
@@ -827,18 +583,11 @@ class _ServisHistoryPageState extends State<ServisHistoryPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.search_off,
-            size: 60,
-            color: kGreyColor.withValues(alpha:0.5), // Perbaikan
-          ),
+          Icon(Icons.search_off, size: 60, color: kGreyColor.withValues(alpha: 0.5)),
           const SizedBox(height: 16),
           Text(
             'Tidak ditemukan servis',
-            style: primaryTextStyle.copyWith(
-              fontSize: 16,
-              fontWeight: bold,
-            ),
+            style: primaryTextStyle.copyWith(fontSize: 16, fontWeight: bold),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
@@ -852,15 +601,13 @@ class _ServisHistoryPageState extends State<ServisHistoryPage> {
             onPressed: _resetFilters,
             style: ElevatedButton.styleFrom(
               backgroundColor: kPrimaryColor,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.filter_alt_off, size: 16, color: Colors.white),
+                const Icon(Icons.filter_alt_off, size: 16, color: Colors.white),
                 const SizedBox(width: 6),
                 Text('Reset Filter', style: whiteTextStyle.copyWith(fontSize: 13)),
               ],
@@ -872,38 +619,25 @@ class _ServisHistoryPageState extends State<ServisHistoryPage> {
   }
 
   String _getListTitle() {
-    if (_selectedTab != 0) {
-      switch (_selectedTab) {
-        case 1: return 'Servis Diproses';
-        case 2: return 'Servis Selesai';
-        case 3: return 'Servis Ditolak';
-      }
-    }
-    return 'Semua Servis';
-  }
-
-  String _getTabText(int tabIndex) {
-    switch (tabIndex) {
-      case 0: return 'Semua';
-      case 1: return 'Diproses';
-      case 2: return 'Selesai';
-      case 3: return 'Ditolak';
-      default: return '';
+    switch (_selectedTabStatus) {
+      case ServisStatus.menunggu_konfirmasi:
+        return 'Menunggu Konfirmasi';
+      case ServisStatus.ditugaskan:
+        return 'Ditugaskan';
+      case ServisStatus.dikerjakan:
+        return 'Sedang Dikerjakan';
+      case ServisStatus.selesai:
+        return 'Selesai';
+      case ServisStatus.batal:
+        return 'Batal';
+      default:
+        return 'Semua Servis';
     }
   }
 
-  Color _getTabColor(int tabIndex) {
-    switch (tabIndex) {
-      case 1: return Colors.orange;
-      case 2: return kBoxMenuGreenColor;
-      case 3: return Colors.red;
-      default: return kPrimaryColor;
-    }
-  }
 
-  // Helper methods
-  String _getJenisText(JenisPenanganan? jenis) {
-    if (jenis == null) return '';
+
+  String _getJenisText(JenisPenanganan jenis) {
     switch (jenis) {
       case JenisPenanganan.cuciAc:
         return 'Cuci';
@@ -940,24 +674,17 @@ class _ServisHistoryPageState extends State<ServisHistoryPage> {
 // ==================== SERVIS CARD ====================
 class _ServisCard extends StatelessWidget {
   final ServisModel servis;
-
   const _ServisCard({required this.servis});
 
   @override
   Widget build(BuildContext context) {
-    print('=== BUILDING SERVIS CARD ===');
-    print('Servis ID: ${servis.id}');
-    print('Lokasi Nama: ${servis.lokasiNama}');
-    print('AC Nama: ${servis.acNama}');
-    print('Status: ${servis.status}');
-
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha:0.05), // Perbaikan
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),
@@ -968,17 +695,16 @@ class _ServisCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header dengan Jenis, Status, dan Invoice
+            // Header (jenis + status)
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // Jenis Badge
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: servis.jenisColor.withValues(alpha:0.1), // Perbaikan
+                    color: servis.jenisColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(15),
-                    border: Border.all(color: servis.jenisColor.withValues(alpha:0.3)), // Perbaikan
+                    border: Border.all(color: servis.jenisColor.withValues(alpha: 0.3)),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -987,107 +713,79 @@ class _ServisCard extends StatelessWidget {
                       const SizedBox(width: 3),
                       Text(
                         servis.jenisDisplay,
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w500,
-                          color: servis.jenisColor,
-                        ),
+                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: servis.jenisColor),
                       ),
                     ],
                   ),
                 ),
-
-                // Invoice Badge (jika ada)
-                if (servis.noInvoice != null && servis.noInvoice!.isNotEmpty)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: Colors.purple.withValues(alpha:0.1), // Perbaikan
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: Colors.purple.withValues(alpha:0.3)), // Perbaikan
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.receipt, size: 9, color: Colors.purple),
-                        const SizedBox(width: 3),
-                        Text(
-                          servis.noInvoice!,
-                          style: TextStyle(
-                            fontSize: 8,
-                            color: Colors.purple,
-                          ),
-                        ),
-                      ],
-                    ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: servis.statusColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(15),
                   ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(_getStatusIcon(servis.status), size: 11, color: servis.statusColor),
+                      const SizedBox(width: 3),
+                      Text(
+                        servis.statusDisplay,
+                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: servis.statusColor),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
-
             const SizedBox(height: 8),
 
-            // Info Servis Utama
+            // ID + Teknisi ringkas
             Row(
               children: [
-                // ID Servis
                 Expanded(
                   child: Row(
                     children: [
-                      Icon(Icons.tag, size: 13, color: Colors.grey),
+                      const Icon(Icons.tag, size: 13, color: Colors.grey),
                       const SizedBox(width: 5),
                       Expanded(
                         child: Text(
                           'Servis #${servis.id}',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                          ),
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
                   ),
                 ),
-
-                // Status Badge
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: servis.statusColor.withValues(alpha:0.1), // Perbaikan
-                    borderRadius: BorderRadius.circular(15),
+                    color: Colors.orange.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
-                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(
-                        _getStatusIcon(servis.status),
-                        size: 11,
-                        color: servis.statusColor,
-                      ),
-                      const SizedBox(width: 3),
+                      const Icon(Icons.person, size: 12, color: Colors.orange),
+                      const SizedBox(width: 4),
                       Text(
-                        servis.statusDisplay,
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w500,
-                          color: servis.statusColor,
-                        ),
+                        servis.techniciansShortDisplay,
+                        style: const TextStyle(fontSize: 10, color: Colors.orange, fontWeight: FontWeight.w500),
                       ),
                     ],
                   ),
                 ),
               ],
             ),
-
             const SizedBox(height: 8),
 
-            // INFO LOKASI & AC
+            // Lokasi & AC
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: kPrimaryColor.withValues(alpha:0.03), // Perbaikan
+                color: kPrimaryColor.withValues(alpha: 0.03),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey.withValues(alpha:0.1)), // Perbaikan
+                border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1098,77 +796,55 @@ class _ServisCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
-                          children: [
+                          children: const [
                             Icon(Icons.location_on, size: 13, color: kPrimaryColor),
-                            const SizedBox(width: 6),
-                            Text(
-                              'Lokasi',
-                              style: TextStyle(
-                                fontSize: 9,
-                                color: Colors.grey,
-                              ),
-                            ),
+                            SizedBox(width: 6),
+                            Text('Lokasi', style: TextStyle(fontSize: 9, color: Colors.grey)),
                           ],
                         ),
                         const SizedBox(height: 2),
                         Text(
                           servis.lokasiNama,
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w500,
-                          ),
+                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                         Text(
                           servis.lokasiAlamat,
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: Colors.grey,
-                          ),
+                          style: const TextStyle(fontSize: 10, color: Colors.grey),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
                   ),
-
                   const SizedBox(width: 8),
-
-                  // AC Unit
+                  // AC
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
-                          children: [
+                          children: const [
                             Icon(Icons.ac_unit, size: 13, color: kSecondaryColor),
-                            const SizedBox(width: 6),
-                            Text(
-                              'AC Unit',
-                              style: TextStyle(
-                                fontSize: 9,
-                                color: Colors.grey,
-                              ),
-                            ),
+                            SizedBox(width: 6),
+                            Text('AC Unit', style: TextStyle(fontSize: 9, color: Colors.grey)),
                           ],
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          servis.acNama,
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w500,
-                          ),
+                          servis.acDisplay,
+                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                         Text(
-                          '${servis.acMerk} • ${servis.acKapasitas}',
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: Colors.grey,
-                          ),
+                          (servis.jumlahAc != null && servis.jumlahAc! > 0)
+                              ? '${servis.jumlahAc} unit'
+                              : (servis.acUnitsNames.isNotEmpty ? '${servis.acUnitsNames.length} unit' : '-'),
+                          style: const TextStyle(fontSize: 10, color: Colors.grey),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
@@ -1176,85 +852,35 @@ class _ServisCard extends StatelessWidget {
                 ],
               ),
             ),
-
             const SizedBox(height: 8),
 
-            // FOOTER: TANGGAL & BIAYA
+            // Footer: tanggal & biaya
             Row(
               children: [
-                // Tanggal
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Row(
                     children: [
-                      Row(
-                        children: [
-                          Icon(Icons.calendar_today, size: 11, color: Colors.grey),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Ditugaskan:',
-                            style: TextStyle(
-                              fontSize: 9,
-                              color: Colors.grey,
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            _formatDate(servis.tanggalDitugaskan),
-                            style: TextStyle(fontSize: 10),
-                          ),
-                        ],
-                      ),
-                      if (servis.tanggalSelesai != null)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 2),
-                          child: Row(
-                            children: [
-                              Icon(Icons.check_circle, size: 11, color: kBoxMenuGreenColor),
-                              const SizedBox(width: 4),
-                              Text(
-                                'Selesai: ${_formatDate(servis.tanggalSelesai!)}',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  color: kBoxMenuGreenColor,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+                      const Icon(Icons.calendar_today, size: 11, color: Colors.grey),
+                      const SizedBox(width: 4),
+                      const Text('Dibuat:', style: TextStyle(fontSize: 9, color: Colors.grey)),
+                      const SizedBox(width: 4),
+                      Text(_formatDate(servis.tanggalDitugaskan), style: const TextStyle(fontSize: 10)),
                     ],
                   ),
                 ),
-
-                // Biaya
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
-                    color: kBoxMenuGreenColor.withValues(alpha:0.1), // Perbaikan
+                    color: kBoxMenuGreenColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Column(
+                  child: Row(
                     children: [
+                      const Icon(Icons.attach_money, size: 13, color: kBoxMenuGreenColor),
+                      const SizedBox(width: 3),
                       Text(
-                        'Total',
-                        style: TextStyle(
-                          fontSize: 9,
-                          color: Colors.grey,
-                        ),
-                      ),
-                      Row(
-                        children: [
-                          Icon(Icons.attach_money, size: 13, color: kBoxMenuGreenColor),
-                          const SizedBox(width: 3),
-                          Text(
-                            servis.formattedTotalBiaya,
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                              color: kBoxMenuGreenColor,
-                            ),
-                          ),
-                        ],
+                        servis.formattedTotalBiaya,
+                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: kBoxMenuGreenColor),
                       ),
                     ],
                   ),
@@ -1263,17 +889,11 @@ class _ServisCard extends StatelessWidget {
             ),
 
             const SizedBox(height: 4),
-
-            // View Details Button
-            Align(
+            const Align(
               alignment: Alignment.centerRight,
               child: Text(
                 'Tap untuk detail →',
-                style: TextStyle(
-                  fontSize: 9,
-                  color: Colors.grey,
-                  fontStyle: FontStyle.italic,
-                ),
+                style: TextStyle(fontSize: 9, color: Colors.grey, fontStyle: FontStyle.italic),
               ),
             ),
           ],
@@ -1284,8 +904,18 @@ class _ServisCard extends StatelessWidget {
 
   IconData _getStatusIcon(ServisStatus status) {
     switch (status) {
+      case ServisStatus.menunggu_konfirmasi:
+        return Icons.hourglass_empty;
       case ServisStatus.ditugaskan:
         return Icons.assignment;
+      case ServisStatus.dikerjakan:
+        return Icons.play_circle_fill;
+      case ServisStatus.selesai:
+        return Icons.check_circle;
+      case ServisStatus.batal:
+        return Icons.cancel;
+
+    // legacy
       case ServisStatus.dalam_perjalanan:
         return Icons.directions_car;
       case ServisStatus.tiba_di_lokasi:
@@ -1296,30 +926,12 @@ class _ServisCard extends StatelessWidget {
         return Icons.build;
       case ServisStatus.menunggu_suku_cadang:
         return Icons.inventory;
-      case ServisStatus.selesai:
-        return Icons.check_circle;
       case ServisStatus.ditolak:
-        return Icons.cancel;
-      case ServisStatus.menunggu_konfirmasi:
-        return Icons.hourglass_empty;
-      case ServisStatus.dikerjakan:
-        // TODO: Handle this case.
-        throw UnimplementedError();
-      case ServisStatus.batal:
-        // TODO: Handle this case.
-        throw UnimplementedError();
+        return Icons.block;
       case ServisStatus.menunggu_konfirmasi_owner:
-        // TODO: Handle this case.
-        throw UnimplementedError();
+        return Icons.hourglass_bottom;
     }
   }
 
-  String _formatDate(DateTime date) {
-    try {
-      return '${date.day}/${date.month}/${date.year}';
-    } catch (e) {
-      print('Error formatting date: $e');
-      return 'N/A';
-    }
-  }
+  String _formatDate(DateTime date) => '${date.day}/${date.month}/${date.year}';
 }

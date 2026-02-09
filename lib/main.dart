@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:ridho_teknik/pages/owner/client_list_page.dart';
 import 'package:ridho_teknik/pages/owner/technician_list_page.dart';
@@ -10,6 +12,7 @@ import 'package:ridho_teknik/providers/client_servis_provider.dart';
 import 'package:ridho_teknik/providers/location_provider.dart';
 import 'package:ridho_teknik/providers/owner_master_provider.dart';
 import 'package:ridho_teknik/providers/technician_provider.dart';
+import 'package:ridho_teknik/providers/teknisi_provider.dart';
 import 'package:ridho_teknik/services/ac_unit_service.dart';
 import 'package:ridho_teknik/services/client_master_service.dart';
 import 'package:ridho_teknik/services/client_service.dart';
@@ -17,6 +20,7 @@ import 'package:ridho_teknik/services/client_servis_service.dart';
 import 'package:ridho_teknik/services/location_service.dart';
 import 'package:ridho_teknik/services/owner_master_service.dart' hide ClientMasterService;
 import 'package:ridho_teknik/services/technician_service.dart';
+import 'package:ridho_teknik/services/teknisi_master_service.dart';
 
 import 'api/api_client.dart';
 import 'pages/splash_page.dart';
@@ -29,8 +33,12 @@ import 'providers/auth_provider.dart';
 import 'services/auth_service.dart';
 import 'services/token_store.dart';
 
-void main() {
+void main() async{
   WidgetsFlutterBinding.ensureInitialized();
+
+  await initializeDateFormatting('id_ID', '');
+  Intl.defaultLocale = 'id_ID';
+
   runApp(const MyApp());
 }
 
@@ -55,6 +63,8 @@ class MyApp extends StatelessWidget {
         Provider<LocationService>(create: (context) => LocationService(api: context.read<ApiClient>()),),
         Provider<AcUnitService>(create: (context) => AcUnitService(api: context.read<ApiClient>()),),
         Provider<OwnerMasterService>(create: (context) => OwnerMasterService(api: context.read<ApiClient>())),
+
+        Provider<TeknisiService>(create: (context) => TeknisiService(api: context.read<ApiClient>())),
 
         // Auth Provider kamu (tetap)
         ChangeNotifierProvider(
@@ -109,6 +119,12 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (context) => OwnerMasterProvider(
             service: context.read<OwnerMasterService>(),
+          ),
+        ),
+
+        ChangeNotifierProvider(
+          create: (context) => TeknisiProvider(
+            service: context.read<TeknisiService>(),
           ),
         ),
 

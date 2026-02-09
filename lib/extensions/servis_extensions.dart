@@ -4,70 +4,88 @@ import '../models/servis_model.dart';
 extension ServisStatusX on ServisStatus {
   String get text {
     switch (this) {
-      case ServisStatus.ditugaskan: return 'Ditugaskan';
-      case ServisStatus.dalam_perjalanan: return 'Dalam Perjalanan';
-      case ServisStatus.tiba_di_lokasi: return 'Tiba di Lokasi';
-      case ServisStatus.sedang_diperiksa: return 'Sedang Diperiksa';
-      case ServisStatus.dalam_perbaikan: return 'Dalam Perbaikan';
-      case ServisStatus.menunggu_suku_cadang: return 'Menunggu Suku Cadang';
-      case ServisStatus.selesai: return 'Selesai';
-      case ServisStatus.ditolak: return 'Ditolak';
-      case ServisStatus.menunggu_konfirmasi: return 'Menunggu Konfirmasi';
+      case ServisStatus.ditugaskan:
+        return 'Ditugaskan';
+      case ServisStatus.dalam_perjalanan:
+        return 'Dalam Perjalanan';
+      case ServisStatus.tiba_di_lokasi:
+        return 'Tiba di Lokasi';
+      case ServisStatus.sedang_diperiksa:
+        return 'Sedang Diperiksa';
+      case ServisStatus.dalam_perbaikan:
+        return 'Dalam Perbaikan';
+      case ServisStatus.menunggu_suku_cadang:
+        return 'Menunggu Suku Cadang';
       case ServisStatus.dikerjakan:
-        // TODO: Handle this case.
-        throw UnimplementedError();
-      case ServisStatus.batal:
-        // TODO: Handle this case.
-        throw UnimplementedError();
+        return 'Dikerjakan';
       case ServisStatus.menunggu_konfirmasi_owner:
-        // TODO: Handle this case.
-        throw UnimplementedError();
+        return 'Menunggu Konfirmasi Owner';
+      case ServisStatus.menunggu_konfirmasi:
+        return 'Menunggu Konfirmasi';
+      case ServisStatus.selesai:
+        return 'Selesai';
+      case ServisStatus.ditolak:
+        return 'Ditolak';
+      case ServisStatus.batal:
+        return 'Batal';
     }
   }
 
   Color get color {
     switch (this) {
-      case ServisStatus.ditugaskan: return Colors.blue;
-      case ServisStatus.dalam_perjalanan: return Colors.orange;
-      case ServisStatus.tiba_di_lokasi: return Colors.purple;
-      case ServisStatus.sedang_diperiksa: return Colors.indigo;
-      case ServisStatus.dalam_perbaikan: return Colors.red;
-      case ServisStatus.menunggu_suku_cadang: return Colors.amber;
-      case ServisStatus.selesai: return Colors.green;
-      case ServisStatus.ditolak: return Colors.red.shade900;
-      case ServisStatus.menunggu_konfirmasi: return Colors.yellow.shade700;
+      case ServisStatus.ditugaskan:
+        return Colors.blue;
+      case ServisStatus.dalam_perjalanan:
+        return Colors.orange;
+      case ServisStatus.tiba_di_lokasi:
+        return Colors.purple;
+      case ServisStatus.sedang_diperiksa:
+        return Colors.indigo;
+      case ServisStatus.dalam_perbaikan:
+        return Colors.red;
+      case ServisStatus.menunggu_suku_cadang:
+        return Colors.amber;
       case ServisStatus.dikerjakan:
-        // TODO: Handle this case.
-        throw UnimplementedError();
-      case ServisStatus.batal:
-        // TODO: Handle this case.
-        throw UnimplementedError();
+        return Colors.teal;
       case ServisStatus.menunggu_konfirmasi_owner:
-        // TODO: Handle this case.
-        throw UnimplementedError();
+        return Colors.yellow.shade800;
+      case ServisStatus.menunggu_konfirmasi:
+        return Colors.yellow.shade700;
+      case ServisStatus.selesai:
+        return Colors.green;
+      case ServisStatus.ditolak:
+        return Colors.red.shade900;
+      case ServisStatus.batal:
+        return Colors.grey;
     }
   }
 
   String get shortText {
     switch (this) {
-      case ServisStatus.ditugaskan: return 'Tugas';
-      case ServisStatus.dalam_perjalanan: return 'Jalan';
-      case ServisStatus.tiba_di_lokasi: return 'Tiba';
-      case ServisStatus.sedang_diperiksa: return 'Periksa';
-      case ServisStatus.dalam_perbaikan: return 'Perbaiki';
-      case ServisStatus.menunggu_suku_cadang: return 'Tunggu';
-      case ServisStatus.menunggu_konfirmasi: return 'Konfirm';
-      case ServisStatus.selesai: return 'Selesai';
-      case ServisStatus.ditolak: return 'Tolak';
+      case ServisStatus.ditugaskan:
+        return 'Tugas';
+      case ServisStatus.dalam_perjalanan:
+        return 'Jalan';
+      case ServisStatus.tiba_di_lokasi:
+        return 'Tiba';
+      case ServisStatus.sedang_diperiksa:
+        return 'Periksa';
+      case ServisStatus.dalam_perbaikan:
+        return 'Perbaiki';
+      case ServisStatus.menunggu_suku_cadang:
+        return 'Tunggu';
       case ServisStatus.dikerjakan:
-        // TODO: Handle this case.
-        throw UnimplementedError();
-      case ServisStatus.batal:
-        // TODO: Handle this case.
-        throw UnimplementedError();
+        return 'Kerja';
       case ServisStatus.menunggu_konfirmasi_owner:
-        // TODO: Handle this case.
-        throw UnimplementedError();
+        return 'Owner';
+      case ServisStatus.menunggu_konfirmasi:
+        return 'Konfirm';
+      case ServisStatus.selesai:
+        return 'Selesai';
+      case ServisStatus.ditolak:
+        return 'Tolak';
+      case ServisStatus.batal:
+        return 'Batal';
     }
   }
 }
@@ -75,15 +93,24 @@ extension ServisStatusX on ServisStatus {
 extension TindakanServisX on TindakanServis {
   String get text {
     switch (this) {
-      case TindakanServis.pembersihan: return 'Pembersihan';
-      case TindakanServis.isiFreon: return 'Isi Freon';
-      case TindakanServis.gantiFilter: return 'Ganti Filter';
-      case TindakanServis.perbaikanKompressor: return 'Perbaikan Kompressor';
-      case TindakanServis.perbaikanPCB: return 'Perbaikan PCB';
-      case TindakanServis.gantiKapasitor: return 'Ganti Kapasitor';
-      case TindakanServis.gantiFanMotor: return 'Ganti Fan Motor';
-      case TindakanServis.tuneUp: return 'Tune Up';
-      case TindakanServis.lainnya: return 'Lainnya';
+      case TindakanServis.pembersihan:
+        return 'Pembersihan';
+      case TindakanServis.isiFreon:
+        return 'Isi Freon';
+      case TindakanServis.gantiFilter:
+        return 'Ganti Filter';
+      case TindakanServis.perbaikanKompressor:
+        return 'Perbaikan Kompressor';
+      case TindakanServis.perbaikanPCB:
+        return 'Perbaikan PCB';
+      case TindakanServis.gantiKapasitor:
+        return 'Ganti Kapasitor';
+      case TindakanServis.gantiFanMotor:
+        return 'Ganti Fan Motor';
+      case TindakanServis.tuneUp:
+        return 'Tune Up';
+      case TindakanServis.lainnya:
+        return 'Lainnya';
     }
   }
 }
