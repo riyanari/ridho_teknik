@@ -1,81 +1,119 @@
-import 'package:flutter/material.dart';
-import 'package:ridho_teknik/services/teknisi_service.dart';
-
-import '../models/keluhan_model.dart';
+import 'package:flutter/foundation.dart';
 import '../models/servis_model.dart';
-import '../models/teknisi_model.dart';
+import '../services/teknisi_master_service.dart';
 
 class TeknisiProvider with ChangeNotifier {
   final TeknisiService service;
-
   TeknisiProvider({required this.service});
 
-  bool isLoading = false;
-  String? error;
+  bool _loading = false;
+  bool _submitting = false;
 
-  TeknisiModel? teknisi;
-  List<ServisModel> servisAktif = [];
-  List<KeluhanModel> keluhanAktif = [];
+  String? _error;
+  String? _submitError;
 
-  int totalTugas = 0;
-  int tugasBerjalan = 0;
-  int menungguKonfirmasi = 0;
-  int tugasSelesai = 0;
+  List<ServisModel> _tasks = [];
+  int _fetchToken = 0;
 
-  Future<void> fetch() async {
-    isLoading = true;
-    error = null;
+  bool get loading => _loading;
+  bool get submitting => _submitting;
+
+  String? get error => _error;
+  String? get submitError => _submitError;
+
+  List<ServisModel> get tasks => _tasks;
+
+  Future<void> fetchTasks() async {
+    _loading = true;
+    _error = null;
+    notifyListeners();
+
+    final int token = ++_fetchToken;
+
+    try {
+      final rows = await service.getTasks();
+      if (token != _fetchToken) return;
+
+      _tasks = rows;
+    } catch (e) {
+      if (token != _fetchToken) return;
+      _error = 'Gagal mengambil tugas: ${e.toString()}';
+      if (kDebugMode) print('❌ fetchTasks error: $e');
+    } finally {
+      if (token != _fetchToken) return;
+      _loading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> startWork(int serviceId) async {
+    _submitting = true;
+    _submitError = null;
     notifyListeners();
 
     try {
-      final json = await service.fetchDashboard();
-      final data = (json['data'] ?? {}) as Map<String, dynamic>;
+      final updated = await service.startWork(serviceId);
 
-      teknisi = TeknisiModel(
-        id: (data['teknisi']?['id'] ?? '').toString(),
-        nama: (data['teknisi']?['nama'] ?? '').toString(),
-        spesialisasi: (data['teknisi']?['spesialisasi'] ?? '').toString(),
-        noHp: (data['teknisi']?['noHp'] ?? '').toString(),
-        rating: (data['teknisi']?['rating'] ?? 0).toDouble(),
-        totalService: (data['teknisi']?['totalService'] ?? 0) as int,
-        foto: (data['teknisi']?['foto'] ?? '').toString(),
-      );
+      // update local list
+      final idx = _tasks.indexWhere((e) => e.id == serviceId);
+      if (idx != -1) _tasks[idx] = updated;
 
-      final stats = (data['stats'] ?? {}) as Map<String, dynamic>;
-      totalTugas = (stats['totalTugas'] ?? 0) as int;
-      tugasBerjalan = (stats['tugasBerjalan'] ?? 0) as int;
-      menungguKonfirmasi = (stats['menungguKonfirmasi'] ?? 0) as int;
-      tugasSelesai = (stats['tugasSelesai'] ?? 0) as int;
-
-      final servisArr = (data['servisAktif'] ?? []) as List<dynamic>;
-      servisAktif = servisArr
-          .map((e) => ServisModel.fromMap(e as Map<String, dynamic>))
-          .toList();
-
-      final keluhanArr = (data['keluhanAktif'] ?? []) as List<dynamic>;
-      keluhanAktif = keluhanArr
-          .map((e) => KeluhanModel(
-        id: e['id'].toString(),
-        lokasiId: e['lokasiId'].toString(),
-        acId: e['acId'].toString(),
-        judul: e['judul'].toString(),
-        deskripsi: e['deskripsi'].toString(),
-        status: KeluhanStatus.values.byName(e['status'].toString()),
-        prioritas: Prioritas.values.byName(e['prioritas'].toString()),
-        tanggalDiajukan: DateTime.parse(e['tanggalDiajukan'].toString()),
-        tanggalSelesai: e['tanggalSelesai'] == null
-            ? null
-            : DateTime.parse(e['tanggalSelesai'].toString()),
-        assignedTo: e['assignedTo']?.toString(),
-        catatanServicer: e['catatanServicer']?.toString(),
-        fotoKeluhan: (e['fotoKeluhan'] as List<dynamic>? ?? []).cast<String>(),
-      ))
-          .toList();
+      return true;
     } catch (e) {
-      error = e.toString();
+      _submitError = 'Gagal memulai pekerjaan: ${e.toString()}';
+      if (kDebugMode) print('❌ startWork error: $e');
+      return false;
     } finally {
-      isLoading = false;
+      _submitting = false;
       notifyListeners();
     }
+  }
+
+  Future<bool> completeWork(
+      int serviceId, {
+        String? diagnosa,
+        required List<String> tindakan,
+        String? catatan,
+        num? biayaServisRekomendasi,
+        num? biayaSukuCadangRekomendasi,
+      }) async {
+    _submitting = true;
+    _submitError = null;
+    notifyListeners();
+
+    try {
+      await service.completeWork(
+        serviceId,
+        diagnosa: diagnosa,
+        tindakan: tindakan,
+        catatan: catatan,
+        biayaServisRekomendasi: biayaServisRekomendasi,
+        biayaSukuCadangRekomendasi: biayaSukuCadangRekomendasi,
+      );
+
+      // paling aman: refresh, karena setelah selesai bisa hilang dari endpoint tugas
+      await fetchTasks();
+      return true;
+    } catch (e) {
+      _submitError = 'Gagal menyelesaikan pekerjaan: ${e.toString()}';
+      if (kDebugMode) print('❌ completeWork error: $e');
+      return false;
+    } finally {
+      _submitting = false;
+      notifyListeners();
+    }
+  }
+
+  void clearErrors() {
+    _error = null;
+    _submitError = null;
+    notifyListeners();
+  }
+
+  void clearData() {
+    _tasks.clear();
+    _error = null;
+    _submitError = null;
+    notifyListeners();
   }
 }

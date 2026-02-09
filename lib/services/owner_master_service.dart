@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:intl/intl.dart';
 
@@ -530,6 +529,53 @@ class OwnerMasterService {
     // print(const JsonEncoder.withIndent('  ').convert(res));
 
     return res;
+  }
+
+  // ===== ASSIGN TECHNICIAN PER AC (GROUPS) =====
+  // ===== ASSIGN TECHNICIAN PER AC (GROUPS) =====
+  Future<Map<String, dynamic>> assignTechnicianPerAcGroups(
+      int serviceId, {
+        required List<Map<String, dynamic>> groups,
+        DateTime? tanggalDitugaskan,
+        bool isReassign = false, // ✅ tambah ini
+      }) async {
+    try {
+      final normalizedGroups = groups.map((g) {
+        final techId = g['technician_id'];
+        final acIds = g['ac_unit_ids'];
+
+        return <String, dynamic>{
+          'technician_id': techId is int ? techId : int.tryParse(techId.toString()) ?? 0,
+          'ac_unit_ids': (acIds is List)
+              ? acIds
+              .map((e) => e is int ? e : int.tryParse(e.toString()) ?? 0)
+              .where((id) => id > 0)
+              .toList()
+              : <int>[],
+        };
+      }).where((g) {
+        final techId = (g['technician_id'] as int?) ?? 0;
+        final acIds = (g['ac_unit_ids'] as List?) ?? [];
+        return techId > 0 && acIds.isNotEmpty;
+      }).toList();
+
+      final body = <String, dynamic>{
+        'groups': normalizedGroups,
+        'is_reassign': isReassign, // ✅ ini yang penting
+        if (tanggalDitugaskan != null)
+          'tanggal_ditugaskan': DateFormat('yyyy-MM-dd').format(tanggalDitugaskan),
+      };
+
+      final res = await api.post(
+        ApiConfig.ownerServiceAssignTechnicianPerAc(serviceId),
+        body: body,
+      );
+
+      return res;
+    } catch (e) {
+      print('❌ Error in assignTechnicianPerAcGroups: $e');
+      rethrow;
+    }
   }
 
 

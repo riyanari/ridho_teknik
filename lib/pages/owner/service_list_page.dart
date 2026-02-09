@@ -9,7 +9,7 @@ import 'package:ridho_teknik/providers/owner_master_provider.dart';
 import 'package:ridho_teknik/theme/theme.dart';
 import 'package:ridho_teknik/models/servis_model.dart';
 
-import '../../models/user_model.dart';
+import 'owner_service_detail_page.dart';
 
 class ServiceListPage extends StatefulWidget {
   const ServiceListPage({super.key});
@@ -532,57 +532,6 @@ class _ServiceListPageState extends State<ServiceListPage> {
   }
 
   // Jika ingin ada dialog untuk melihat detail tim teknisi
-  void _showTechnicianTeamDialog(ServisModel service, BuildContext context) {
-    final provider = context.read<OwnerMasterProvider>();
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          'Tim Teknisi',
-          style: primaryTextStyle.copyWith(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Service ${service.jenisDisplay}', style: greyTextStyle),
-            const SizedBox(height: 16),
-            if (service.technicianIds == null || service.technicianIds!.isEmpty)
-              Text('Belum ada teknisi ditugaskan', style: greyTextStyle)
-            else
-              Column(
-                children: service.technicianIds!.map((techId) {
-                  final tech = provider.technicians
-                      .firstWhere((t) => t.id == techId, orElse: () => UserModel());
-                  return ListTile(
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    leading: CircleAvatar(
-                      radius: 16,
-                      backgroundColor: kPrimaryColor.withValues(alpha:0.1),
-                      child: Text(
-                        tech.name?.substring(0, 1) ?? 'T',
-                        style: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                    title: Text(tech.name ?? 'Teknisi #$techId',
-                        style: primaryTextStyle.copyWith(fontSize: 14)),
-                    subtitle: Text(tech.email ?? '', style: greyTextStyle.copyWith(fontSize: 12)),
-                  );
-                }).toList(),
-              ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Tutup', style: primaryTextStyle.copyWith(color: kPrimaryColor)),
-          ),
-        ],
-      ),
-    );
-  }
 
   // ================= MODERN SERVICE CARD =================
   Widget _buildModernServiceCard(ServisModel service) {
@@ -742,7 +691,7 @@ class _ServiceListPageState extends State<ServiceListPage> {
                     ),
                   ],
 
-                  if (service.catatan!.isNotEmpty) ...[
+                  if (service.catatan.isNotEmpty) ...[
                     const SizedBox(height: 16),
                     Container(
                       padding: const EdgeInsets.all(12),
@@ -838,7 +787,6 @@ class _ServiceListPageState extends State<ServiceListPage> {
   }
 
   Widget _buildModernActionButtons(ServisModel service) {
-    final serviceId = int.tryParse(service.id) ?? 0;
 
     switch (service.status.name) {
       case 'menunggu_konfirmasi':
@@ -846,24 +794,28 @@ class _ServiceListPageState extends State<ServiceListPage> {
           children: [
             Expanded(
               child: ElevatedButton(
-                onPressed: () => _showAssignTechnicianDialog(
-                  serviceId,
-                  isReassign: false,
-                  initialSelectedTechIds: service.technicianIds ?? [],
-                ),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => OwnerServiceDetailPage(service: service, isReassign: false),
+                    ),
+                  );
+                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: kPrimaryColor,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  elevation: 2,
-                  shadowColor: kPrimaryColor.withValues(alpha:0.3),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Iconsax.profile_2user, size: 18, color: Colors.white),
-                    const SizedBox(width: 8),
-                    Text('Tugaskan Teknisi', style: whiteTextStyle.copyWith(fontSize: 14, fontWeight: FontWeight.w600)),
+                  children: const [
+                    Icon(Iconsax.document, size: 18, color: Colors.white),
+                    SizedBox(width: 8),
+                    Text(
+                      'Detail & Assign AC',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white),
+                    ),
                   ],
                 ),
               ),
@@ -877,11 +829,20 @@ class _ServiceListPageState extends State<ServiceListPage> {
             Expanded(
               child: OutlinedButton(
                 // ✅ FIX: ganti teknisi harus isReassign true
-                onPressed: () => _showAssignTechnicianDialog(
-                  serviceId,
-                  isReassign: true,
-                  initialSelectedTechIds: service.technicianIds ?? [],
-                ),
+                onPressed: () async {
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => OwnerServiceDetailPage(service: service, isReassign: true),
+                    ),
+                  );
+
+                  // optional: kalau di detail kamu Navigator.pop(context, true) saat berhasil submit
+                  if (!mounted) return;
+                  if (result == true) {
+                    await _refreshData();
+                  }
+                },
 
                 style: OutlinedButton.styleFrom(
                   backgroundColor: Colors.white,
@@ -1072,486 +1033,4 @@ class _ServiceListPageState extends State<ServiceListPage> {
         return Iconsax.activity;
     }
   }
-
-  // ================= FIX UTAMA: DIALOG ASSIGN =================
-
-  Future<bool> _tryAssignOnProvider({
-    required OwnerMasterProvider provider,
-    required int serviceId,
-    required List<int> techIds,
-    required DateTime assignedAt,
-    required bool isReassign,
-  }) async {
-    final dynamic p = provider;
-
-    // Coba beberapa kemungkinan nama method + signature biar copas aman.
-    try {
-      final res = await p.assignMultipleTechnicians(
-        serviceId: serviceId,
-        technicianIds: techIds,
-        assignedAt: assignedAt,
-        isReassign: isReassign,
-      );
-      if (res is bool) return res;
-      return true;
-    } catch (_) {}
-
-    try {
-      final res = await p.assignMultipleTechnicians(
-        serviceId,
-        techIds,
-        assignedAt: assignedAt,
-        isReassign: isReassign,
-      );
-      if (res is bool) return res;
-      return true;
-    } catch (_) {}
-
-    try {
-      final res = await p.assignTechniciansToService(
-        serviceId: serviceId,
-        technicianIds: techIds,
-        assignedAt: assignedAt,
-        isReassign: isReassign,
-      );
-      if (res is bool) return res;
-      return true;
-    } catch (_) {}
-
-    try {
-      final res = await p.assignTechnicians(
-        serviceId: serviceId,
-        technicianIds: techIds,
-        assignedAt: assignedAt,
-      );
-      if (res is bool) return res;
-      return true;
-    } catch (_) {}
-
-    // Kalau semua gagal:
-    throw Exception('Method assign teknisi tidak ditemukan di OwnerMasterProvider (sesuaikan nama method-nya).');
-  }
-
-  Future<void> _showAssignTechnicianDialog(
-      int serviceId, {
-        bool isReassign = false,
-        List<int> initialSelectedTechIds = const [],
-      }) async {
-    final provider = context.read<OwnerMasterProvider>();
-    await provider.fetchTechnicians();
-
-    if (!mounted) return;
-
-    if (provider.technicians.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Belum ada teknisi tersedia'),
-          backgroundColor: Colors.orange,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-      return;
-    }
-
-    final List<int> selectedTechIds = List<int>.from(initialSelectedTechIds);
-    DateTime? tanggalDitugaskan;
-
-    await showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        final height = MediaQuery.of(context).size.height * 0.88;
-
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return SizedBox(
-              height: height,
-              child: Container(
-                margin: const EdgeInsets.only(top: 40),
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(30),
-                    topRight: Radius.circular(30),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black12,
-                      blurRadius: 20,
-                      spreadRadius: 2,
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    // Drag handle
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      child: Container(
-                        width: 40,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: Colors.grey[300],
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                    ),
-
-                    // Header
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: kPrimaryColor.withValues(alpha:0.1),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Icon(
-                              isReassign ? Iconsax.refresh : Iconsax.profile_2user,
-                              color: kPrimaryColor,
-                              size: 20,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  isReassign ? 'Ganti Teknisi' : 'Tugaskan Teknisi',
-                                  style: primaryTextStyle.copyWith(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                Text(
-                                  'Pilih teknisi untuk service ini',
-                                  style: greyTextStyle.copyWith(fontSize: 12),
-                                ),
-                              ],
-                            ),
-                          ),
-                          IconButton(
-                            onPressed: () => Navigator.pop(context),
-                            icon: Icon(Icons.close, color: Colors.grey[600], size: 20),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 8),
-
-                    // Tanggal & Jam Penugasan
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(12),
-                        onTap: () async {
-                          final date = await showDatePicker(
-                            context: context,
-                            initialDate: tanggalDitugaskan ?? DateTime.now(),
-                            firstDate: DateTime(2020),
-                            lastDate: DateTime(2030),
-                          );
-                          if (date == null) return;
-
-                          final time = await showTimePicker(
-                            context: context,
-                            initialTime: tanggalDitugaskan == null
-                                ? TimeOfDay.now()
-                                : TimeOfDay(
-                              hour: tanggalDitugaskan!.hour,
-                              minute: tanggalDitugaskan!.minute,
-                            ),
-                          );
-                          if (time == null) return;
-
-                          setModalState(() {
-                            tanggalDitugaskan = DateTime(
-                              date.year,
-                              date.month,
-                              date.day,
-                              time.hour,
-                              time.minute,
-                            );
-                          });
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.grey[50],
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.grey[200]!),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(Iconsax.calendar_edit, size: 18, color: kPrimaryColor),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  tanggalDitugaskan == null
-                                      ? 'Pilih tanggal & jam penugasan'
-                                      : DateFormat('dd MMM yyyy HH:mm', 'id_ID')
-                                      .format(tanggalDitugaskan!),
-                                  style: primaryTextStyle.copyWith(fontSize: 14),
-                                ),
-                              ),
-                              if (tanggalDitugaskan != null)
-                                GestureDetector(
-                                  onTap: () => setModalState(() => tanggalDitugaskan = null),
-                                  child: const Icon(Iconsax.close_circle, color: Colors.red, size: 18),
-                                ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    // List teknisi
-                    Expanded(
-                      child: Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 16),
-                        decoration: BoxDecoration(
-                          color: Colors.grey[50],
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: ListView.builder(
-                          physics: const BouncingScrollPhysics(),
-                          padding: const EdgeInsets.all(8),
-                          itemCount: provider.technicians.length,
-                          itemBuilder: (context, index) {
-                            final tech = provider.technicians[index];
-                            final techId = tech.id ?? 0;
-                            final isSelected = selectedTechIds.contains(techId);
-
-                            return Container(
-                              margin: const EdgeInsets.symmetric(vertical: 4),
-                              child: Material(
-                                color: isSelected
-                                    ? kPrimaryColor.withValues(alpha:0.08)
-                                    : Colors.white,
-                                borderRadius: BorderRadius.circular(12),
-                                elevation: isSelected ? 1 : 0,
-                                child: InkWell(
-                                  borderRadius: BorderRadius.circular(12),
-                                  onTap: () {
-                                    setModalState(() {
-                                      if (isSelected) {
-                                        selectedTechIds.remove(techId);
-                                      } else {
-                                        selectedTechIds.add(techId);
-                                      }
-                                    });
-                                  },
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(12),
-                                    child: Row(
-                                      children: [
-                                        AnimatedContainer(
-                                          duration: const Duration(milliseconds: 200),
-                                          width: 24,
-                                          height: 24,
-                                          decoration: BoxDecoration(
-                                            color: isSelected ? kPrimaryColor : Colors.transparent,
-                                            borderRadius: BorderRadius.circular(6),
-                                            border: Border.all(
-                                              color: isSelected ? kPrimaryColor : Colors.grey[300]!,
-                                              width: isSelected ? 0 : 2,
-                                            ),
-                                          ),
-                                          child: isSelected
-                                              ? const Icon(Icons.check, size: 16, color: Colors.white)
-                                              : null,
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                tech.name ?? 'Nama Teknisi',
-                                                style: primaryTextStyle.copyWith(
-                                                  fontSize: 14,
-                                                  fontWeight: FontWeight.w600,
-                                                ),
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                              const SizedBox(height: 2),
-                                              Text(
-                                                tech.email ?? '',
-                                                style: greyTextStyle.copyWith(fontSize: 12),
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        Text(
-                                          isSelected ? 'Terpilih' : 'Pilih',
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w600,
-                                            color: isSelected ? kPrimaryColor : Colors.grey[500],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-
-                    // Footer
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        border: Border(
-                          top: BorderSide(color: Colors.grey[200]!, width: 1),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton(
-                              onPressed: () => Navigator.pop(context),
-                              style: OutlinedButton.styleFrom(
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                padding: const EdgeInsets.symmetric(vertical: 14),
-                                side: BorderSide(color: Colors.grey[300]!, width: 1),
-                              ),
-                              child: Text(
-                                'Batal',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.grey[600],
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: ElevatedButton(
-                              // ✅ SUBMIT (bukan buka dialog lagi)
-                              onPressed: (selectedTechIds.isEmpty || tanggalDitugaskan == null)
-                                  ? null
-                                  : () async {
-                                Navigator.pop(context);
-
-                                final ok = await provider.assignMultipleTechnicians(
-                                  serviceId,
-                                  selectedTechIds,
-                                  tanggalDitugaskan: tanggalDitugaskan,
-                                );
-
-                                if (!mounted) return;
-
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      ok
-                                          ? 'Teknisi berhasil ${isReassign ? 'diganti' : 'ditugaskan'}'
-                                          : (provider.submitError ?? 'Gagal menugaskan teknisi'),
-                                    ),
-                                    backgroundColor: ok ? Colors.green : Colors.red,
-                                    behavior: SnackBarBehavior.floating,
-                                  ),
-                                );
-
-                                if (ok) await _refreshData();
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: kPrimaryColor,
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                padding: const EdgeInsets.symmetric(vertical: 14),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(isReassign ? Iconsax.refresh : Iconsax.profile_2user, size: 18),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    isReassign
-                                        ? 'Ganti (${selectedTechIds.length})'
-                                        : 'Tugaskan (${selectedTechIds.length})',
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-
-  // Helper functions (opsional – kamu boleh hapus kalau tidak dipakai)
-  Color _getTechAvailabilityColor(String availability) {
-    switch (availability.toLowerCase()) {
-      case 'available':
-        return Colors.green.withValues(alpha:0.1);
-      case 'busy':
-        return Colors.orange.withValues(alpha:0.1);
-      case 'off':
-        return Colors.red.withValues(alpha:0.1);
-      default:
-        return Colors.grey.withValues(alpha:0.1);
-    }
-  }
-
-  Color _getTechAvailabilityTextColor(String availability) {
-    switch (availability.toLowerCase()) {
-      case 'available':
-        return Colors.green;
-      case 'busy':
-        return Colors.orange;
-      case 'off':
-        return Colors.red;
-      default:
-        return Colors.grey;
-    }
-  }
-
-  String _getTechAvailabilityText(String availability) {
-    switch (availability.toLowerCase()) {
-      case 'available':
-        return 'Tersedia';
-      case 'busy':
-        return 'Sibuk';
-      case 'off':
-        return 'Off';
-      default:
-        return 'Tidak diketahui';
-    }
-  }
-
 }

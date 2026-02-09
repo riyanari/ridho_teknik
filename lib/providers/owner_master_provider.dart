@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import '../models/ac_model.dart';
@@ -588,6 +586,47 @@ class OwnerMasterProvider with ChangeNotifier {
       return false;
     } catch (e) {
       _submitError = 'Gagal menugaskan teknisi: $e';
+      return false;
+    } finally {
+      _submitting = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> assignTechnicianPerAcGroups(
+      int serviceId, {
+        required List<Map<String, dynamic>> groups,
+        DateTime? tanggalDitugaskan,
+        bool isReassign = false, // ✅ tambah ini
+      }) async {
+    _submitting = true;
+    _submitError = null;
+    notifyListeners();
+
+    try {
+      final response = await service.assignTechnicianPerAcGroups(
+        serviceId,
+        groups: groups,
+        tanggalDitugaskan: tanggalDitugaskan,
+        isReassign: isReassign, // ✅ teruskan
+      );
+
+      final ok = response['success'] == true;
+
+      if (ok) {
+        await fetchServices(useLastQuery: true);
+
+        if (_selectedService?.id == serviceId.toString()) {
+          await fetchServiceDetail(serviceId);
+        }
+
+        return true;
+      }
+
+      _submitError = response['message'] ?? 'Gagal assign teknisi per AC';
+      return false;
+    } catch (e) {
+      _submitError = 'Gagal assign teknisi per AC: $e';
       return false;
     } finally {
       _submitting = false;
