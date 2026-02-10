@@ -121,7 +121,7 @@ class _LoginPageState extends State<LoginPage> {
               'assets/logo_ridho_teknik.png',
               height: MediaQuery.of(context).size.height * 0.4,
             ),
-            const Text("data"),
+            // const Text("data"),
           ],
         ),
       );

@@ -6,11 +6,16 @@ class ApiClient {
   ApiClient({required this.store});
   final TokenStore store;
 
-  Future<Map<String, String>> _headers({bool auth = true}) async {
+  Future<Map<String, String>> _headers({bool auth = true, bool json = true}) async {
     final h = <String, String>{
       'Accept': 'application/json',
-      'Content-Type': 'application/json',
     };
+
+    // jangan set Content-Type kalau multipart, biar http yang set boundary
+    if (json) {
+      h['Content-Type'] = 'application/json';
+    }
+
     if (auth) {
       final token = await store.getToken();
       if (token != null && token.isNotEmpty) {
@@ -30,10 +35,7 @@ class ApiClient {
       qp[k] = v.toString();
     });
 
-    return u.replace(queryParameters: {
-      ...u.queryParameters,
-      ...qp,
-    });
+    return u.replace(queryParameters: {...u.queryParameters, ...qp});
   }
 
   Map<String, dynamic> _safeJson(String s) {
@@ -52,6 +54,38 @@ class ApiClient {
 
     final msg = (json['message'] ?? json['error'] ?? 'Request gagal').toString();
     throw Exception('$msg (${res.statusCode})');
+  }
+
+  Future<Map<String, dynamic>> postMultipart(
+      String url, {
+        Map<String, String>? fields,
+        required List<http.MultipartFile> files,
+      }) async {
+    final uri = Uri.parse(url);
+    final req = http.MultipartRequest('POST', uri);
+
+    // auth header (tanpa content-type json)
+    req.headers.addAll(await _headers(json: false));
+
+    if (fields != null) req.fields.addAll(fields);
+    req.files.addAll(files);
+
+    // ===== DEBUG PRINT =====
+    print('📤 [MULTIPART] POST $url');
+    print('   headers: ${req.headers}');
+    if (fields != null && fields.isNotEmpty) print('   fields: $fields');
+    print('   files count: ${files.length}');
+    for (final f in files) {
+      print('   - file field="${f.field}" filename="${f.filename}" length=${f.length}');
+    }
+
+    final streamed = await req.send();
+    final res = await http.Response.fromStream(streamed);
+
+    print('📥 [MULTIPART] status=${res.statusCode}');
+    print('📥 body=${res.body}');
+
+    return _handle(res);
   }
 
   Future<Map<String, dynamic>> get(
@@ -87,6 +121,8 @@ class ApiClient {
     );
     return _handle(res);
   }
+
+
 
   Future<Map<String, dynamic>> delete(
       String url, {

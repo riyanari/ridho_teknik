@@ -60,7 +60,31 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
   // FILTERING
   // =========================
 
-  String _statusKey(ServisModel s) => s.status.name.toLowerCase();
+  // String _statusKey(ServisModel s) => s.statusKeyFromItems;
+  String _statusKey(ServisModel s) {
+    final items = s.itemsData;
+
+    // fallback kalau itemsData kosong
+    if (items.isEmpty) return s.status.name.toLowerCase();
+
+    final statuses = items
+        .map((it) => (it['status'] ?? '').toString().toLowerCase().trim())
+        .where((x) => x.isNotEmpty)
+        .toList();
+
+    if (statuses.isEmpty) return s.status.name.toLowerCase();
+
+    final allSelesai = statuses.every((x) => x == 'selesai');
+    if (allSelesai) return 'selesai';
+
+    final anyDitugaskan = statuses.any((x) => x == 'ditugaskan');
+    if (anyDitugaskan) return 'ditugaskan';
+
+    // di titik ini: tidak ada ditugaskan,
+    // berarti semua item minimal sudah mulai (dikerjakan/selesai)
+    return 'dikerjakan';
+  }
+
 
   String _jenisKey(ServisModel s) {
     // s.jenis adalah enum JenisPenanganan
@@ -110,7 +134,12 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
         .where(_matchSearch)
         .toList();
 
-    rows.sort((a, b) => b.tanggalDitugaskan.compareTo(a.tanggalDitugaskan));
+    rows.sort((a, b) {
+      DateTime aKey = a.tanggalSelesai ?? a.tanggalDitugaskan;
+      DateTime bKey = b.tanggalSelesai ?? b.tanggalDitugaskan;
+      return bKey.compareTo(aKey);
+    });
+
     return rows;
   }
 
@@ -454,9 +483,9 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
     final statusText = _statusLabel(status);
     final statusIcon = _statusIcon(status);
 
-    final jumlahText = (s.jumlahAc != null && s.jumlahAc! > 0)
-        ? '${s.jumlahAc}'
-        : (s.acUnitsNames.isNotEmpty ? '${s.acUnitsNames.length}' : '-');
+    final jumlahText = s.itemsData.isNotEmpty
+        ? '${s.itemsData.length}'
+        : (s.acUnitsNames.isNotEmpty ? '${s.acUnitsNames.length}' : (s.jumlahAc?.toString() ?? '-'));
 
     final lokasiText = s.lokasiAlamat;
     final assignedAt = _fmtDateTime(s.tanggalDitugaskan);

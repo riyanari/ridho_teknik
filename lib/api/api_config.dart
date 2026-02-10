@@ -1,6 +1,6 @@
 class ApiConfig {
-  static const String baseUrl = "http://10.0.2.2:8000/api"; // android emulator
-  // static const String baseUrl = "http://192.168.18.7:8000/api"; // ios simulator
+  // static const String baseUrl = "http://10.0.2.2:8000/api"; // android emulator
+  static const String baseUrl = "http://192.168.1.4:8000/api"; // ios simulator
   // static const String baseUrl = "http://localhost:8000/api"; // web/flutter web
 
   // ===== AUTH =====
@@ -76,9 +76,11 @@ class ApiConfig {
 
   // Service Management
   static String get technicianTasks => "$baseUrl/teknisi/servis/tugas";
-  static String technicianStartWork(int id) => "$baseUrl/teknisi/servis/$id/mulai";
-  static String technicianUploadPhotos(int id) => "$baseUrl/teknisi/servis/$id/upload-foto";
-  static String technicianCompleteWork(int id) => "$baseUrl/teknisi/servis/$id/selesaikan";
+  static String technicianStartService(int serviceId) => "$baseUrl/teknisi/servis/$serviceId/mulai";
+  static String technicianStartItem(int itemId) => "$baseUrl/teknisi/servis-items/$itemId/mulai";
+  static String technicianUpdateItemProgress(int itemId) => "$baseUrl/teknisi/servis-items/$itemId/upload-foto";
+  static String technicianFinishItem(int itemId) => "$baseUrl/teknisi/servis-items/$itemId/selesaikan";
+  static String technicianFinishService(int serviceId) => "$baseUrl/teknisi/servis/$serviceId/selesaikan";
 
   // Helper methods for query parameters
   static String buildUrlWithParams(String baseUrl, Map<String, dynamic>? params) {

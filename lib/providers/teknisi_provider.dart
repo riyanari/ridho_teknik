@@ -23,6 +23,31 @@ class TeknisiProvider with ChangeNotifier {
 
   List<ServisModel> get tasks => _tasks;
 
+  // ===== Helpers =====
+  void _setSubmitting(bool v) {
+    _submitting = v;
+    notifyListeners();
+  }
+
+  void _setSubmitError(String? msg) {
+    _submitError = msg;
+    notifyListeners();
+  }
+
+  void _replaceTaskByServiceId(ServisModel updated) {
+    // NOTE: pastikan ServisModel.id kamu bertipe String/Int konsisten
+    final idx = _tasks.indexWhere((e) => e.id == updated.id);
+    if (idx != -1) {
+      _tasks[idx] = updated;
+    } else {
+      // kalau service tidak ada di list (misal berubah status dan endpoint tugas beda),
+      // boleh push atau abaikan. Aku pilih push biar UI update.
+      _tasks.insert(0, updated);
+    }
+    notifyListeners();
+  }
+
+  // ===== Fetch Tasks =====
   Future<void> fetchTasks() async {
     _loading = true;
     _error = null;
@@ -33,7 +58,6 @@ class TeknisiProvider with ChangeNotifier {
     try {
       final rows = await service.getTasks();
       if (token != _fetchToken) return;
-
       _tasks = rows;
     } catch (e) {
       if (token != _fetchToken) return;
@@ -46,61 +70,119 @@ class TeknisiProvider with ChangeNotifier {
     }
   }
 
-  Future<bool> startWork(int serviceId) async {
-    _submitting = true;
-    _submitError = null;
-    notifyListeners();
+  // ===== OPTIONAL: start service =====
+  Future<bool> startService(int serviceId) async {
+    _setSubmitting(true);
+    _setSubmitError(null);
 
     try {
-      final updated = await service.startWork(serviceId);
-
-      // update local list
-      final idx = _tasks.indexWhere((e) => e.id == serviceId);
-      if (idx != -1) _tasks[idx] = updated;
-
+      final updated = await service.startService(serviceId);
+      _replaceTaskByServiceId(updated);
       return true;
     } catch (e) {
-      _submitError = 'Gagal memulai pekerjaan: ${e.toString()}';
-      if (kDebugMode) print('❌ startWork error: $e');
+      _setSubmitError('Gagal mulai servis: ${e.toString()}');
       return false;
     } finally {
-      _submitting = false;
-      notifyListeners();
+      _setSubmitting(false);
     }
   }
 
-  Future<bool> completeWork(
-      int serviceId, {
-        String? diagnosa,
-        required List<String> tindakan,
-        String? catatan,
-        num? biayaServisRekomendasi,
-        num? biayaSukuCadangRekomendasi,
-      }) async {
-    _submitting = true;
-    _submitError = null;
-    notifyListeners();
+  // ===== 1) Mulai per ITEM (tanpa foto) =====
+  Future<bool> startItem(int itemId) async {
+    _setSubmitting(true);
+    _setSubmitError(null);
 
     try {
-      await service.completeWork(
-        serviceId,
+      final updated = await service.startItem(itemId);
+      _replaceTaskByServiceId(updated);
+      return true;
+    } catch (e) {
+      _setSubmitError('Gagal mulai item: ${e.toString()}');
+      return false;
+    } finally {
+      _setSubmitting(false);
+    }
+  }
+
+  // ===== 2) Update progress per ITEM (multipart) =====
+  Future<bool> updateItemProgress(
+      int itemId, {
+        String? diagnosa,
+        String? tindakan, // string (kalau array/json, bilang ya nanti aku ubah)
+        List<String> fotoSebelum = const [],
+        List<String> fotoPengerjaan = const [],
+        List<String> fotoSesudah = const [],
+      }) async {
+    _setSubmitting(true);
+    _setSubmitError(null);
+
+    try {
+      final updated = await service.updateItemProgress(
+        itemId,
         diagnosa: diagnosa,
         tindakan: tindakan,
-        catatan: catatan,
-        biayaServisRekomendasi: biayaServisRekomendasi,
-        biayaSukuCadangRekomendasi: biayaSukuCadangRekomendasi,
+        fotoSebelum: fotoSebelum,
+        fotoPengerjaan: fotoPengerjaan,
+        fotoSesudah: fotoSesudah,
       );
 
-      // paling aman: refresh, karena setelah selesai bisa hilang dari endpoint tugas
+      _replaceTaskByServiceId(updated);
+      return true;
+    } catch (e) {
+      _setSubmitError('Gagal update progress: ${e.toString()}');
+      return false;
+    } finally {
+      _setSubmitting(false);
+    }
+  }
+
+  // ===== 3) Selesaikan per ITEM =====
+  Future<bool> finishItem(
+      int itemId, {
+        String? diagnosa,
+        String? tindakan,
+        List<String> fotoSesudah = const [],
+      }) async {
+    _setSubmitting(true);
+    _setSubmitError(null);
+
+    try {
+      final updated = await service.finishItem(
+        itemId,
+        diagnosa: diagnosa,
+        tindakan: tindakan,
+        fotoSesudah: fotoSesudah,
+      );
+
+      _replaceTaskByServiceId(updated);
+
+      // paling aman: refresh karena item selesai bisa membuat service pindah/hilang dari endpoint tugas
       await fetchTasks();
       return true;
     } catch (e) {
-      _submitError = 'Gagal menyelesaikan pekerjaan: ${e.toString()}';
-      if (kDebugMode) print('❌ completeWork error: $e');
+      _setSubmitError('Gagal menyelesaikan item: ${e.toString()}');
+      if (kDebugMode) print('❌ finishItem error: $e');
       return false;
     } finally {
-      _submitting = false;
-      notifyListeners();
+      _setSubmitting(false);
+    }
+  }
+
+  // ===== OPTIONAL: finish service =====
+  Future<bool> finishService(int serviceId) async {
+    _setSubmitting(true);
+    _setSubmitError(null);
+
+    try {
+      final updated = await service.finishService(serviceId);
+      _replaceTaskByServiceId(updated);
+      await fetchTasks();
+      return true;
+    } catch (e) {
+      _setSubmitError('Gagal menyelesaikan servis: ${e.toString()}');
+      return false;
+    } finally {
+      _setSubmitting(false);
     }
   }
 

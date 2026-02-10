@@ -803,6 +803,39 @@ class ServisModel {
         '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
   }
 
+  String get statusKeyFromItems {
+    // itemsData sudah difilter oleh backend hanya milik teknisi login
+    if (itemsData.isEmpty) return status.name.toLowerCase(); // fallback
+
+    final statuses = itemsData
+        .map((it) => (it['status'] ?? '').toString().toLowerCase().trim())
+        .where((s) => s.isNotEmpty)
+        .toList();
+
+    if (statuses.isEmpty) return status.name.toLowerCase();
+
+    // aturan prioritas:
+    // jika ada dikerjakan => dikerjakan
+    // jika semua selesai => selesai
+    // sisanya => ditugaskan
+    if (statuses.contains('dikerjakan')) return 'dikerjakan';
+    if (statuses.every((s) => s == 'selesai')) return 'selesai';
+    return 'ditugaskan';
+  }
+
+  int get jumlahAcFromItems => itemsData.length;
+
+  List<String> get acUnitsNamesFromItemsOnly {
+    return itemsData
+        .map((it) => it['ac_unit'])
+        .where((u) => u is Map)
+        .map((u) => (u as Map)['name']?.toString().trim() ?? '')
+        .where((n) => n.isNotEmpty)
+        .toSet()
+        .toList();
+  }
+
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) || (other is ServisModel && other.id == id);
