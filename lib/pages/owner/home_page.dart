@@ -55,7 +55,6 @@ class _HomePageState extends State<HomePage> {
     print('🚀 HomePage._loadInitialData() - Memulai');
 
     final provider = context.read<OwnerMasterProvider>();
-    print('   Provider ditemukan: ${provider != null}');
 
     setState(() {
       _isRefreshing = true;
@@ -64,7 +63,7 @@ class _HomePageState extends State<HomePage> {
     try {
       print('⏳ Memulai loading data awal...');
 
-      final results = await Future.wait([
+      await Future.wait([
         provider.fetchClients(),
         provider.fetchTechnicians(),
         provider.fetchServices(),
@@ -307,7 +306,7 @@ class _HomePageState extends State<HomePage> {
                 if (_isRefreshing)
                   Positioned.fill(
                     child: Container(
-                      color: Colors.black.withOpacity(0.3),
+                      color: Colors.black.withValues(alpha:0.3),
                       child: Center(
                         child: CircularProgressIndicator(color: kPrimaryColor),
                       ),
@@ -353,7 +352,7 @@ class _HomePageState extends State<HomePage> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: kPrimaryColor.withOpacity(0.3),
+            color: kPrimaryColor.withValues(alpha:0.3),
             blurRadius: 15,
             offset: const Offset(0, 5),
           ),
@@ -370,7 +369,7 @@ class _HomePageState extends State<HomePage> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
+                      color: Colors.white.withValues(alpha:0.2),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(Iconsax.building_3, color: Colors.white, size: 24),
@@ -391,7 +390,7 @@ class _HomePageState extends State<HomePage> {
                         style: whiteTextStyle.copyWith(
                           fontSize: 12,
                           fontWeight: regular,
-                          color: Colors.white.withOpacity(0.9),
+                          color: Colors.white.withValues(alpha:0.9),
                         ),
                       ),
                     ],
@@ -403,7 +402,7 @@ class _HomePageState extends State<HomePage> {
                 child: Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
+                    color: Colors.white.withValues(alpha:0.2),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Icon(Iconsax.logout_1, color: Colors.white, size: 20),
@@ -424,7 +423,7 @@ class _HomePageState extends State<HomePage> {
             formattedDate,
             style: whiteTextStyle.copyWith(
               fontSize: 14,
-              color: Colors.white.withOpacity(0.8),
+              color: Colors.white.withValues(alpha:0.8),
             ),
           ),
           const SizedBox(height: 20),
@@ -460,7 +459,7 @@ class _HomePageState extends State<HomePage> {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.1),
+        color: Colors.white.withValues(alpha:0.1),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -484,7 +483,7 @@ class _HomePageState extends State<HomePage> {
             label,
             style: whiteTextStyle.copyWith(
               fontSize: 11,
-              color: Colors.white.withOpacity(0.8),
+              color: Colors.white.withValues(alpha:0.8),
             ),
           ),
         ],
@@ -511,7 +510,7 @@ class _HomePageState extends State<HomePage> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withValues(alpha:0.1),
             blurRadius: 20,
             offset: const Offset(0, 5),
           ),
@@ -560,7 +559,7 @@ class _HomePageState extends State<HomePage> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha:0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(icon, color: color, size: 20),
@@ -607,7 +606,7 @@ class _HomePageState extends State<HomePage> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
           decoration: BoxDecoration(
-            color: kPrimaryColor.withOpacity(0.1),
+            color: kPrimaryColor.withValues(alpha:0.1),
             borderRadius: BorderRadius.circular(20),
           ),
           child: Text(
@@ -646,27 +645,27 @@ class _HomePageState extends State<HomePage> {
         description: 'Data teknisi & rating',
         gradient: [kBoxMenuLightBlueColor, const Color(0xFF2E3A7A)],
       ),
-      MainMenu(
-        icon: Iconsax.location,
-        title: 'Lokasi',
-        color: kPrimaryColor,
-        description: 'Data lokasi client',
-        gradient: [kPrimaryColor, kBoxMenuDarkBlueColor],
-      ),
-      MainMenu(
-        icon: Iconsax.cpu,
-        title: 'AC Units',
-        color: kBoxMenuGreenColor,
-        description: 'Data unit AC',
-        gradient: [kBoxMenuGreenColor, const Color(0xFF1B998B)],
-      ),
-      MainMenu(
-        icon: Iconsax.chart_square,
-        title: 'Dashboard',
-        color: kSecondaryColor,
-        description: 'Statistik lengkap',
-        gradient: [kSecondaryColor, const Color(0xFFFF6B35)],
-      ),
+      // MainMenu(
+      //   icon: Iconsax.location,
+      //   title: 'Lokasi',
+      //   color: kPrimaryColor,
+      //   description: 'Data lokasi client',
+      //   gradient: [kPrimaryColor, kBoxMenuDarkBlueColor],
+      // ),
+      // MainMenu(
+      //   icon: Iconsax.cpu,
+      //   title: 'AC Units',
+      //   color: kBoxMenuGreenColor,
+      //   description: 'Data unit AC',
+      //   gradient: [kBoxMenuGreenColor, const Color(0xFF1B998B)],
+      // ),
+      // MainMenu(
+      //   icon: Iconsax.chart_square,
+      //   title: 'Dashboard',
+      //   color: kSecondaryColor,
+      //   description: 'Statistik lengkap',
+      //   gradient: [kSecondaryColor, const Color(0xFFFF6B35)],
+      // ),
     ];
   }
 
@@ -684,7 +683,7 @@ class _HomePageState extends State<HomePage> {
           ),
           boxShadow: [
             BoxShadow(
-              color: menu.color.withOpacity(0.3),
+              color: menu.color.withValues(alpha:0.3),
               blurRadius: 8,
               offset: const Offset(0, 3),
             ),
@@ -698,7 +697,7 @@ class _HomePageState extends State<HomePage> {
               width: 32,
               height: 32,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
+                color: Colors.white.withValues(alpha:0.2),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
@@ -724,7 +723,7 @@ class _HomePageState extends State<HomePage> {
                   style: whiteTextStyle.copyWith(
                     fontSize: 9,
                     fontWeight: regular,
-                    color: Colors.white.withOpacity(0.8),
+                    color: Colors.white.withValues(alpha:0.8),
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -826,7 +825,7 @@ class _HomePageState extends State<HomePage> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withValues(alpha:0.1),
             blurRadius: 10,
             offset: const Offset(0, 3),
           ),
@@ -838,7 +837,7 @@ class _HomePageState extends State<HomePage> {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: kPrimaryColor.withOpacity(0.1),
+              color: kPrimaryColor.withValues(alpha:0.1),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(Iconsax.calendar_1, color: kPrimaryColor, size: 24),
@@ -871,7 +870,7 @@ class _HomePageState extends State<HomePage> {
                         vertical: 2,
                       ),
                       decoration: BoxDecoration(
-                        color: service.statusColor.withOpacity(0.1),
+                        color: service.statusColor.withValues(alpha:0.1),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
@@ -942,7 +941,7 @@ class _HomePageState extends State<HomePage> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withValues(alpha:0.1),
             blurRadius: 10,
             offset: const Offset(0, 3),
           ),
@@ -954,7 +953,7 @@ class _HomePageState extends State<HomePage> {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: kBoxMenuGreenColor.withOpacity(0.1),
+              color: kBoxMenuGreenColor.withValues(alpha:0.1),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(Iconsax.profile_circle, color: kBoxMenuGreenColor, size: 24),
@@ -1034,7 +1033,7 @@ class _HomePageState extends State<HomePage> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withValues(alpha:0.1),
             blurRadius: 10,
             offset: const Offset(0, 3),
           ),
@@ -1046,7 +1045,7 @@ class _HomePageState extends State<HomePage> {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: kSecondaryColor.withOpacity(0.1),
+              color: kSecondaryColor.withValues(alpha:0.1),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(Iconsax.profile_circle, color: kSecondaryColor, size: 24),
@@ -1113,16 +1112,16 @@ class _HomePageState extends State<HomePage> {
             Container(
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: color.withValues(alpha:0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(icon, color: color, size: 20),
+              child: Icon(icon, color: color, size: 14),
             ),
             const SizedBox(width: 10),
             Text(
               title,
               style: primaryTextStyle.copyWith(
-                fontSize: 16,
+                fontSize: 14,
                 fontWeight: bold,
               ),
             ),
@@ -1152,7 +1151,7 @@ class _HomePageState extends State<HomePage> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withValues(alpha:0.1),
             blurRadius: 10,
             offset: const Offset(0, 3),
           ),
