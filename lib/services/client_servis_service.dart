@@ -16,21 +16,21 @@ class ClientServisService {
 
   Future<List<Map<String, dynamic>>> getServis({String? acId, String? lokasiId}) async {
     try {
-      print('=== GET SERVIS API CALL ===');
+      print('=== GET SERVIS API CALL CLIENT ===');
 
       // Build query parameters
       final Map<String, dynamic> params = {};
       if (acId != null && acId.isNotEmpty) params['ac_id'] = acId;
       if (lokasiId != null && lokasiId.isNotEmpty) params['lokasi_id'] = lokasiId;
 
-      print('Params: $params');
+      print('Params client: $params');
 
       final json = await api.get(
         ApiConfig.clientServices,
       );
 
-      print('Response type: ${json.runtimeType}');
-      print('Response keys: ${json.keys}');
+      print('Response type client: ${json.runtimeType}');
+      print('Response keys client: ${json.keys}');
 
       return _extractDataFromResponse(json);
 
@@ -45,7 +45,7 @@ class ClientServisService {
   List<Map<String, dynamic>> _extractDataFromResponse(Map<String, dynamic> response) {
     try {
       print('=== EXTRACTING DATA FROM RESPONSE ===');
-      print('Response structure: $response');
+      print('Response structure client: $response');
 
       // Cek jika response memiliki 'data' field
       if (!response.containsKey('data')) {
