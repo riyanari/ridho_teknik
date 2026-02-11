@@ -9,6 +9,7 @@ import 'package:ridho_teknik/theme/theme.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:badges/badges.dart' as badges;
 
+import 'add_location_dialog.dart';
 import 'location_ac_page.dart';
 
 class ClientLocationsPage extends StatefulWidget {
@@ -1037,23 +1038,11 @@ class _ClientLocationsPageState extends State<ClientLocationsPage> {
   void _showAddLocationDialog() {
     showDialog(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          title: const Text('Tambah Lokasi Baru'),
-          content: const Text('Fitur tambah lokasi akan segera tersedia!'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Tutup'),
-            ),
-          ],
-        );
-      },
+      barrierDismissible: false,
+      builder: (context) => AddLocationDialog(clientId: widget.client.id),
     );
   }
+
 
   void _showOptionsMenu() {
     showModalBottomSheet(

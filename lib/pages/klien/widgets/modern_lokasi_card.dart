@@ -76,6 +76,7 @@ class ModernLokasiCard extends StatelessWidget {
               color: days <= 30 ? Colors.white : statusColor,
             ),
             maxLines: 2,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -136,29 +137,31 @@ class ModernLokasiCard extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Column(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        lokasi.nama,
-                        style: primaryTextStyle.copyWith(
-                          fontSize: 14,
-                          fontWeight: bold,
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          lokasi.nama,
+                          style: primaryTextStyle.copyWith(
+                            fontSize: 14,
+                            fontWeight: bold,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      Text(
-                        lokasi.alamat,
-                        style: greyTextStyle.copyWith(
-                          fontSize: 10,
-                          height: 1.4,
+                        Text(
+                          lokasi.alamat,
+                          style: greyTextStyle.copyWith(
+                            fontSize: 10,
+                            height: 1.4,
+                          ),
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                   PopupMenuButton<String>(
                     icon: Icon(

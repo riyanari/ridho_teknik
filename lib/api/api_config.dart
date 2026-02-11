@@ -1,6 +1,7 @@
 class ApiConfig {
+  static const String baseUrl = "https://cvrt.thepride.id/api"; // android emulator
   // static const String baseUrl = "http://10.0.2.2:8000/api"; // android emulator
-  static const String baseUrl = "http://192.168.1.4:8000/api"; // ios simulator
+  // static const String baseUrl = "http://192.168.1.4:8000/api"; // ios simulator
   // static const String baseUrl = "http://localhost:8000/api"; // web/flutter web
 
   // ===== AUTH =====

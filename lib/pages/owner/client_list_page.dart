@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:provider/provider.dart';
+import 'package:ridho_teknik/pages/owner/add_client_sheet.dart';
 import 'package:ridho_teknik/providers/client_provider.dart';
 import 'package:ridho_teknik/theme/theme.dart';
 import 'package:shimmer/shimmer.dart';
@@ -919,24 +920,12 @@ class _ClientListPageState extends State<ClientListPage> {
   }
 
   void _showAddClientDialog() {
-    // TODO: Implement add client dialog
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          title: const Text('Tambah Client Baru'),
-          content: const Text('Fitur tambah client akan segera tersedia!'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Tutup'),
-            ),
-          ],
-        );
-      },
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => const AddClientSheet(),
     );
   }
+
 }

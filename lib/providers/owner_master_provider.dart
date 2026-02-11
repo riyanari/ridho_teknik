@@ -335,6 +335,33 @@ class OwnerMasterProvider with ChangeNotifier {
     }
   }
 
+  Future<LokasiModel?> createLocation(Map<String, dynamic> data) async {
+    _submitting = true;
+    _submitError = null;
+    notifyListeners();
+
+    try {
+      final newLoc = await service.createLocation(data);
+
+      // insert ke list (paling atas)
+      _locations.insert(0, newLoc);
+
+      // optional: set sebagai selected
+      _selectedLocation = newLoc;
+
+      return newLoc;
+    } catch (e) {
+      _submitError = 'Gagal membuat lokasi: ${e.toString()}';
+      if (kDebugMode) {
+        print('Error creating location: $e');
+      }
+      return null;
+    } finally {
+      _submitting = false;
+      notifyListeners();
+    }
+  }
+
   // ===== AC UNIT MANAGEMENT =====
 
   Future<void> fetchAcUnits({
@@ -428,6 +455,33 @@ class OwnerMasterProvider with ChangeNotifier {
     } finally {
       if (token != _servicesFetchToken) return;
       _loading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<AcModel?> createAcUnit(Map<String, dynamic> data) async {
+    _submitting = true;
+    _submitError = null;
+    notifyListeners();
+
+    try {
+      final newAc = await service.createAcUnit(data);
+
+      // Insert ke list lokal (paling atas)
+      _acUnits.insert(0, newAc);
+
+      // Optional: set selected
+      _selectedAcUnit = newAc;
+
+      return newAc;
+    } catch (e) {
+      _submitError = 'Gagal membuat AC unit: ${e.toString()}';
+      if (kDebugMode) {
+        print('Error creating AC unit: $e');
+      }
+      return null;
+    } finally {
+      _submitting = false;
       notifyListeners();
     }
   }

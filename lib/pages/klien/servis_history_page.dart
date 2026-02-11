@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:ridho_teknik/pages/klien/servis_detail_page.dart';
 import 'package:ridho_teknik/pages/klien/widgets/app_card.dart';
 import 'package:ridho_teknik/providers/client_servis_provider.dart';
+
 import '../../models/servis_model.dart';
 import '../../models/lokasi_model.dart';
 import '../../theme/theme.dart';
@@ -17,10 +18,11 @@ class ServisHistoryPage extends StatefulWidget {
 
 class _ServisHistoryPageState extends State<ServisHistoryPage> {
   JenisPenanganan? _selectedJenis;
-  ServisStatus? _selectedTabStatus; // ✅ ini tab status
-// kalau gak dipakai boleh hapus
+  ServisStatus? _selectedTabStatus;
 
-  // ✅ helper: normalisasi id ke int agar perbandingan selalu match
+  // =========================
+  // HELPERS
+  // =========================
   int? _asInt(dynamic v) {
     if (v == null) return null;
     if (v is int) return v;
@@ -29,6 +31,122 @@ class _ServisHistoryPageState extends State<ServisHistoryPage> {
   }
 
   int get _lokasiId => _asInt(widget.lokasi.id) ?? -1;
+
+  /// ✅ STATUS UTAMA BERDASARKAN ITEMS
+  /// statusKeyFromItems (string) -> enum utk tab/filter/UI
+  ServisStatus _statusFromItems(ServisModel s) {
+    final key = s.statusKeyFromItems.toLowerCase().trim();
+
+    // mapping minimal sesuai tab yang kamu pakai
+    switch (key) {
+      case 'dikerjakan':
+        return ServisStatus.dikerjakan;
+      case 'selesai':
+        return ServisStatus.selesai;
+      case 'ditugaskan':
+        return ServisStatus.ditugaskan;
+      case 'menunggu_konfirmasi':
+        return ServisStatus.menunggu_konfirmasi;
+      case 'batal':
+        return ServisStatus.batal;
+      default:
+      // fallback: pakai status global dari servis
+        return s.status;
+    }
+  }
+
+  String _statusDisplayFromItems(ServisModel s) {
+    switch (_statusFromItems(s)) {
+      case ServisStatus.menunggu_konfirmasi:
+        return 'Menunggu Konfirmasi';
+      case ServisStatus.ditugaskan:
+        return 'Ditugaskan';
+      case ServisStatus.dikerjakan:
+        return 'Dikerjakan';
+      case ServisStatus.selesai:
+        return 'Selesai';
+      case ServisStatus.batal:
+        return 'Dibatalkan';
+
+    // legacy fallback
+      case ServisStatus.dalam_perjalanan:
+        return 'Dalam Perjalanan';
+      case ServisStatus.tiba_di_lokasi:
+        return 'Tiba di Lokasi';
+      case ServisStatus.sedang_diperiksa:
+        return 'Sedang Diperiksa';
+      case ServisStatus.dalam_perbaikan:
+        return 'Dalam Perbaikan';
+      case ServisStatus.menunggu_suku_cadang:
+        return 'Menunggu Suku Cadang';
+      case ServisStatus.ditolak:
+        return 'Ditolak';
+      case ServisStatus.menunggu_konfirmasi_owner:
+        return 'Menunggu Konfirmasi Owner';
+    }
+  }
+
+  Color _statusColorFromItems(ServisModel s) {
+    switch (_statusFromItems(s)) {
+      case ServisStatus.menunggu_konfirmasi:
+        return Colors.orange;
+      case ServisStatus.ditugaskan:
+        return Colors.blue;
+      case ServisStatus.dikerjakan:
+        return Colors.purple;
+      case ServisStatus.selesai:
+        return Colors.green;
+      case ServisStatus.batal:
+        return Colors.red;
+
+    // legacy fallback
+      case ServisStatus.dalam_perjalanan:
+        return Colors.cyan;
+      case ServisStatus.tiba_di_lokasi:
+        return Colors.orange;
+      case ServisStatus.sedang_diperiksa:
+        return Colors.purple;
+      case ServisStatus.dalam_perbaikan:
+        return Colors.purple;
+      case ServisStatus.menunggu_suku_cadang:
+        return Colors.yellow.shade700;
+      case ServisStatus.ditolak:
+        return Colors.red;
+      case ServisStatus.menunggu_konfirmasi_owner:
+        return Colors.amber;
+    }
+  }
+
+  IconData _statusIconFromItems(ServisModel s) {
+    switch (_statusFromItems(s)) {
+      case ServisStatus.menunggu_konfirmasi:
+        return Icons.hourglass_empty;
+      case ServisStatus.ditugaskan:
+        return Icons.assignment;
+      case ServisStatus.dikerjakan:
+        return Icons.play_circle_fill;
+      case ServisStatus.selesai:
+        return Icons.check_circle;
+      case ServisStatus.batal:
+        return Icons.cancel;
+
+    // legacy fallback
+      case ServisStatus.dalam_perjalanan:
+        return Icons.directions_car;
+      case ServisStatus.tiba_di_lokasi:
+        return Icons.location_on;
+      case ServisStatus.sedang_diperiksa:
+        return Icons.search;
+      case ServisStatus.dalam_perbaikan:
+        return Icons.build;
+      case ServisStatus.menunggu_suku_cadang:
+        return Icons.inventory;
+      case ServisStatus.ditolak:
+        return Icons.block;
+      case ServisStatus.menunggu_konfirmasi_owner:
+        return Icons.hourglass_bottom;
+    }
+  }
 
   Widget _statusChip({
     required String label,
@@ -72,31 +190,40 @@ class _ServisHistoryPageState extends State<ServisHistoryPage> {
     );
   }
 
-
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // ✅ lebih aman: ambil servis khusus lokasi ini (kalau backend mendukung)
+      // ✅ ambil servis khusus lokasi ini
       context.read<ClientServisProvider>().fetchServis(
-        // lokasiId: widget.lokasi.id.toString(),
+        lokasiId: widget.lokasi.id.toString(),
       );
     });
   }
 
+  /// ✅ FILTER UTAMA SUDAH BERBASIS ITEMS
   List<ServisModel> _getFilteredServis(List<ServisModel> allServis) {
-    var filtered = List<ServisModel>.from(allServis);
-
-    // ✅ filter status (tab)
-    if (_selectedTabStatus != null) {
-      filtered = filtered.where((s) => s.status == _selectedTabStatus).toList();
+    // 1) wajib filter lokasi dulu
+    // var filtered = allServis.where((s) => _asInt(s.lokasiId) == _lokasiId).toList();
+    bool isSameLokasi(ServisModel s) {
+      final id1 = _asInt(s.lokasiId);
+      final id2 = _asInt(s.lokasiData?['id']);
+      return id1 == _lokasiId || id2 == _lokasiId;
     }
 
-    // ✅ filter jenis (dropdown)
+    var filtered = allServis.where(isSameLokasi).toList();
+
+    // 2) filter status (tab) => pakai status hasil items
+    if (_selectedTabStatus != null) {
+      filtered = filtered.where((s) => _statusFromItems(s) == _selectedTabStatus).toList();
+    }
+
+    // 3) filter jenis (dropdown)
     if (_selectedJenis != null) {
       filtered = filtered.where((s) => s.jenis == _selectedJenis).toList();
     }
 
+    // 4) sorting terbaru
     filtered.sort((a, b) {
       final da = a.tanggalDitugaskan;
       final db = b.tanggalDitugaskan;
@@ -106,15 +233,12 @@ class _ServisHistoryPageState extends State<ServisHistoryPage> {
     return filtered;
   }
 
-
   void _resetFilters() {
     setState(() {
       _selectedJenis = null;
       _selectedTabStatus = null;
-// kalau gak kepakai, hapus field ini sekalian
     });
   }
-
 
   int _getActiveFilterCount() {
     int count = 0;
@@ -173,14 +297,23 @@ class _ServisHistoryPageState extends State<ServisHistoryPage> {
           );
         }
 
+        // ✅ Filter final (lokasi + items-status + jenis)
         final filteredServis = _getFilteredServis(prov.servisList);
 
-        // ✅ stats pakai cara yang sama (int compare)
-        final allServisForStats = prov.servisList.where((s) => _asInt(s.lokasiId) == _lokasiId).toList();
+        // ✅ stats (lokasi saja)
+        bool isSameLokasi(ServisModel s) {
+          final id1 = _asInt(s.lokasiId);
+          final id2 = _asInt(s.lokasiData?['id']);
+          return id1 == _lokasiId || id2 == _lokasiId;
+        }
+
+        final allServisForStats = prov.servisList.where(isSameLokasi).toList();
 
         final cuciCount = allServisForStats.where((s) => s.jenis == JenisPenanganan.cuciAc).length;
-        final perbaikanCount = allServisForStats.where((s) => s.jenis == JenisPenanganan.perbaikanAc).length;
-        final instalasiCount = allServisForStats.where((s) => s.jenis == JenisPenanganan.instalasi).length;
+        final perbaikanCount =
+            allServisForStats.where((s) => s.jenis == JenisPenanganan.perbaikanAc).length;
+        final instalasiCount =
+            allServisForStats.where((s) => s.jenis == JenisPenanganan.instalasi).length;
 
         return Scaffold(
           appBar: AppBar(
@@ -208,7 +341,9 @@ class _ServisHistoryPageState extends State<ServisHistoryPage> {
                   color: kBackgroundColor,
                   child: CustomScrollView(
                     slivers: [
+                      // =====================
                       // Stats
+                      // =====================
                       SliverToBoxAdapter(
                         child: Container(
                           margin: const EdgeInsets.all(16),
@@ -255,7 +390,8 @@ class _ServisHistoryPageState extends State<ServisHistoryPage> {
                                                 ),
                                                 child: Row(
                                                   children: [
-                                                    Icon(_getJenisIcon(_selectedJenis!), size: 10, color: Colors.white),
+                                                    Icon(_getJenisIcon(_selectedJenis!),
+                                                        size: 10, color: Colors.white),
                                                     const SizedBox(width: 2),
                                                     Text(
                                                       _getJenisText(_selectedJenis!),
@@ -301,7 +437,9 @@ class _ServisHistoryPageState extends State<ServisHistoryPage> {
                         ),
                       ),
 
+                      // =====================
                       // Filters
+                      // =====================
                       SliverToBoxAdapter(
                         child: Container(
                           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -320,7 +458,8 @@ class _ServisHistoryPageState extends State<ServisHistoryPage> {
                                           style: primaryTextStyle.copyWith(fontSize: 16, fontWeight: bold),
                                         ),
                                         const SizedBox(height: 4),
-                                        Text('Lokasi: ${widget.lokasi.nama}', style: greyTextStyle.copyWith(fontSize: 12)),
+                                        Text('Lokasi: ${widget.lokasi.nama}',
+                                            style: greyTextStyle.copyWith(fontSize: 12)),
                                       ],
                                     ),
                                   ),
@@ -342,7 +481,6 @@ class _ServisHistoryPageState extends State<ServisHistoryPage> {
                                 ],
                               ),
                               const SizedBox(height: 12),
-
                               Container(
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
@@ -359,8 +497,7 @@ class _ServisHistoryPageState extends State<ServisHistoryPage> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    // Tab status
-                                    // ✅ Jenis Servis (Dropdown) - TARUH DI ATAS
+                                    // Jenis dropdown
                                     Row(
                                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
@@ -374,7 +511,7 @@ class _ServisHistoryPageState extends State<ServisHistoryPage> {
                                             ),
                                           ],
                                         ),
-                                        SizedBox(width: 10,),
+                                        const SizedBox(width: 10),
                                         Expanded(
                                           child: Container(
                                             height: 42,
@@ -392,9 +529,12 @@ class _ServisHistoryPageState extends State<ServisHistoryPage> {
                                                 style: primaryTextStyle.copyWith(fontSize: 13),
                                                 items: const [
                                                   DropdownMenuItem(value: null, child: Text('Semua Jenis')),
-                                                  DropdownMenuItem(value: JenisPenanganan.cuciAc, child: Text('Cuci')),
-                                                  DropdownMenuItem(value: JenisPenanganan.perbaikanAc, child: Text('Perbaikan')),
-                                                  DropdownMenuItem(value: JenisPenanganan.instalasi, child: Text('Instalasi')),
+                                                  DropdownMenuItem(
+                                                      value: JenisPenanganan.cuciAc, child: Text('Cuci')),
+                                                  DropdownMenuItem(
+                                                      value: JenisPenanganan.perbaikanAc, child: Text('Perbaikan')),
+                                                  DropdownMenuItem(
+                                                      value: JenisPenanganan.instalasi, child: Text('Instalasi')),
                                                 ],
                                                 onChanged: (v) => setState(() => _selectedJenis = v),
                                               ),
@@ -403,17 +543,15 @@ class _ServisHistoryPageState extends State<ServisHistoryPage> {
                                         ),
                                       ],
                                     ),
-
-
-
                                     const SizedBox(height: 14),
 
+                                    // Status tabs (berdasarkan items)
                                     Row(
                                       children: [
                                         Icon(Icons.filter_list, size: 16, color: kPrimaryColor),
                                         const SizedBox(width: 8),
                                         Text(
-                                          'Status:',
+                                          'Status (Items):',
                                           style: primaryTextStyle.copyWith(fontSize: 13, fontWeight: medium),
                                         ),
                                       ],
@@ -425,55 +563,39 @@ class _ServisHistoryPageState extends State<ServisHistoryPage> {
                                       child: ListView(
                                         scrollDirection: Axis.horizontal,
                                         children: [
-                                          _statusChip(label: 'Semua', value: null, icon: Icons.all_inclusive, color: kPrimaryColor),
-                                          _statusChip(label: 'Menunggu', value: ServisStatus.menunggu_konfirmasi, icon: Icons.hourglass_empty, color: Colors.orange),
-                                          _statusChip(label: 'Ditugaskan', value: ServisStatus.ditugaskan, icon: Icons.assignment, color: Colors.blue),
-                                          _statusChip(label: 'Dikerjakan', value: ServisStatus.dikerjakan, icon: Icons.play_circle_fill, color: Colors.purple),
-                                          _statusChip(label: 'Selesai', value: ServisStatus.selesai, icon: Icons.check_circle, color: kBoxMenuGreenColor),
-                                          _statusChip(label: 'Batal', value: ServisStatus.batal, icon: Icons.cancel, color: Colors.red),
+                                          _statusChip(
+                                              label: 'Semua',
+                                              value: null,
+                                              icon: Icons.all_inclusive,
+                                              color: kPrimaryColor),
+                                          _statusChip(
+                                              label: 'Menunggu',
+                                              value: ServisStatus.menunggu_konfirmasi,
+                                              icon: Icons.hourglass_empty,
+                                              color: Colors.orange),
+                                          _statusChip(
+                                              label: 'Ditugaskan',
+                                              value: ServisStatus.ditugaskan,
+                                              icon: Icons.assignment,
+                                              color: Colors.blue),
+                                          _statusChip(
+                                              label: 'Dikerjakan',
+                                              value: ServisStatus.dikerjakan,
+                                              icon: Icons.play_circle_fill,
+                                              color: Colors.purple),
+                                          _statusChip(
+                                              label: 'Selesai',
+                                              value: ServisStatus.selesai,
+                                              icon: Icons.check_circle,
+                                              color: kBoxMenuGreenColor),
+                                          _statusChip(
+                                              label: 'Batal',
+                                              value: ServisStatus.batal,
+                                              icon: Icons.cancel,
+                                              color: Colors.red),
                                         ],
                                       ),
                                     ),
-
-                                    const SizedBox(height: 12),
-
-
-                                    // SizedBox(
-                                    //   height: 40,
-                                    //   child: ListView(
-                                    //     scrollDirection: Axis.horizontal,
-                                    //     children: [
-                                    //       _jenisChip(
-                                    //         label: 'Semua',
-                                    //         icon: Icons.all_inclusive,
-                                    //         color: kPrimaryColor,
-                                    //         selected: _selectedJenis == null,
-                                    //         onTap: () => setState(() => _selectedJenis = null),
-                                    //       ),
-                                    //       _jenisChip(
-                                    //         label: 'Cuci',
-                                    //         icon: Icons.clean_hands,
-                                    //         color: Colors.blue,
-                                    //         selected: _selectedJenis == JenisPenanganan.cuciAc,
-                                    //         onTap: () => setState(() => _selectedJenis = JenisPenanganan.cuciAc),
-                                    //       ),
-                                    //       _jenisChip(
-                                    //         label: 'Perbaikan',
-                                    //         icon: Icons.build,
-                                    //         color: Colors.orange,
-                                    //         selected: _selectedJenis == JenisPenanganan.perbaikanAc,
-                                    //         onTap: () => setState(() => _selectedJenis = JenisPenanganan.perbaikanAc),
-                                    //       ),
-                                    //       _jenisChip(
-                                    //         label: 'Instalasi',
-                                    //         icon: Icons.install_desktop,
-                                    //         color: Colors.green,
-                                    //         selected: _selectedJenis == JenisPenanganan.instalasi,
-                                    //         onTap: () => setState(() => _selectedJenis = JenisPenanganan.instalasi),
-                                    //       ),
-                                    //     ],
-                                    //   ),
-                                    // ),
                                   ],
                                 ),
                               ),
@@ -482,7 +604,9 @@ class _ServisHistoryPageState extends State<ServisHistoryPage> {
                         ),
                       ),
 
+                      // =====================
                       // List
+                      // =====================
                       if (filteredServis.isEmpty)
                         SliverToBoxAdapter(child: _buildEmptyState())
                       else
@@ -499,7 +623,13 @@ class _ServisHistoryPageState extends State<ServisHistoryPage> {
                                       MaterialPageRoute(builder: (_) => ServisDetailPage(servis: servis)),
                                     );
                                   },
-                                  child: _ServisCard(servis: servis),
+                                  child: _ServisCard(
+                                    servis: servis,
+                                    status: _statusFromItems(servis),
+                                    statusColor: _statusColorFromItems(servis),
+                                    statusDisplay: _statusDisplayFromItems(servis),
+                                    statusIcon: _statusIconFromItems(servis),
+                                  ),
                                 ),
                               );
                             },
@@ -517,7 +647,9 @@ class _ServisHistoryPageState extends State<ServisHistoryPage> {
     );
   }
 
-
+  // =====================
+  // UI HELPERS
+  // =====================
   Widget _buildJenisStatCard({
     required JenisPenanganan jenis,
     required int count,
@@ -635,8 +767,6 @@ class _ServisHistoryPageState extends State<ServisHistoryPage> {
     }
   }
 
-
-
   String _getJenisText(JenisPenanganan jenis) {
     switch (jenis) {
       case JenisPenanganan.cuciAc:
@@ -671,13 +801,31 @@ class _ServisHistoryPageState extends State<ServisHistoryPage> {
   }
 }
 
-// ==================== SERVIS CARD ====================
+// ==================== SERVIS CARD (Status dari ITEMS) ====================
 class _ServisCard extends StatelessWidget {
   final ServisModel servis;
-  const _ServisCard({required this.servis});
+
+  /// ✅ status/warna/icon/label sudah dipassing dari page (hasil items)
+  final ServisStatus status;
+  final Color statusColor;
+  final String statusDisplay;
+  final IconData statusIcon;
+
+  const _ServisCard({
+    required this.servis,
+    required this.status,
+    required this.statusColor,
+    required this.statusDisplay,
+    required this.statusIcon,
+  });
 
   @override
   Widget build(BuildContext context) {
+    // ✅ jumlah AC juga lebih “items-friendly”
+    final jumlahAc = (servis.itemsData.isNotEmpty)
+        ? servis.itemsData.length
+        : (servis.jumlahAc ?? (servis.acUnitsNames.isNotEmpty ? servis.acUnitsNames.length : 0));
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -695,7 +843,7 @@ class _ServisCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header (jenis + status)
+            // Header (jenis + status(items))
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -721,17 +869,17 @@ class _ServisCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: servis.statusColor.withValues(alpha: 0.1),
+                    color: statusColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(15),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(_getStatusIcon(servis.status), size: 11, color: servis.statusColor),
+                      Icon(statusIcon, size: 11, color: statusColor),
                       const SizedBox(width: 3),
                       Text(
-                        servis.statusDisplay,
-                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: servis.statusColor),
+                        statusDisplay,
+                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: statusColor),
                       ),
                     ],
                   ),
@@ -819,7 +967,7 @@ class _ServisCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  // AC
+                  // AC (pakai items-friendly display)
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -839,9 +987,7 @@ class _ServisCard extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                         Text(
-                          (servis.jumlahAc != null && servis.jumlahAc! > 0)
-                              ? '${servis.jumlahAc} unit'
-                              : (servis.acUnitsNames.isNotEmpty ? '${servis.acUnitsNames.length} unit' : '-'),
+                          (jumlahAc > 0) ? '$jumlahAc unit' : '-',
                           style: const TextStyle(fontSize: 10, color: Colors.grey),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -900,37 +1046,6 @@ class _ServisCard extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  IconData _getStatusIcon(ServisStatus status) {
-    switch (status) {
-      case ServisStatus.menunggu_konfirmasi:
-        return Icons.hourglass_empty;
-      case ServisStatus.ditugaskan:
-        return Icons.assignment;
-      case ServisStatus.dikerjakan:
-        return Icons.play_circle_fill;
-      case ServisStatus.selesai:
-        return Icons.check_circle;
-      case ServisStatus.batal:
-        return Icons.cancel;
-
-    // legacy
-      case ServisStatus.dalam_perjalanan:
-        return Icons.directions_car;
-      case ServisStatus.tiba_di_lokasi:
-        return Icons.location_on;
-      case ServisStatus.sedang_diperiksa:
-        return Icons.search;
-      case ServisStatus.dalam_perbaikan:
-        return Icons.build;
-      case ServisStatus.menunggu_suku_cadang:
-        return Icons.inventory;
-      case ServisStatus.ditolak:
-        return Icons.block;
-      case ServisStatus.menunggu_konfirmasi_owner:
-        return Icons.hourglass_bottom;
-    }
   }
 
   String _formatDate(DateTime date) => '${date.day}/${date.month}/${date.year}';

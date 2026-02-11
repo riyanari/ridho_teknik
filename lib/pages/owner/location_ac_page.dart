@@ -9,6 +9,8 @@ import 'package:ridho_teknik/theme/theme.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:badges/badges.dart' as badges;
 
+import 'add_ac_unit_dialog.dart';
+
 class LocationAcPage extends StatefulWidget {
   final LokasiModel location;
 
@@ -220,39 +222,39 @@ class _LocationAcPageState extends State<LocationAcPage> {
                 text: _formatDate(widget.location.lastService),
                 color: Colors.blue,
               ),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      kPrimaryColor.withValues(alpha:0.8),
-                      kPrimaryColor.withValues(alpha:0.6),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Iconsax.building_4,
-                      size: 12,
-                      color: Colors.white,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Lokasi',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              // const Spacer(),
+              // Container(
+              //   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              //   decoration: BoxDecoration(
+              //     gradient: LinearGradient(
+              //       colors: [
+              //         kPrimaryColor.withValues(alpha:0.8),
+              //         kPrimaryColor.withValues(alpha:0.6),
+              //       ],
+              //       begin: Alignment.topLeft,
+              //       end: Alignment.bottomRight,
+              //     ),
+              //     borderRadius: BorderRadius.circular(12),
+              //   ),
+              //   child: Row(
+              //     children: [
+              //       Icon(
+              //         Iconsax.building_4,
+              //         size: 12,
+              //         color: Colors.white,
+              //       ),
+              //       const SizedBox(width: 6),
+              //       Text(
+              //         'Lokasi',
+              //         style: TextStyle(
+              //           fontSize: 12,
+              //           fontWeight: FontWeight.w600,
+              //           color: Colors.white,
+              //         ),
+              //       ),
+              //     ],
+              //   ),
+              // ),
             ],
           ),
         ],
@@ -1015,25 +1017,25 @@ class _LocationAcPageState extends State<LocationAcPage> {
     }
   }
 
-  void _showAddAcDialog() {
-    showDialog(
+  void _showAddAcDialog() async {
+    final locationId = int.tryParse(widget.location.id) ?? 0;
+    if (locationId == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('❌ Location ID tidak valid')),
+      );
+      return;
+    }
+
+    final result = await showDialog<bool>(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          title: const Text('Tambah Unit AC Baru'),
-          content: const Text('Fitur tambah unit AC akan segera tersedia!'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Tutup'),
-            ),
-          ],
-        );
-      },
+      barrierDismissible: false,
+      builder: (_) => AddAcUnitDialog(locationId: locationId),
     );
+
+    // kalau dialog return true -> refresh list AC
+    if (result == true && mounted) {
+      context.read<AcUnitProvider>().fetchAcUnits(locationId: locationId);
+    }
   }
 
   void _showAcDetailDialog(AcModel acUnit) {
