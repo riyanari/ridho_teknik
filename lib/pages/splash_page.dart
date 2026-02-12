@@ -82,7 +82,7 @@ class _SplashPageState extends State<SplashPage> {
               children: [
                 const Spacer(),
                 Image.asset(
-                  'assets/logo_ridho_teknik.png',
+                  'assets/cvrt-lg.png',
                   width: MediaQuery.of(context).size.width * 0.7,
                 ),
                 const Spacer(),

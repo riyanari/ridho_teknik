@@ -113,16 +113,19 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     Widget imageLogin() {
-      return Center(
-        child: Column(
-          children: [
-            SizedBox(height: MediaQuery.of(context).size.height * 0.08),
-            Image.asset(
-              'assets/logo_ridho_teknik.png',
-              height: MediaQuery.of(context).size.height * 0.4,
-            ),
-            // const Text("data"),
-          ],
+      return Padding(
+        padding: const EdgeInsets.all(18.0),
+        child: Center(
+          child: Column(
+            children: [
+              SizedBox(height: MediaQuery.of(context).size.height * 0.10),
+              Image.asset(
+                'assets/cvrt-lg.png',
+                height: MediaQuery.of(context).size.height * 0.5,
+              ),
+              // const Text("data"),
+            ],
+          ),
         ),
       );
     }
