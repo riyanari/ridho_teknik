@@ -10,6 +10,7 @@ import 'package:ridho_teknik/theme/theme.dart';
 import 'package:ridho_teknik/models/servis_model.dart';
 
 import 'owner_service_detail_page.dart';
+import 'owner_service_monitoring_page.dart';
 
 class ServiceListPage extends StatefulWidget {
   const ServiceListPage({super.key});
@@ -787,7 +788,6 @@ class _ServiceListPageState extends State<ServiceListPage> {
   }
 
   Widget _buildModernActionButtons(ServisModel service) {
-
     switch (service.status.name) {
       case 'menunggu_konfirmasi':
         return Row(
@@ -828,7 +828,6 @@ class _ServiceListPageState extends State<ServiceListPage> {
           children: [
             Expanded(
               child: OutlinedButton(
-                // ✅ FIX: ganti teknisi harus isReassign true
                 onPressed: () async {
                   final result = await Navigator.push(
                     context,
@@ -836,14 +835,11 @@ class _ServiceListPageState extends State<ServiceListPage> {
                       builder: (_) => OwnerServiceDetailPage(service: service, isReassign: true),
                     ),
                   );
-
-                  // optional: kalau di detail kamu Navigator.pop(context, true) saat berhasil submit
                   if (!mounted) return;
                   if (result == true) {
                     await _refreshData();
                   }
                 },
-
                 style: OutlinedButton.styleFrom(
                   backgroundColor: Colors.white,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -868,9 +864,9 @@ class _ServiceListPageState extends State<ServiceListPage> {
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
                 decoration: BoxDecoration(
-                  color: Colors.blue.withValues(alpha:0.1),
+                  color: Colors.blue.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.blue.withValues(alpha:0.3)),
+                  border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
                 ),
                 child: const Center(
                   child: Text(
@@ -883,33 +879,82 @@ class _ServiceListPageState extends State<ServiceListPage> {
           ],
         );
 
+    // Di bagian status 'dikerjakan' dan 'selesai'
       case 'dikerjakan':
-        return Container(
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          decoration: BoxDecoration(
-            color: Colors.purple.withValues(alpha:0.1),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.purple.withValues(alpha:0.3)),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: const [
-              Icon(Iconsax.timer_start, size: 18, color: Colors.purple),
-              SizedBox(width: 8),
-              Text(
-                'Sedang Dikerjakan',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.purple),
+        return Row(
+          children: [
+            Expanded(
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => OwnerServiceMonitoringPage(
+                        service: service,  // ← PAKAI HALAMAN BARU
+                      ),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.purple,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    Icon(Iconsax.eye, size: 18, color: Colors.white),
+                    SizedBox(width: 8),
+                    Text(
+                      'Lihat Progress',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white),
+                    ),
+                  ],
+                ),
               ),
-            ],
-          ),
+            ),
+          ],
         );
 
       case 'selesai':
         return Row(
           children: [
             Expanded(
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => OwnerServiceMonitoringPage(
+                        service: service,  // ← PAKAI HALAMAN BARU
+                      ),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    Icon(Iconsax.document_text, size: 18, color: Colors.white),
+                    SizedBox(width: 8),
+                    Text(
+                      'Lihat Detail',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
               child: OutlinedButton(
-                onPressed: () {},
+                onPressed: () {
+                  // TODO: Navigasi ke halaman invoice
+                },
                 style: OutlinedButton.styleFrom(
                   backgroundColor: Colors.white,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -921,26 +966,10 @@ class _ServiceListPageState extends State<ServiceListPage> {
                   children: const [
                     Icon(Iconsax.receipt, size: 18, color: Colors.green),
                     SizedBox(width: 8),
-                    Text('Lihat Invoice', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.green)),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                decoration: BoxDecoration(
-                  color: Colors.green.withValues(alpha:0.1),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.green.withValues(alpha:0.3)),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
-                    Icon(Iconsax.tick_circle, size: 18, color: Colors.green),
-                    SizedBox(width: 8),
-                    Text('Selesai', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.green)),
+                    Text(
+                      'Invoice',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.green),
+                    ),
                   ],
                 ),
               ),
