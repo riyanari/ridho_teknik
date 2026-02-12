@@ -1,7 +1,14 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:ridho_teknik/models/servis_model.dart';
 import 'package:ridho_teknik/pages/klien/servis_item_ac_detail_page.dart';
 import 'package:ridho_teknik/theme/theme.dart';
+
+import 'package:flutter/services.dart' show rootBundle, Uint8List;
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:image_gallery_saver/image_gallery_saver.dart';
 
 class ServisDetailPage extends StatelessWidget {
   final ServisModel servis;
@@ -1344,7 +1351,7 @@ class ServisDetailPage extends StatelessWidget {
                           ClipRRect(
                             borderRadius: BorderRadius.circular(12),
                             child: Image.asset(
-                              'assets/images/qris_cvrt.jpeg', // Sesuaikan dengan path gambar QRIS Anda
+                              'assets/qris_cvrt.jpeg', // Sesuaikan dengan path gambar QRIS Anda
                               height: 200,
                               width: 200,
                               fit: BoxFit.contain,
@@ -1520,88 +1527,67 @@ class ServisDetailPage extends StatelessWidget {
   }
 
 // Method untuk menyimpan QRIS
-  void _saveQrisImage(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.check_circle, color: Colors.white),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text(
-                    'QRIS Disimpan',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    'Gambar QRIS telah disimpan ke galeri',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.white.withValues(alpha: 0.9),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+  Future<void> _saveQrisImage(BuildContext context) async {
+    try {
+      final byteData = await rootBundle.load('assets/qris_cvrt.jpeg');
+      final Uint8List bytes = byteData.buffer.asUint8List();
+
+      final result = await ImageGallerySaver.saveImage(
+        bytes,
+        quality: 100,
+        name: 'qris_ridho_teknik_${DateTime.now().millisecondsSinceEpoch}',
+      );
+
+      final isSuccess = (result['isSuccess'] == true);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(isSuccess ? 'QRIS berhasil disimpan ke galeri' : 'Gagal menyimpan QRIS'),
+          backgroundColor: isSuccess ? Colors.green : Colors.red,
         ),
-        backgroundColor: Colors.green,
-        duration: const Duration(seconds: 3),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error menyimpan QRIS: $e'),
+          backgroundColor: Colors.red,
         ),
-        margin: const EdgeInsets.all(16),
-      ),
-    );
+      );
+    }
   }
 
+
 // Method untuk membagikan informasi pembayaran
-  void _sharePaymentInfo(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.share, color: Colors.white),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text(
-                    'Membagikan...',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    'Informasi pembayaran siap dibagikan',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.white.withValues(alpha: 0.9),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+  Future<void> _sharePaymentInfo(BuildContext context) async {
+    try {
+      // ambil bytes asset
+      final byteData = await rootBundle.load('assets/qris_cvrt.jpeg');
+      final bytes = byteData.buffer.asUint8List();
+
+      // tulis ke file temp supaya bisa dishare
+      final dir = await getTemporaryDirectory();
+      final file = File('${dir.path}/qris_ridho_teknik.jpeg');
+      await file.writeAsBytes(bytes, flush: true);
+
+      final text = (servis.totalBiaya == 0)
+          ? 'QRIS Ridho Teknik (biaya belum diatur). Silakan scan QRIS untuk pembayaran.'
+          : 'Pembayaran Ridho Teknik\nTotal: ${servis.formattedTotalBiaya}\nSilakan scan QRIS.';
+
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        text: text,
+        subject: 'Pembayaran QRIS Ridho Teknik',
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error membagikan QRIS: $e'),
+          backgroundColor: Colors.red,
         ),
-        backgroundColor: const Color(0xFF0066B3),
-        duration: const Duration(seconds: 2),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        margin: const EdgeInsets.all(16),
-      ),
-    );
+      );
+    }
   }
+
 
   Widget _buildModernBiayaRow({
     required IconData icon,
