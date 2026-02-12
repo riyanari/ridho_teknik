@@ -539,7 +539,7 @@ class _HomePageState extends State<HomePage> {
             value: totalServices,
             icon: Iconsax.activity,
             color: kPrimaryColor,
-            subtitle: '$completedServices selesai',
+            subtitle: 'selesai',
           ),
         ],
       ),

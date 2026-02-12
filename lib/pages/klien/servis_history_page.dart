@@ -898,7 +898,7 @@ class _ServisCard extends StatelessWidget {
                       const SizedBox(width: 5),
                       Expanded(
                         child: Text(
-                          'Servis #${servis.id}',
+                          servis.lokasiNama,
                           style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
                           overflow: TextOverflow.ellipsis,
                         ),
