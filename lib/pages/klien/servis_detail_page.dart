@@ -8,7 +8,7 @@ import 'package:ridho_teknik/theme/theme.dart';
 import 'package:flutter/services.dart' show rootBundle, Uint8List;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:image_gallery_saver/image_gallery_saver.dart';
+import 'package:image_gallery_saver_plus/image_gallery_saver_plus.dart';
 
 class ServisDetailPage extends StatelessWidget {
   final ServisModel servis;
@@ -1532,11 +1532,7 @@ class ServisDetailPage extends StatelessWidget {
       final byteData = await rootBundle.load('assets/qris_cvrt.jpeg');
       final Uint8List bytes = byteData.buffer.asUint8List();
 
-      final result = await ImageGallerySaver.saveImage(
-        bytes,
-        quality: 100,
-        name: 'qris_ridho_teknik_${DateTime.now().millisecondsSinceEpoch}',
-      );
+      final result = await ImageGallerySaverPlus.saveImage(bytes, quality: 100, name: "qris_....");
 
       final isSuccess = (result['isSuccess'] == true);
 
