@@ -186,7 +186,7 @@ class _TeknisiAcDetailPageState extends State<TeknisiAcDetailPage>
         await widget.onUpdate();
         if (mounted) {
           _showSnackBar('Item mulai dikerjakan', Colors.green);
-          Navigator.pop(context);
+          // Navigator.pop(context);
         }
       } else {
         _showSnackBar(prov.submitError ?? 'Gagal mulai item', Colors.red);

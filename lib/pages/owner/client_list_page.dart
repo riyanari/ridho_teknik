@@ -430,6 +430,15 @@ class _ClientListPageState extends State<ClientListPage> {
   }
 
   Widget _buildClientCard(Client client) {
+    print('Client Data:');
+    print('id: ${client.id}');
+    print('Name: ${client.name}');
+    print('Phone: ${client.phone}');
+    print('Total Service: ${client.totalService}');
+    print('Rating: ${client.rating}');
+    print('Is Active: ${client.totalService > 0 ? "Yes" : "No"}');
+    print('Is New: ${client.totalService < 3 ? "Yes" : "No"}');
+    print('Is Premium: ${client.rating >= 4.5 ? "Yes" : "No"}');
     final provider = context.read<ClientProvider>();
     // Tentukan status berdasarkan properti yang ada
     final isActive = client.totalService > 0; // Client dengan service dianggap aktif

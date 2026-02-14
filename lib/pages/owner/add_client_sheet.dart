@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../providers/client_provider.dart';
 import '../../providers/owner_master_provider.dart';
 import 'package:provider/provider.dart';
 
@@ -37,8 +38,8 @@ class _AddClientSheetState extends State<AddClientSheet> {
   String? _validateEmail(String? v) {
     final value = (v ?? '').trim();
     if (value.isEmpty) return 'Email wajib diisi';
-    final ok = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(value);
-    if (!ok) return 'Format email tidak valid';
+    // final ok = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(value);
+    // if (!ok) return 'Format email tidak valid';
     return null;
   }
 
@@ -84,6 +85,7 @@ class _AddClientSheetState extends State<AddClientSheet> {
     if (created != null) {
       // opsional: refresh list client (kalau halaman ini pakai ClientProvider)
       // context.read<ClientProvider>().fetchClients();
+      context.read<ClientProvider>().fetchClients();
 
       Navigator.pop(context); // tutup sheet
       ScaffoldMessenger.of(context).showSnackBar(
@@ -184,7 +186,7 @@ class _AddClientSheetState extends State<AddClientSheet> {
 
                     TextFormField(
                       controller: _emailCtrl,
-                      keyboardType: TextInputType.emailAddress,
+                      keyboardType: TextInputType.text,
                       textInputAction: TextInputAction.next,
                       decoration: const InputDecoration(
                         labelText: 'Email',

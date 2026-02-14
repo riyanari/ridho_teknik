@@ -188,7 +188,6 @@ class _LokasiFormDialogState extends State<LokasiFormDialog> {
                               alamat: alamatC.text.trim(),
                               jumlahAC: widget.initial?.jumlahAC ?? 0,
                               lastService: widget.initial?.lastService ?? DateTime.now(),
-                              clientId: '',
                             ),
                           );
                         }

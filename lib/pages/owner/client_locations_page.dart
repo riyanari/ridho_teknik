@@ -28,7 +28,15 @@ class _ClientLocationsPageState extends State<ClientLocationsPage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<LocationProvider>().fetchLocations(clientId: widget.client.id);
+      print('Client Data:');
+      print('id loc: ${widget.client.id}');
+      print('Name: ${widget.client.name}');
+      print('Phone: ${widget.client.phone}');
+      print('Rating: ${widget.client.rating}');
+      print('Total Service: ${widget.client.totalService}');
+      print('Created At: ${widget.client.createdAt}');
+
+      context.read<LocationProvider>().fetchLocations(userId: widget.client.id);
     });
   }
 
@@ -159,8 +167,8 @@ class _ClientLocationsPageState extends State<ClientLocationsPage> {
                 ? const Icon(Iconsax.crown1, size: 10, color: Colors.white)
                 : const Icon(Iconsax.tick_circle, size: 10, color: Colors.white),
             child: Container(
-              width: 60,
-              height: 60,
+              width: 50,
+              height: 50,
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
@@ -197,7 +205,7 @@ class _ClientLocationsPageState extends State<ClientLocationsPage> {
                 Text(
                   widget.client.name,
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: 16,
                     fontWeight: FontWeight.bold,
                     color: Colors.black87,
                   ),
@@ -205,7 +213,7 @@ class _ClientLocationsPageState extends State<ClientLocationsPage> {
                   overflow: TextOverflow.ellipsis,
                 ),
 
-                const SizedBox(height: 6),
+                const SizedBox(height: 4),
 
                 Row(
                   children: [
@@ -215,13 +223,13 @@ class _ClientLocationsPageState extends State<ClientLocationsPage> {
                       widget.client.phone,
                       style: TextStyle(
                         color: Colors.grey[600],
-                        fontSize: 13,
+                        fontSize: 12,
                       ),
                     ),
                   ],
                 ),
 
-                const SizedBox(height: 8),
+                const SizedBox(height: 4),
 
                 Row(
                   children: [
@@ -524,8 +532,11 @@ class _ClientLocationsPageState extends State<ClientLocationsPage> {
   }
 
   Widget _buildLocationsList(LocationProvider provider, List<LokasiModel> locations) {
-    return RefreshIndicator.adaptive(
-      onRefresh: () => provider.fetchLocations(clientId: widget.client.id),
+    print("Client ID: ${widget.client.id}");
+
+    // Print the size of the locations list to ensure it's populated
+    print("Locations list size: ${locations.length}");    return RefreshIndicator.adaptive(
+      onRefresh: () => provider.fetchLocations(userId: widget.client.id),
       backgroundColor: Colors.white,
       color: kPrimaryColor,
       child: locations.isEmpty
@@ -562,6 +573,10 @@ class _ClientLocationsPageState extends State<ClientLocationsPage> {
           }
 
           final location = locations[index - 1];
+          // final location = locations[index - 1];
+
+          // Print the location data here to debug
+          print("Location Data: ${location.toJson()}");
           return _buildLocationCard(location);
         },
       ),
@@ -569,6 +584,7 @@ class _ClientLocationsPageState extends State<ClientLocationsPage> {
   }
 
   Widget _buildLocationCard(LokasiModel location) {
+    print("Lokasi: ${location.nama}, ${location.alamat}, AC Count: ${location.jumlahAC}");
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       child: Material(
@@ -921,7 +937,7 @@ class _ClientLocationsPageState extends State<ClientLocationsPage> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 ElevatedButton(
-                  onPressed: () => provider.fetchLocations(clientId: widget.client.id),
+                  onPressed: () => provider.fetchLocations(userId: widget.client.id),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: kPrimaryColor,
                     foregroundColor: Colors.white,

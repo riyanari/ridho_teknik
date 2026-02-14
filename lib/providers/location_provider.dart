@@ -20,27 +20,39 @@ class LocationProvider with ChangeNotifier {
   LokasiModel? get selectedLocation => _selectedLocation;
   int? get filterClientId => _filterClientId;
 
+  // Di LocationProvider class
+  // Di LocationProvider class
   List<LokasiModel> getLocationsByClient(int clientId) {
-    return _locations.where((loc) => loc.clientId == clientId.toString()).toList();
+    if (_locations.isEmpty) return [];
+
+    return _locations.where((location) {
+      // Cek apakah location.users tidak null dan berisi client dengan id yang sesuai
+      if (location.users != null && location.users!.isNotEmpty) {
+        return location.users!.any((user) => user.id == clientId);
+      }
+      return false;
+    }).toList();
   }
 
-  int getClientTotalAc(int clientId) {
-    return getLocationsByClient(clientId)
+  int getClientTotalAc(int userId) {
+    return getLocationsByClient(userId)
         .fold(0, (sum, loc) => sum + loc.jumlahAC);
   }
 
-  Future<void> fetchLocations({int? clientId}) async {
+  Future<void> fetchLocations({int? userId}) async {
     try {
       _isLoading = true;
       _error = '';
-      _filterClientId = clientId;
+      _filterClientId = userId;
       notifyListeners();
 
-      _locations = await service.getLocations(clientId: clientId);
+      // Panggil service untuk mengambil lokasi berdasarkan clientId
+      _locations = await service.getLocations(userId: userId); // Memanggil API dengan query yang sesuai
 
       if (_locations.isEmpty) {
         _error = 'Belum ada data lokasi';
       }
+      print("Fetched locations: $_locations");
     } catch (e) {
       _error = 'Gagal mengambil data lokasi: ${e.toString()}';
       if (kDebugMode) {

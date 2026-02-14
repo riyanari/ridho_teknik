@@ -67,19 +67,31 @@ class OwnerMasterProvider with ChangeNotifier {
 
   // ===== HELPER METHODS =====
 
-  List<LokasiModel> getLocationsByClient(int clientId) {
-    return _locations.where((loc) => loc.clientId == clientId).toList();
+  List<LokasiModel> getLocationsByClient(String clientId) {
+    return _locations.where((loc) {
+      if (loc.users != null && loc.users!.isNotEmpty) {
+        return loc.users!.any((user) => user.id == clientId);
+      }
+      return false;
+    }).toList();
+  }
+
+// Perbaiki method getAcUnitsByClient
+  List<AcModel> getAcUnitsByClient(String clientId) {
+    final clientLocations = getLocationsByClient(clientId);
+    final locationIds = clientLocations.map((loc) => loc.id).toSet();
+    return _acUnits.where((ac) => locationIds.contains(ac.lokasiId)).toList();
   }
 
   List<AcModel> getAcUnitsByLocation(int locationId) {
     return _acUnits.where((ac) => ac.lokasiId == locationId.toString()).toList();
   }
 
-  List<AcModel> getAcUnitsByClient(int clientId) {
-    final clientLocations = getLocationsByClient(clientId);
-    final locationIds = clientLocations.map((loc) => loc.id).toList();
-    return _acUnits.where((ac) => locationIds.contains(ac.lokasiId)).toList();
-  }
+  // List<AcModel> getAcUnitsByClient(int clientId) {
+  //   final clientLocations = getLocationsByClient(clientId);
+  //   final locationIds = clientLocations.map((loc) => loc.id).toList();
+  //   return _acUnits.where((ac) => locationIds.contains(ac.lokasiId)).toList();
+  // }
 
   List<ServisModel> getServicesByStatus(String status) {
     return _services.where((s) => s.status.name.toLowerCase() == status.toLowerCase()).toList();

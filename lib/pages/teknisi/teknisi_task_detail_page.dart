@@ -254,10 +254,10 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
                     child: _buildStatsCard(context),
                   ),
                   const SizedBox(height: 20),
-                  SlideTransition(
-                    position: _slideAnimation,
-                    child: _buildTimelineCard(status),
-                  ),
+                  // SlideTransition(
+                  //   position: _slideAnimation,
+                  //   child: _buildTimelineCard(status),
+                  // ),
                   const SizedBox(height: 20),
                   SlideTransition(
                     position: _slideAnimation,
@@ -529,7 +529,7 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
         icon: Iconsax.play_circle,
         title: 'Dikerjakan',
         time: _servis.tanggalMulai,
-        isActive: status == 'dikerjakan' || status == 'selesai',
+        isActive: status == 'dikerjakan' ,
         isCompleted: _servis.tanggalMulai != null,
       ),
       _TimelineStep(
