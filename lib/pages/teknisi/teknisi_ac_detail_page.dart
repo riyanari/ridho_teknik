@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:image_picker/image_picker.dart';
@@ -174,28 +175,173 @@ class _TeknisiAcDetailPageState extends State<TeknisiAcDetailPage>
   // ===== ACTIONS =====
   Future<void> _startItem() async {
     if (_isUploading()) return;
-    setState(() => _uploadingItems.add(_itemId));
 
-    try {
-      final prov = context.read<TeknisiProvider>();
-      final ok = await prov.startItem(_itemId);
+    // Tampilkan Awesome Dialog konfirmasi dengan desain kustom
+    AwesomeDialog(
+      context: context,
+      dialogType: DialogType.noHeader,
+      animType: AnimType.bottomSlide,
+      body: Container(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.blue.withValues(alpha:0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Iconsax.play_circle,
+                size: 60,
+                color: Colors.blue,
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Mulai Pengerjaan',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey[50],
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.blue.withValues(alpha:0.2)),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.withValues(alpha:0.1),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Iconsax.info_circle,
+                            color: Colors.blue, size: 16),
+                      ),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Text(
+                          'Setelah mulai, Anda dapat:',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  _buildBulletPoint('Mengisi diagnosa kondisi AC'),
+                  const SizedBox(height: 8),
+                  _buildBulletPoint('Mencatat tindakan yang dilakukan'),
+                  const SizedBox(height: 8),
+                  _buildBulletPoint('Mengupload foto dokumentasi'),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Apakah Anda yakin ingin memulai?',
+              style: TextStyle(fontSize: 15),
+            ),
+          ],
+        ),
+      ),
+      btnCancelText: 'BATAL',
+      btnOkText: 'YA, MULAI',
+      btnCancelOnPress: () {},
+      btnOkOnPress: () async {
+        setState(() => _uploadingItems.add(_itemId));
 
-      if (!mounted) return;
+        try {
+          final prov = context.read<TeknisiProvider>();
+          final ok = await prov.startItem(_itemId);
 
-      if (ok) {
-        await widget.onUpdate();
-        if (mounted) {
-          _showSnackBar('Item mulai dikerjakan', Colors.green);
-          // Navigator.pop(context);
+          if (!mounted) return;
+
+          if (ok) {
+            // Update local state IMMEDIATELY
+            setState(() {
+              _item['status'] = 'dikerjakan';
+            });
+
+            // Then sync with server
+            await widget.onUpdate();
+
+            if (mounted) {
+              // HAPUS baris ini karena menyebabkan dialog tertutup:
+              // Navigator.of(context, rootNavigator: true).pop();
+
+              // Show success dialog - pastikan context masih valid
+              AwesomeDialog(
+                context: context,
+                dialogType: DialogType.success,
+                animType: AnimType.scale,
+                title: 'Berhasil Dimulai!',
+                desc: 'Silakan lakukan pengerjaan dan lengkapi data yang diperlukan',
+                btnOkText: 'OK',
+                btnOkOnPress: () {
+                  // Dialog akan otomatis tertutup setelah OK ditekan
+                  // Tidak perlu navigasi kembali
+                },
+              ).show();
+            }
+          } else {
+            if (mounted) {
+              AwesomeDialog(
+                context: context,
+                dialogType: DialogType.error,
+                animType: AnimType.scale,
+                title: 'Gagal',
+                desc: prov.submitError ?? 'Gagal mulai item',
+                btnOkText: 'MENGERTI',
+              ).show();
+            }
+          }
+        } catch (e) {
+          if (mounted) {
+            AwesomeDialog(
+              context: context,
+              dialogType: DialogType.error,
+              animType: AnimType.scale,
+              title: 'Error',
+              desc: 'Terjadi kesalahan: $e',
+              btnOkText: 'MENGERTI',
+            ).show();
+          }
+        } finally {
+          if (mounted) setState(() => _uploadingItems.remove(_itemId));
         }
-      } else {
-        _showSnackBar(prov.submitError ?? 'Gagal mulai item', Colors.red);
-      }
-    } catch (e) {
-      _showSnackBar('Gagal: $e', Colors.red);
-    } finally {
-      if (mounted) setState(() => _uploadingItems.remove(_itemId));
-    }
+      },
+      btnCancelColor: Colors.grey,
+      btnOkColor: Colors.blue,
+    ).show();
+  }
+
+// Helper widget untuk bullet points
+  Widget _buildBulletPoint(String text) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('• ', style: TextStyle(fontSize: 14, color: Colors.blue)),
+        const SizedBox(width: 4),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(fontSize: 13, color: Colors.black87),
+          ),
+        ),
+      ],
+    );
   }
 
   Future<void> _uploadProgress({
@@ -1404,6 +1550,10 @@ class _TeknisiAcDetailPageState extends State<TeknisiAcDetailPage>
     final serverSebelum = _serverSebelum;
     final serverPengerjaan = _serverPengerjaan;
     final serverSesudah = _serverSesudah;
+
+    if (_isDitugaskan) {
+      return SizedBox.shrink();  // This will hide the photo documentation section
+    }
 
     return Container(
       padding: const EdgeInsets.all(20),

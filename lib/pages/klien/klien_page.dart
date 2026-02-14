@@ -1,5 +1,6 @@
 // lib/pages/klien/klien_page.dart
 import 'package:flutter/material.dart';
+import 'package:iconsax/iconsax.dart';
 import 'package:ridho_teknik/pages/klien/widgets/empty_state.dart';
 import 'package:ridho_teknik/pages/klien/widgets/modern_lokasi_card.dart';
 import '../../models/lokasi_model.dart';
@@ -173,8 +174,8 @@ class _KlienPageState extends State<KlienPage> {
                       color: Colors.white.withValues(alpha: 0.2),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
-                      Icons.logout_rounded,
+                    child: Icon(
+                      Iconsax.logout_1,
                       color: Colors.white,
                       size: 24,
                     ),
