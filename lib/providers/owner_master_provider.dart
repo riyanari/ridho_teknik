@@ -317,6 +317,103 @@ class OwnerMasterProvider with ChangeNotifier {
     }
   }
 
+  Future<UserModel?> createTechnician(Map<String, dynamic> data) async {
+    _submitting = true;
+    _submitError = null;
+    notifyListeners();
+
+    try {
+      print('➕ OwnerMasterProvider.createTechnician() - Memanggil service');
+      final newTechnician = await service.createTechnician(data);
+
+      // Insert ke list (paling atas)
+      _technicians.insert(0, newTechnician);
+
+      // Optional: set sebagai selected
+      _selectedTechnician = newTechnician;
+
+      print('   ✅ Technician created: ${newTechnician.name}');
+      return newTechnician;
+    } catch (e) {
+      _submitError = 'Gagal membuat teknisi: ${e.toString()}';
+      if (kDebugMode) {
+        print('❌ Error creating technician: $e');
+      }
+      return null;
+    } finally {
+      _submitting = false;
+      notifyListeners();
+    }
+  }
+
+  Future<UserModel?> updateTechnician(int id, Map<String, dynamic> data) async {
+    _submitting = true;
+    _submitError = null;
+    notifyListeners();
+
+    try {
+      print('✏️ OwnerMasterProvider.updateTechnician($id) - Memanggil service');
+      final updatedTechnician = await service.updateTechnician(id, data);
+
+      // Update di list
+      final index = _technicians.indexWhere((t) => t.id == id);
+      if (index != -1) {
+        _technicians[index] = updatedTechnician;
+      }
+
+      // Update selected jika sedang dilihat
+      if (_selectedTechnician?.id == id) {
+        _selectedTechnician = updatedTechnician;
+      }
+
+      print('   ✅ Technician updated: ${updatedTechnician.name}');
+      return updatedTechnician;
+    } catch (e) {
+      _submitError = 'Gagal mengupdate teknisi: ${e.toString()}';
+      if (kDebugMode) {
+        print('❌ Error updating technician: $e');
+      }
+      return null;
+    } finally {
+      _submitting = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> deleteTechnician(int id) async {
+    _submitting = true;
+    _submitError = null;
+    notifyListeners();
+
+    try {
+      print('🗑️ OwnerMasterProvider.deleteTechnician($id) - Memanggil service');
+      final success = await service.deleteTechnician(id);
+
+      if (success) {
+        // Hapus dari list
+        _technicians.removeWhere((t) => t.id == id);
+
+        // Clear selected jika sedang dilihat
+        if (_selectedTechnician?.id == id) {
+          _selectedTechnician = null;
+        }
+
+        print('   ✅ Technician deleted successfully');
+      }
+
+      return success;
+    } catch (e) {
+      _submitError = 'Gagal menghapus teknisi: ${e.toString()}';
+      if (kDebugMode) {
+        print('❌ Error deleting technician: $e');
+      }
+      return false;
+    } finally {
+      _submitting = false;
+      notifyListeners();
+    }
+  }
+
   // ===== LOCATION MANAGEMENT =====
 
   Future<void> fetchLocations({

@@ -8,6 +8,7 @@ import 'package:shimmer/shimmer.dart';
 import 'package:badges/badges.dart' as badges;
 
 import '../../models/technician_model.dart';
+import 'add_technician_sheet.dart';
 
 class TechnicianListPage extends StatefulWidget {
   const TechnicianListPage({super.key});
@@ -829,22 +830,17 @@ class _TechnicianListPageState extends State<TechnicianListPage> {
   }
 
   void _showAddTechnicianDialog() {
-    showDialog(
+    showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(24),
+        ),
+      ),
+      backgroundColor: Colors.transparent,
       builder: (context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          title: const Text('Tambah Teknisi Baru'),
-          content: const Text('Fitur tambah teknisi akan segera tersedia!'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Tutup'),
-            ),
-          ],
-        );
+        return const AddTechnicianSheet();
       },
     );
   }
