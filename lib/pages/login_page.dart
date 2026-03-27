@@ -138,7 +138,9 @@ class _LoginPageState extends State<LoginPage>
           Navigator.pushReplacementNamed(context, '/klien');
         }
       } else {
-        _showErrorSnackBar('Email atau password salah');
+        _showErrorSnackBar(
+          authProvider.errorMessage ?? 'Email atau password salah',
+        );
       }
     } catch (e) {
       if (!mounted) return;

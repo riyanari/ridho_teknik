@@ -1,134 +1,349 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../services/token_store.dart';
+import 'api_exception.dart';
 
 class ApiClient {
   ApiClient({required this.store});
+
   final TokenStore store;
 
-  Future<Map<String, String>> _headers({bool auth = true, bool json = true}) async {
-    final h = <String, String>{
+  Future<Map<String, String>> _headers({
+    bool auth = true,
+    bool json = true,
+  }) async {
+    final headers = <String, String>{
       'Accept': 'application/json',
     };
 
-    // jangan set Content-Type kalau multipart, biar http yang set boundary
     if (json) {
-      h['Content-Type'] = 'application/json';
+      headers['Content-Type'] = 'application/json';
     }
 
     if (auth) {
       final token = await store.getToken();
       if (token != null && token.isNotEmpty) {
-        h['Authorization'] = token; // "Bearer xxx"
+        headers['Authorization'] =
+        token.startsWith('Bearer ') ? token : 'Bearer $token';
       }
     }
-    return h;
+
+    return headers;
   }
 
   Uri _uri(String url, [Map<String, dynamic>? query]) {
-    final u = Uri.parse(url);
-    if (query == null || query.isEmpty) return u;
+    final uri = Uri.parse(url);
 
-    final qp = <String, String>{};
-    query.forEach((k, v) {
-      if (v == null) return;
-      qp[k] = v.toString();
+    if (query == null || query.isEmpty) {
+      return uri;
+    }
+
+    final queryParams = <String, String>{};
+    query.forEach((key, value) {
+      if (value == null) return;
+      queryParams[key] = value.toString();
     });
 
-    return u.replace(queryParameters: {...u.queryParameters, ...qp});
+    return uri.replace(
+      queryParameters: {
+        ...uri.queryParameters,
+        ...queryParams,
+      },
+    );
   }
 
-  Map<String, dynamic> _safeJson(String s) {
+  Map<String, dynamic> _safeJson(String body) {
     try {
-      final j = jsonDecode(s);
-      if (j is Map<String, dynamic>) return j;
-      return {'data': j};
+      final decoded = jsonDecode(body);
+      if (decoded is Map<String, dynamic>) return decoded;
+      return {'data': decoded};
     } catch (_) {
-      return {'message': s};
+      return {'message': body};
     }
   }
 
-  Map<String, dynamic> _handle(http.Response res) {
-    final json = _safeJson(res.body);
-    if (res.statusCode >= 200 && res.statusCode < 300) return json;
-
-    final msg = (json['message'] ?? json['error'] ?? 'Request gagal').toString();
-    throw Exception('$msg (${res.statusCode})');
+  void _log(String message) {
+    if (kDebugMode) {
+      debugPrint(message);
+    }
   }
 
-  Future<Map<String, dynamic>> postMultipart(
-      String url, {
-        Map<String, String>? fields,
-        required List<http.MultipartFile> files,
-      }) async {
-    final uri = Uri.parse(url);
-    final req = http.MultipartRequest('POST', uri);
+  Never _throwApiError(Map<String, dynamic> json, int statusCode) {
+    final message =
+    (json['message'] ?? json['error'] ?? 'Request gagal').toString();
 
-    // auth header (tanpa content-type json)
-    req.headers.addAll(await _headers(json: false));
+    final rawErrors = json['errors'];
+    Map<String, dynamic>? parsedErrors;
 
-    if (fields != null) req.fields.addAll(fields);
-    req.files.addAll(files);
-
-    // ===== DEBUG PRINT =====
-    print('📤 [MULTIPART] POST $url');
-    print('   headers: ${req.headers}');
-    if (fields != null && fields.isNotEmpty) print('   fields: $fields');
-    print('   files count: ${files.length}');
-    for (final f in files) {
-      print('   - file field="${f.field}" filename="${f.filename}" length=${f.length}');
+    if (rawErrors is Map<String, dynamic>) {
+      parsedErrors = rawErrors;
     }
 
-    final streamed = await req.send();
-    final res = await http.Response.fromStream(streamed);
+    if (parsedErrors != null && parsedErrors.isNotEmpty) {
+      final details = parsedErrors.entries.map((entry) {
+        final value = entry.value;
+        if (value is List) {
+          return '${entry.key}: ${value.join(", ")}';
+        }
+        return '${entry.key}: $value';
+      }).join(' | ');
 
-    print('📥 [MULTIPART] status=${res.statusCode}');
-    print('📥 body=${res.body}');
+      throw ApiException(
+        '$message - $details',
+        statusCode: statusCode,
+        errors: parsedErrors,
+      );
+    }
 
-    return _handle(res);
+    throw ApiException(
+      message,
+      statusCode: statusCode,
+    );
+  }
+
+  Map<String, dynamic> _handle(http.Response response) {
+    final json = _safeJson(response.body);
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return json;
+    }
+
+    _throwApiError(json, response.statusCode);
   }
 
   Future<Map<String, dynamic>> get(
       String url, {
         Map<String, dynamic>? query,
+        bool auth = true,
       }) async {
-    final res = await http.get(_uri(url, query), headers: await _headers());
-    return _handle(res);
+    final uri = _uri(url, query);
+    _log('📤 [GET] $uri');
+
+    final response = await http.get(
+      uri,
+      headers: await _headers(auth: auth),
+    );
+
+    _log('📥 [GET] status=${response.statusCode}');
+    _log('📥 [GET] body=${response.body}');
+    return _handle(response);
   }
 
   Future<Map<String, dynamic>> post(
       String url, {
         Map<String, dynamic>? query,
         Map<String, dynamic>? body,
+        bool auth = true,
       }) async {
-    final res = await http.post(
-      _uri(url, query),
-      headers: await _headers(),
-      body: jsonEncode(body ?? {}),
+    final uri = _uri(url, query);
+    final requestBody = jsonEncode(body ?? {});
+
+    _log('📤 [POST] $uri');
+    _log('📤 [POST] body=$requestBody');
+
+    final response = await http.post(
+      uri,
+      headers: await _headers(auth: auth),
+      body: requestBody,
     );
-    return _handle(res);
+
+    _log('📥 [POST] status=${response.statusCode}');
+    _log('📥 [POST] body=${response.body}');
+    return _handle(response);
   }
 
   Future<Map<String, dynamic>> put(
       String url, {
         Map<String, dynamic>? query,
         Map<String, dynamic>? body,
+        bool auth = true,
       }) async {
-    final res = await http.put(
-      _uri(url, query),
-      headers: await _headers(),
-      body: jsonEncode(body ?? {}),
+    final uri = _uri(url, query);
+    final requestBody = jsonEncode(body ?? {});
+
+    _log('📤 [PUT] $uri');
+    _log('📤 [PUT] body=$requestBody');
+
+    final response = await http.put(
+      uri,
+      headers: await _headers(auth: auth),
+      body: requestBody,
     );
-    return _handle(res);
+
+    _log('📥 [PUT] status=${response.statusCode}');
+    _log('📥 [PUT] body=${response.body}');
+    return _handle(response);
   }
 
+  Future<Map<String, dynamic>> patch(
+      String url, {
+        Map<String, dynamic>? query,
+        Map<String, dynamic>? body,
+        bool auth = true,
+      }) async {
+    final uri = _uri(url, query);
+    final requestBody = jsonEncode(body ?? {});
 
+    _log('📤 [PATCH] $uri');
+    _log('📤 [PATCH] body=$requestBody');
+
+    final response = await http.patch(
+      uri,
+      headers: await _headers(auth: auth),
+      body: requestBody,
+    );
+
+    _log('📥 [PATCH] status=${response.statusCode}');
+    _log('📥 [PATCH] body=${response.body}');
+    return _handle(response);
+  }
 
   Future<Map<String, dynamic>> delete(
       String url, {
         Map<String, dynamic>? query,
+        Map<String, dynamic>? body,
+        bool auth = true,
       }) async {
-    final res = await http.delete(_uri(url, query), headers: await _headers());
-    return _handle(res);
+    final uri = _uri(url, query);
+    _log('📤 [DELETE] $uri');
+
+    if (body == null) {
+      final response = await http.delete(
+        uri,
+        headers: await _headers(auth: auth),
+      );
+
+      _log('📥 [DELETE] status=${response.statusCode}');
+      _log('📥 [DELETE] body=${response.body}');
+      return _handle(response);
+    }
+
+    final request = http.Request('DELETE', uri);
+    request.headers.addAll(await _headers(auth: auth));
+    request.body = jsonEncode(body);
+
+    final streamed = await request.send();
+    final response = await http.Response.fromStream(streamed);
+
+    _log('📥 [DELETE] status=${response.statusCode}');
+    _log('📥 [DELETE] body=${response.body}');
+    return _handle(response);
+  }
+
+  Future<Map<String, dynamic>> postMultipart(
+      String url, {
+        Map<String, String>? fields,
+        required List<http.MultipartFile> files,
+        bool auth = true,
+      }) async {
+    final uri = Uri.parse(url);
+    final request = http.MultipartRequest('POST', uri);
+
+    request.headers.addAll(await _headers(auth: auth, json: false));
+
+    if (fields != null && fields.isNotEmpty) {
+      request.fields.addAll(fields);
+    }
+
+    request.files.addAll(files);
+
+    _log('📤 [MULTIPART POST] $url');
+    _log('   fields: $fields');
+    _log('   files count: ${files.length}');
+
+    final streamed = await request.send();
+    final response = await http.Response.fromStream(streamed);
+
+    _log('📥 [MULTIPART POST] status=${response.statusCode}');
+    _log('📥 [MULTIPART POST] body=${response.body}');
+    return _handle(response);
+  }
+
+  Future<Map<String, dynamic>> putMultipart(
+      String url, {
+        Map<String, String>? fields,
+        required List<http.MultipartFile> files,
+        bool auth = true,
+      }) async {
+    final uri = Uri.parse(url);
+    final request = http.MultipartRequest('PUT', uri);
+
+    request.headers.addAll(await _headers(auth: auth, json: false));
+
+    if (fields != null && fields.isNotEmpty) {
+      request.fields.addAll(fields);
+    }
+
+    request.files.addAll(files);
+
+    _log('📤 [MULTIPART PUT] $url');
+    _log('   fields: $fields');
+    _log('   files count: ${files.length}');
+
+    final streamed = await request.send();
+    final response = await http.Response.fromStream(streamed);
+
+    _log('📥 [MULTIPART PUT] status=${response.statusCode}');
+    _log('📥 [MULTIPART PUT] body=${response.body}');
+    return _handle(response);
+  }
+}
+
+class ApiResponse<T> {
+  final String message;
+  final List<T> data;
+  final int? total;
+  final int? currentPage;
+  final int? lastPage;
+
+  ApiResponse({
+    required this.message,
+    required this.data,
+    this.total,
+    this.currentPage,
+    this.lastPage,
+  });
+
+  factory ApiResponse.fromJson(
+      Map<String, dynamic> json,
+      T Function(Map<String, dynamic>) fromJson,
+      ) {
+    final rawData = json['data'];
+
+    if (rawData is List) {
+      return ApiResponse<T>(
+        message: (json['message'] ?? 'OK').toString(),
+        data: rawData
+            .whereType<Map<String, dynamic>>()
+            .map(fromJson)
+            .toList(),
+        total: json['total'] as int?,
+        currentPage: json['current_page'] as int?,
+        lastPage: json['last_page'] as int?,
+      );
+    }
+
+    if (rawData is Map<String, dynamic>) {
+      final nestedList = rawData['data'];
+
+      return ApiResponse<T>(
+        message: (json['message'] ?? 'OK').toString(),
+        data: (nestedList is List)
+            ? nestedList
+            .whereType<Map<String, dynamic>>()
+            .map(fromJson)
+            .toList()
+            : <T>[],
+        total: rawData['total'] as int?,
+        currentPage: rawData['current_page'] as int?,
+        lastPage: rawData['last_page'] as int?,
+      );
+    }
+
+    return ApiResponse<T>(
+      message: (json['message'] ?? 'OK').toString(),
+      data: <T>[],
+    );
   }
 }

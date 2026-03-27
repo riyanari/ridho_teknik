@@ -17,37 +17,40 @@ class _SplashPageState extends State<SplashPage> {
   void initState() {
     super.initState();
 
-    // lebih aman: jalankan setelah widget ter-render
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _go();
+      _bootstrap();
     });
   }
 
-  Future<void> _go() async {
+  Future<void> _bootstrap() async {
     final auth = context.read<AuthProvider>();
 
-    bool ok = false;
+    bool isLoggedIn = false;
+
     try {
-      ok = await auth.tryAutoLogin();
+      isLoggedIn = await auth.tryAutoLogin();
     } catch (_) {
-      ok = false;
+      isLoggedIn = false;
     }
 
     if (!mounted) return;
 
-    if (ok) {
+    if (isLoggedIn) {
       final role = auth.user?.role ?? 'klien';
-      if (role == 'owner') {
-        Navigator.pushReplacementNamed(context, '/home');
-      } else if (role == 'teknisi') {
-        Navigator.pushReplacementNamed(context, '/teknisi');
-      } else {
-        Navigator.pushReplacementNamed(context, '/klien');
+
+      switch (role) {
+        case 'owner':
+          Navigator.pushReplacementNamed(context, '/home');
+          break;
+        case 'teknisi':
+          Navigator.pushReplacementNamed(context, '/teknisi');
+          break;
+        default:
+          Navigator.pushReplacementNamed(context, '/klien');
       }
     } else {
       Navigator.pushReplacementNamed(context, '/login');
     }
-
   }
 
   @override
@@ -62,7 +65,7 @@ class _SplashPageState extends State<SplashPage> {
             child: CustomPaint(
               size: const Size(100, 100),
               painter: HalfCirclePainter(
-                color: kGreyColor.withValues(alpha:0.1),
+                color: kGreyColor.withValues(alpha: 0.1),
               ),
             ),
           ),
@@ -72,7 +75,7 @@ class _SplashPageState extends State<SplashPage> {
             child: CustomPaint(
               size: const Size(100, 100),
               painter: HalfCirclePainter(
-                color: kGreyColor.withValues(alpha:0.15),
+                color: kGreyColor.withValues(alpha: 0.15),
               ),
             ),
           ),
@@ -90,7 +93,6 @@ class _SplashPageState extends State<SplashPage> {
                   strokeWidth: 5,
                   valueColor: AlwaysStoppedAnimation<Color>(kGreyColor),
                   backgroundColor: kSecondaryColor,
-                  semanticsLabel: 'Loading...',
                 ),
                 const SizedBox(height: 80),
               ],

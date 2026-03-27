@@ -1,38 +1,29 @@
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class TokenStore {
   static const _tokenKey = 'auth_token';
   static const _emailKey = 'auth_email';
-  static const _passKey = 'auth_password';
+
+  final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
   Future<void> saveToken(String token) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_tokenKey, token);
+    await _storage.write(key: _tokenKey, value: token);
   }
 
   Future<String?> getToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_tokenKey);
+    return await _storage.read(key: _tokenKey);
   }
 
-  Future<void> saveCredential(String email, String password) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_emailKey, email);
-    await prefs.setString(_passKey, password);
+  Future<void> saveEmail(String email) async {
+    await _storage.write(key: _emailKey, value: email);
   }
 
-  Future<Map<String, String>?> getCredential() async {
-    final prefs = await SharedPreferences.getInstance();
-    final email = prefs.getString(_emailKey);
-    final pass = prefs.getString(_passKey);
-    if (email == null || pass == null) return null;
-    return {'email': email, 'password': pass};
+  Future<String?> getEmail() async {
+    return await _storage.read(key: _emailKey);
   }
 
   Future<void> clear() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_tokenKey);
-    await prefs.remove(_emailKey);
-    await prefs.remove(_passKey);
+    await _storage.delete(key: _tokenKey);
+    await _storage.delete(key: _emailKey);
   }
 }

@@ -4,10 +4,13 @@ import '../services/auth_service.dart';
 import '../services/token_store.dart';
 
 class AuthProvider with ChangeNotifier {
+  AuthProvider({
+    required this.service,
+    required this.store,
+  });
+
   final AuthService service;
   final TokenStore store;
-
-  AuthProvider({required this.service, required this.store});
 
   UserModel? _user;
   UserModel? get user => _user;
@@ -15,47 +18,93 @@ class AuthProvider with ChangeNotifier {
   bool _loading = false;
   bool get loading => _loading;
 
+  bool _initialized = false;
+  bool get initialized => _initialized;
+
+  String? _errorMessage;
+  String? get errorMessage => _errorMessage;
+
+  void _setLoading(bool value) {
+    _loading = value;
+    notifyListeners();
+  }
+
   Future<bool> login({
     required String email,
     required String password,
   }) async {
-    _loading = true;
-    notifyListeners();
+    _errorMessage = null;
+    _setLoading(true);
 
     try {
-      final u = await service.login(email: email, password: password);
-      _user = u;
+      final user = await service.login(
+        email: email,
+        password: password,
+      );
 
-      if (u.token != null) await store.saveToken(u.token!);
-      await store.saveCredential(email, password);
+      _user = user;
+
+      if (user.token != null && user.token!.isNotEmpty) {
+        await store.saveToken(user.token!);
+      }
+
+      await store.saveEmail(email);
 
       return true;
-    } catch (_) {
+    } catch (e) {
+      _errorMessage = e.toString().replaceFirst('Exception: ', '');
       return false;
     } finally {
-      _loading = false;
-      notifyListeners();
+      _setLoading(false);
     }
   }
 
   Future<bool> tryAutoLogin() async {
-    final cred = await store.getCredential();
-    if (cred == null) return false;
+    _errorMessage = null;
+    _setLoading(true);
 
-    return await login(
-      email: cred['email']!,
-      password: cred['password']!,
-    );
+    try {
+      final token = await store.getToken();
+
+      if (token == null || token.isEmpty) {
+        _initialized = true;
+        return false;
+      }
+
+      final user = await service.me();
+      user.token = token;
+      _user = user;
+      _initialized = true;
+      return true;
+    } catch (e) {
+      _user = null;
+      _initialized = true;
+      _errorMessage = e.toString().replaceFirst('Exception: ', '');
+      await store.clear();
+      return false;
+    } finally {
+      _setLoading(false);
+    }
   }
 
   Future<void> logout() async {
     try {
-      final token = _user?.token;
-      if (token != null) await service.logout(token);
-    } catch (_) {}
+      final token = await store.getToken();
+      if (token != null && token.isNotEmpty) {
+        await service.logout();
+      }
+    } catch (_) {
+      // tetap clear session lokal walaupun API logout gagal
+    }
 
     _user = null;
+    _errorMessage = null;
     await store.clear();
+    notifyListeners();
+  }
+
+  void clearError() {
+    _errorMessage = null;
     notifyListeners();
   }
 }
