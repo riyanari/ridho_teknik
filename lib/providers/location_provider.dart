@@ -1,94 +1,89 @@
-// providers/location_provider.dart
 import 'package:flutter/foundation.dart';
+
 import '../models/lokasi_model.dart';
 import '../services/location_service.dart';
 
 class LocationProvider with ChangeNotifier {
   final LocationService service;
 
+  LocationProvider({required this.service});
+
   List<LokasiModel> _locations = [];
   bool _isLoading = false;
-  String _error = '';
+  String? _error;
   LokasiModel? _selectedLocation;
-  int? _filterClientId;
-
-  LocationProvider({required this.service});
+  int? _filterUserId;
 
   List<LokasiModel> get locations => _locations;
   bool get isLoading => _isLoading;
-  String get error => _error;
+  String? get error => _error;
   LokasiModel? get selectedLocation => _selectedLocation;
-  int? get filterClientId => _filterClientId;
+  int? get filterUserId => _filterUserId;
 
-  // Di LocationProvider class
-  // Di LocationProvider class
+  bool get hasData => _locations.isNotEmpty;
+  bool get hasError => _error != null && _error!.isNotEmpty;
+  int get totalLocations => _locations.length;
+
+  void _setLoading(bool value) {
+    _isLoading = value;
+    notifyListeners();
+  }
+
   List<LokasiModel> getLocationsByClient(int clientId) {
-    if (_locations.isEmpty) return [];
+    if (_locations.isEmpty) return <LokasiModel>[];
 
     return _locations.where((location) {
-      // Cek apakah location.users tidak null dan berisi client dengan id yang sesuai
-      if (location.users != null && location.users!.isNotEmpty) {
-        return location.users!.any((user) => user.id == clientId);
-      }
-      return false;
+      return location.users.any((user) => user.id == clientId);
     }).toList();
   }
 
-  int getClientTotalAc(int userId) {
-    return getLocationsByClient(userId)
-        .fold(0, (sum, loc) => sum + loc.jumlahAC);
+  int getClientTotalAc(int clientId) {
+    return getLocationsByClient(clientId)
+        .fold<int>(0, (sum, loc) => sum + loc.jumlahAC);
   }
 
   Future<void> fetchLocations({int? userId}) async {
+    _error = null;
+    _filterUserId = userId;
+    _setLoading(true);
+
     try {
-      _isLoading = true;
-      _error = '';
-      _filterClientId = userId;
-      notifyListeners();
+      final result = await service.getLocations(userId: userId);
+      _locations = result;
 
-      // Panggil service untuk mengambil lokasi berdasarkan clientId
-      _locations = await service.getLocations(userId: userId); // Memanggil API dengan query yang sesuai
-
-      if (_locations.isEmpty) {
+      if (result.isEmpty) {
         _error = 'Belum ada data lokasi';
       }
-      print("Fetched locations: $_locations");
     } catch (e) {
-      _error = 'Gagal mengambil data lokasi: ${e.toString()}';
+      _error = e.toString().replaceFirst('Exception: ', '');
       if (kDebugMode) {
-        print('Error fetching locations: $e');
+        debugPrint('❌ fetchLocations error: $e');
       }
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      _setLoading(false);
     }
   }
 
-  // Future<void> fetchLocationDetail(int id) async {
-  //   try {
-  //     _isLoading = true;
-  //     _error = '';
-  //     notifyListeners();
-  //
-  //     _selectedLocation = await service.getLocationDetail(id);
-  //   } catch (e) {
-  //     _error = 'Gagal mengambil detail lokasi: ${e.toString()}';
-  //     if (kDebugMode) {
-  //       print('Error fetching location detail: $e');
-  //     }
-  //   } finally {
-  //     _isLoading = false;
-  //     notifyListeners();
-  //   }
-  // }
-
-  void clearError() {
-    _error = '';
+  void selectLocation(LokasiModel location) {
+    _selectedLocation = location;
     notifyListeners();
   }
 
   void clearSelectedLocation() {
     _selectedLocation = null;
+    notifyListeners();
+  }
+
+  void clearError() {
+    _error = null;
+    notifyListeners();
+  }
+
+  void clearData() {
+    _locations = [];
+    _selectedLocation = null;
+    _filterUserId = null;
+    _error = null;
     notifyListeners();
   }
 }

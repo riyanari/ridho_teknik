@@ -1,108 +1,117 @@
 import 'package:flutter/foundation.dart';
+
 import '../models/client_model.dart';
 import '../services/client_service.dart';
 
 class ClientProvider with ChangeNotifier {
   final ClientService service;
 
-  List<Client> _clients = [];
-  bool _isLoading = false;
-  String _error = '';
-  Client? _selectedClient;
-
   ClientProvider({required this.service});
 
-  // Getters
+  List<Client> _clients = [];
+  bool _isLoading = false;
+  String? _error;
+  Client? _selectedClient;
+
   List<Client> get clients => _clients;
   bool get isLoading => _isLoading;
-  String get error => _error;
+  String? get error => _error;
   int get totalClients => _clients.length;
   Client? get selectedClient => _selectedClient;
 
-  // Get top 3 clients for home page display
+  bool get hasData => _clients.isNotEmpty;
+  bool get hasError => _error != null && _error!.isNotEmpty;
+
+  void _setLoading(bool value) {
+    _isLoading = value;
+    notifyListeners();
+  }
+
   List<Client> get topClients {
-    // Sort by total service or rating
-    final sorted = List<Client>.from(_clients)
+    final sorted = [..._clients]
       ..sort((a, b) => b.totalService.compareTo(a.totalService));
     return sorted.take(3).toList();
   }
 
-  // Get active clients (with recent service)
   List<Client> get activeClients {
     return _clients.where((client) => client.totalService > 0).toList();
   }
 
-  // Get new clients (created within last 30 days)
   List<Client> get newClients {
     final thirtyDaysAgo = DateTime.now().subtract(const Duration(days: 30));
     return _clients.where((client) {
-      return client.createdAt != null && client.createdAt!.isAfter(thirtyDaysAgo);
+      return client.createdAt != null &&
+          client.createdAt!.isAfter(thirtyDaysAgo);
     }).toList();
   }
 
-  // Fetch all clients
   Future<void> fetchClients() async {
+    _error = null;
+    _setLoading(true);
+
     try {
-      _isLoading = true;
-      _error = '';
-      notifyListeners();
+      final result = await service.getClients();
+      _clients = result;
 
-      _clients = await service.getClients();
-
-      if (_clients.isEmpty) {
+      if (result.isEmpty) {
         _error = 'Belum ada data client';
       }
     } catch (e) {
-      _error = 'Gagal mengambil data client: ${e.toString()}';
+      _error = e.toString().replaceFirst('Exception: ', '');
       if (kDebugMode) {
-        print('Error fetching clients: $e');
+        debugPrint('❌ fetchClients error: $e');
       }
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      _setLoading(false);
     }
   }
 
-  // Fetch single client detail
   Future<void> fetchClientDetail(int id) async {
-    try {
-      _isLoading = true;
-      _error = '';
-      notifyListeners();
+    _error = null;
+    _setLoading(true);
 
+    try {
       _selectedClient = await service.getClientDetail(id);
     } catch (e) {
-      _error = 'Gagal mengambil detail client: ${e.toString()}';
+      _error = e.toString().replaceFirst('Exception: ', '');
       if (kDebugMode) {
-        print('Error fetching client detail: $e');
+        debugPrint('❌ fetchClientDetail error: $e');
       }
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      _setLoading(false);
     }
   }
 
-  // Search clients by name or phone
   List<Client> searchClients(String query) {
     if (query.isEmpty) return _clients;
 
-    final lowercaseQuery = query.toLowerCase();
+    final q = query.toLowerCase();
     return _clients.where((client) {
-      return client.name.toLowerCase().contains(lowercaseQuery) ||
+      return client.name.toLowerCase().contains(q) ||
           client.phone.contains(query) ||
-          client.email.toLowerCase().contains(lowercaseQuery);
+          client.email.toLowerCase().contains(q);
     }).toList();
   }
 
-  // Clear error
-  void clearError() {
-    _error = '';
+  void selectClient(Client client) {
+    _selectedClient = client;
     notifyListeners();
   }
 
-  // Clear selected client
   void clearSelectedClient() {
     _selectedClient = null;
+    notifyListeners();
+  }
+
+  void clearError() {
+    _error = null;
+    notifyListeners();
+  }
+
+  void clearData() {
+    _clients = [];
+    _selectedClient = null;
+    _error = null;
     notifyListeners();
   }
 }

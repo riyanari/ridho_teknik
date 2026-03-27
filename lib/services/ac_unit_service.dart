@@ -1,4 +1,5 @@
-// services/ac_unit_service.dart
+import 'package:flutter/foundation.dart';
+
 import '../api/api_client.dart';
 import '../api/api_config.dart';
 import '../models/ac_model.dart';
@@ -8,43 +9,59 @@ class AcUnitService {
 
   AcUnitService({required this.api});
 
+  void _log(String message) {
+    if (kDebugMode) {
+      debugPrint(message);
+    }
+  }
+
+  Map<String, dynamic>? _buildQuery({int? locationId}) {
+    if (locationId == null) return null;
+
+    return {
+      'location_id': locationId,
+    };
+  }
+
   Future<List<AcModel>> getAcUnits({int? locationId}) async {
     try {
-      final Map<String, dynamic> query = {};
-      if (locationId != null) {
-        query['location_id'] = locationId;
-      }
+      final response = await api.get(
+        ApiConfig.ownerAcUnits,
+        query: _buildQuery(locationId: locationId),
+      );
 
-      final response = await api.get(ApiConfig.ownerAcUnits, query: query);
+      _log('❄️ getAcUnits response: $response');
 
-      print('AC API Response (getAcUnits) owner: $response'); // Debug log
+      final data = response['data'];
 
-      if (response['data'] != null) {
-        final acUnits = (response['data'] as List)
-            .map((item) => AcModel.fromJson(item))
+      if (data is List) {
+        return data
+            .whereType<Map<String, dynamic>>() // ✅ aman
+            .map(AcModel.fromJson)
             .toList();
-        return acUnits;
-      } else {
-        throw Exception('Data tidak ditemukan dalam response');
       }
+
+      return <AcModel>[]; // fallback aman
     } catch (e) {
-      print('Error in getAcUnits: $e');
-      rethrow;
+      throw Exception('Gagal mengambil data AC: $e');
     }
   }
 
   Future<AcModel> getAcUnitDetail(int id) async {
     try {
-      final response = await api.get(ApiConfig.ownerAcUnitUpdate(id));
+      final response = await api.get(
+        ApiConfig.ownerAcUnitUpdate(id),
+      );
 
-      if (response['data'] != null) {
-        return AcModel.fromJson(response['data']);
-      } else {
-        throw Exception('Data AC tidak ditemukan');
+      final data = response['data'];
+
+      if (data is Map<String, dynamic>) {
+        return AcModel.fromJson(data);
       }
+
+      throw Exception('Format data AC tidak valid');
     } catch (e) {
-      print('Error in getAcUnitDetail: $e');
-      rethrow;
+      throw Exception('Gagal mengambil detail AC: $e');
     }
   }
 }

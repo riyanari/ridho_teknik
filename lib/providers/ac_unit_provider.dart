@@ -1,77 +1,107 @@
-// providers/ac_unit_provider.dart
 import 'package:flutter/foundation.dart';
+
 import '../models/ac_model.dart';
 import '../services/ac_unit_service.dart';
 
 class AcUnitProvider with ChangeNotifier {
   final AcUnitService service;
 
+  AcUnitProvider({required this.service});
+
   List<AcModel> _acUnits = [];
   bool _isLoading = false;
-  String _error = '';
+  String? _error;
   AcModel? _selectedAcUnit;
   int? _filterLocationId;
 
-  AcUnitProvider({required this.service});
-
+  // ===== GETTERS =====
   List<AcModel> get acUnits => _acUnits;
   bool get isLoading => _isLoading;
-  String get error => _error;
+  String? get error => _error;
   AcModel? get selectedAcUnit => _selectedAcUnit;
   int? get filterLocationId => _filterLocationId;
 
-  List<AcModel> getAcUnitsByLocation(int locationId) {
-    return _acUnits.where((ac) => ac.lokasiId == locationId.toString()).toList();
+  bool get hasData => _acUnits.isNotEmpty;
+  bool get hasError => _error != null && _error!.isNotEmpty;
+  int get totalAcUnits => _acUnits.length;
+
+  // ===== INTERNAL =====
+  void _setLoading(bool value) {
+    _isLoading = value;
+    notifyListeners();
   }
 
+  // ===== FILTER =====
+  List<AcModel> getAcUnitsByLocation(int locationId) {
+    return _acUnits
+        .where((ac) => ac.locationId == locationId)
+        .toList();
+  }
+
+  // ===== FETCH LIST =====
   Future<void> fetchAcUnits({int? locationId}) async {
+    _error = null;
+    _filterLocationId = locationId;
+    _setLoading(true);
+
     try {
-      _isLoading = true;
-      _error = '';
-      _filterLocationId = locationId;
-      notifyListeners();
+      final result = await service.getAcUnits(locationId: locationId);
+      _acUnits = result;
 
-      _acUnits = await service.getAcUnits(locationId: locationId);
-
-      if (_acUnits.isEmpty) {
+      if (result.isEmpty) {
         _error = 'Belum ada data AC';
       }
     } catch (e) {
-      _error = 'Gagal mengambil data AC: ${e.toString()}';
+      _error = e.toString().replaceFirst('Exception: ', '');
+
       if (kDebugMode) {
-        print('Error fetching AC units: $e');
+        debugPrint('❌ fetchAcUnits error: $e');
       }
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      _setLoading(false);
     }
   }
 
+  // ===== FETCH DETAIL =====
   Future<void> fetchAcUnitDetail(int id) async {
-    try {
-      _isLoading = true;
-      _error = '';
-      notifyListeners();
+    _error = null;
+    _setLoading(true);
 
-      _selectedAcUnit = await service.getAcUnitDetail(id);
+    try {
+      final result = await service.getAcUnitDetail(id);
+      _selectedAcUnit = result;
     } catch (e) {
-      _error = 'Gagal mengambil detail AC: ${e.toString()}';
+      _error = e.toString().replaceFirst('Exception: ', '');
+
       if (kDebugMode) {
-        print('Error fetching AC unit detail: $e');
+        debugPrint('❌ fetchAcUnitDetail error: $e');
       }
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      _setLoading(false);
     }
   }
 
-  void clearError() {
-    _error = '';
+  // ===== STATE =====
+  void selectAcUnit(AcModel ac) {
+    _selectedAcUnit = ac;
     notifyListeners();
   }
 
   void clearSelectedAcUnit() {
     _selectedAcUnit = null;
+    notifyListeners();
+  }
+
+  void clearError() {
+    _error = null;
+    notifyListeners();
+  }
+
+  void clearData() {
+    _acUnits = [];
+    _selectedAcUnit = null;
+    _filterLocationId = null;
+    _error = null;
     notifyListeners();
   }
 }

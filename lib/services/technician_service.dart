@@ -11,35 +11,18 @@ class TechnicianService {
     try {
       final response = await api.get(ApiConfig.ownerTechnicians);
 
-      // Debug log
-      print('Technician API Response: $response');
+      final data = response['data'];
 
-      if (response['data'] != null) {
-        final technicians = (response['data'] as List)
-            .map((item) => Technician.fromJson(item))
+      if (data is List) {
+        return data
+            .whereType<Map<String, dynamic>>() // ✅ aman
+            .map(Technician.fromJson)
             .toList();
-        return technicians;
-      } else {
-        throw Exception('Data tidak ditemukan dalam response');
       }
+
+      return []; // fallback aman
     } catch (e) {
-      print('Error in getTechnicians: $e');
-      rethrow;
+      throw Exception('Gagal mengambil teknisi: ${e.toString()}');
     }
   }
-
-  // Future<Technician> getTechnicianDetail(int id) async {
-  //   try {
-  //     final response = await api.get('${ApiConfig.o}/$id');
-  //
-  //     if (response['data'] != null) {
-  //       return Technician.fromJson(response['data']);
-  //     } else {
-  //       throw Exception('Data teknisi tidak ditemukan');
-  //     }
-  //   } catch (e) {
-  //     print('Error in getTechnicianDetail: $e');
-  //     rethrow;
-  //   }
-  // }
 }

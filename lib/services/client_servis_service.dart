@@ -1,117 +1,101 @@
-// DI services/client_servis_service.dart
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
-import 'package:ridho_teknik/services/token_store.dart';
 
 import '../api/api_client.dart';
 import '../api/api_config.dart';
+import '../models/servis_model.dart';
+import '../services/token_store.dart';
 
 class ClientServisService {
   final ApiClient api;
-  final TokenStore store; // Tambahkan TokenStore
+  final TokenStore store;
 
-  ClientServisService({required this.api, required this.store}); // Ubah constructor
+  ClientServisService({
+    required this.api,
+    required this.store,
+  });
 
-  Future<List<Map<String, dynamic>>> getServis({String? acId, String? lokasiId}) async {
+  void _log(String message) {
+    if (kDebugMode) {
+      debugPrint(message);
+    }
+  }
+
+  List<ServisModel> _extractServisList(Map<String, dynamic> response) {
+    final data = response['data'];
+
+    if (data is List) {
+      return data
+          .whereType<Map<String, dynamic>>()
+          .map(ServisModel.fromMap)
+          .toList();
+    }
+
+    if (data is Map<String, dynamic>) {
+      final nested = data['data'];
+      if (nested is List) {
+        return nested
+            .whereType<Map<String, dynamic>>()
+            .map(ServisModel.fromMap)
+            .toList();
+      }
+
+      if (data['id'] != null) {
+        return [ServisModel.fromMap(data)];
+      }
+    }
+
+    return <ServisModel>[];
+  }
+
+  Map<String, dynamic> _extractObject(Map<String, dynamic> response) {
+    final data = response['data'];
+    if (data is Map<String, dynamic>) return data;
+    return response;
+  }
+
+  Future<List<ServisModel>> getServis({
+    int? acId,
+    int? lokasiId,
+  }) async {
     try {
-      print('=== GET SERVIS API CALL CLIENT ===');
+      final params = <String, dynamic>{
+        if (acId != null) 'ac_id': acId,
+        if (lokasiId != null) 'lokasi_id': lokasiId,
+      };
 
-      // Build query parameters
-      final Map<String, dynamic> params = {};
-      if (acId != null && acId.isNotEmpty) params['ac_id'] = acId;
-      if (lokasiId != null && lokasiId.isNotEmpty) params['lokasi_id'] = lokasiId;
-
-      print('Params client: $params');
+      _log('📋 getServis params=$params');
 
       final json = await api.get(
         ApiConfig.clientServices,
+        query: params.isEmpty ? null : params,
       );
 
-      print('Response type client: ${json.runtimeType}');
-      print('Response keys client: ${json.keys}');
-
-      return _extractDataFromResponse(json);
-
-    } catch (e, stackTrace) {
-      print('Error in getServis: $e');
-      print('Stack trace: $stackTrace');
-      rethrow;
-    }
-  }
-
-  // PERBAIKAN: Metode untuk extract data dari berbagai struktur response
-  List<Map<String, dynamic>> _extractDataFromResponse(Map<String, dynamic> response) {
-    try {
-      print('=== EXTRACTING DATA FROM RESPONSE ===');
-      print('Response structure client: $response');
-
-      // Cek jika response memiliki 'data' field
-      if (!response.containsKey('data')) {
-        print('No data field in response');
-        return [];
-      }
-
-      final dynamic dataField = response['data'];
-      print('dataField type: ${dataField.runtimeType}');
-
-      // PERBAIKAN: Jika dataField adalah Map (pagination structure)
-      if (dataField is Map<String, dynamic>) {
-        print('dataField is Map, keys: ${dataField.keys}');
-
-        // Cek jika ada nested 'data' array di dalam map
-        if (dataField.containsKey('data') && dataField['data'] is List) {
-          final List<dynamic> dataList = dataField['data'] as List<dynamic>;
-          print('Found data list with ${dataList.length} items');
-
-          // Cast ke List<Map<String, dynamic>>
-          final List<Map<String, dynamic>> result = [];
-          for (var item in dataList) {
-            if (item is Map<String, dynamic>) {
-              result.add(item);
-            } else {
-              print('Warning: Item is not Map, type: ${item.runtimeType}');
-            }
-          }
-
-          return result;
-        }
-        // Jika map langsung berisi data servis (tidak ada pagination)
-        else if (dataField.containsKey('id')) {
-          return [dataField];
-        } else {
-          print('Unexpected map structure: ${dataField.keys}');
-          return [];
-        }
-      }
-      // PERBAIKAN: Jika dataField langsung List (tidak ada pagination)
-      else if (dataField is List) {
-        print('dataField is List with ${dataField.length} items');
-
-        final List<Map<String, dynamic>> result = [];
-        for (var item in dataField) {
-          if (item is Map<String, dynamic>) {
-            result.add(item);
-          } else {
-            print('Warning: Item in list is not Map, type: ${item.runtimeType}');
-          }
-        }
-
-        return result;
-      }
-      // Struktur tidak dikenali
-      else {
-        print('Unknown dataField type: ${dataField.runtimeType}');
-        return [];
-      }
+      return _extractServisList(json);
     } catch (e) {
-      print('Error extracting data: $e');
-      return [];
+      throw Exception('Gagal mengambil data servis client: $e');
     }
   }
 
-  Future<Map<String, dynamic>> requestCuci({
+  Future<ServisModel?> getServisDetail(int id) async {
+    try {
+      final json = await api.get(ApiConfig.clientServiceDetail(id));
+      final data = _extractObject(json);
+
+      if (data['id'] != null) {
+        return ServisModel.fromMap(data);
+      }
+
+      return null;
+    } catch (e) {
+      throw Exception('Gagal mengambil detail servis client: $e');
+    }
+  }
+
+  Future<ServisModel?> requestCuci({
     required int locationId,
     required bool semuaAc,
     List<int>? acUnits,
@@ -119,57 +103,35 @@ class ClientServisService {
     String? tanggalBerkunjung,
   }) async {
     try {
-      print('=== REQUEST CUCI API CALL ===');
-      print('Location ID: $locationId');
-      print('Semua AC: $semuaAc');
-      print('AC Units: $acUnits');
-      print('Catatan: $catatan');
-      print('Tanggal Berkunjung: $tanggalBerkunjung');
-
-      // Prepare request body
-      final Map<String, dynamic> body = {
+      final body = <String, dynamic>{
         'location_id': locationId,
         'semua_ac': semuaAc,
+        if (!semuaAc && acUnits != null && acUnits.isNotEmpty)
+          'ac_units': acUnits,
+        if (catatan != null && catatan.trim().isNotEmpty)
+          'catatan': catatan.trim(),
+        if (tanggalBerkunjung != null && tanggalBerkunjung.trim().isNotEmpty)
+          'tanggal_berkunjung': tanggalBerkunjung.trim(),
       };
 
-      // Add ac_units only if not semuaAc and acUnits is not empty
-      if (!semuaAc && acUnits != null && acUnits.isNotEmpty) {
-        body['ac_units'] = acUnits;
-      }
+      _log('🧼 requestCuci body=$body');
 
-      // Add catatan if provided
-      if (catatan != null && catatan.isNotEmpty) {
-        body['catatan'] = catatan;
-      }
-
-      if (tanggalBerkunjung != null && tanggalBerkunjung.isNotEmpty) {
-        body['tanggal_berkunjung'] = tanggalBerkunjung;
-      }
-
-      print('Request body: $body');
-
-      // Make POST request
       final json = await api.post(
         ApiConfig.clientServiceCuci,
         body: body,
       );
 
-      print('Response: $json');
-
-      // Handle response
-      if (json.containsKey('data')) {
-        return json['data'] as Map<String, dynamic>;
-      } else {
-        return json;
+      final data = _extractObject(json);
+      if (data['id'] != null) {
+        return ServisModel.fromMap(data);
       }
-    } catch (e, stackTrace) {
-      print('Error in requestCuci: $e');
-      print('Stack trace: $stackTrace');
-      rethrow;
+      return null;
+    } catch (e) {
+      throw Exception('Gagal mengirim request cuci: $e');
     }
   }
 
-  Future<Map<String, dynamic>> requestPerbaikan({
+  Future<ServisModel?> requestPerbaikan({
     required int locationId,
     required int acUnitId,
     required String keluhan,
@@ -178,17 +140,8 @@ class ClientServisService {
     String? tanggalBerkunjung,
   }) async {
     try {
-      print('=== REQUEST PERBAIKAN API CALL ===');
-      print('Location ID: $locationId');
-      print('AC Unit ID: $acUnitId');
-      print('Keluhan: $keluhan');
-      print('Priority: $priority');
-      print('Foto Keluhan count: ${fotoKeluhan?.length ?? 0}');
-      print('Tanggal Berkunjung: $tanggalBerkunjung');
-
-      // Buat multipart request jika ada file foto
       if (fotoKeluhan != null && fotoKeluhan.isNotEmpty) {
-        return await _requestPerbaikanWithFiles(
+        final data = await _requestPerbaikanWithFiles(
           locationId: locationId,
           acUnitId: acUnitId,
           keluhan: keluhan,
@@ -196,38 +149,33 @@ class ClientServisService {
           fotoKeluhan: fotoKeluhan,
           tanggalBerkunjung: tanggalBerkunjung,
         );
-      } else {
-        // Request tanpa file (JSON biasa)
-        final Map<String, dynamic> body = {
-          'location_id': locationId,
-          'ac_unit_id': acUnitId,
-          'keluhan': keluhan,
-          'priority': priority,
-        };
 
-        if (tanggalBerkunjung != null && tanggalBerkunjung.isNotEmpty) {
-          body['tanggal_berkunjung'] = tanggalBerkunjung;
-        }
-
-        print('Request body (JSON): $body');
-
-        final json = await api.post(
-          ApiConfig.clientServicePerbaikan,
-          body: body,
-        );
-
-        print('Response: $json');
-
-        return _handleResponse(json);
+        return data['id'] != null ? ServisModel.fromMap(data) : null;
       }
-    } catch (e, stackTrace) {
-      print('Error in requestPerbaikan: $e');
-      print('Stack trace: $stackTrace');
-      rethrow;
+
+      final body = <String, dynamic>{
+        'location_id': locationId,
+        'ac_unit_id': acUnitId,
+        'keluhan': keluhan,
+        'priority': priority,
+        if (tanggalBerkunjung != null && tanggalBerkunjung.trim().isNotEmpty)
+          'tanggal_berkunjung': tanggalBerkunjung.trim(),
+      };
+
+      _log('🛠️ requestPerbaikan body=$body');
+
+      final json = await api.post(
+        ApiConfig.clientServicePerbaikan,
+        body: body,
+      );
+
+      final data = _extractObject(json);
+      return data['id'] != null ? ServisModel.fromMap(data) : null;
+    } catch (e) {
+      throw Exception('Gagal mengirim request perbaikan: $e');
     }
   }
 
-  // Helper method untuk request dengan file upload
   Future<Map<String, dynamic>> _requestPerbaikanWithFiles({
     required int locationId,
     required int acUnitId,
@@ -236,95 +184,50 @@ class ClientServisService {
     required List<File> fotoKeluhan,
     String? tanggalBerkunjung,
   }) async {
-    try {
-      print('=== REQUEST PERBAIKAN WITH FILES ===');
+    final request = http.MultipartRequest(
+      'POST',
+      Uri.parse(ApiConfig.clientServicePerbaikan),
+    );
 
-      // Buat multipart request
-      final request = http.MultipartRequest(
-        'POST',
-        Uri.parse(ApiConfig.clientServicePerbaikan),
-      );
+    final token = await store.getToken();
+    if (token == null || token.isEmpty) {
+      throw Exception('Token tidak ditemukan. Silakan login kembali.');
+    }
 
-      // Ambil token dari TokenStore (sama seperti ApiClient)
-      final token = await store.getToken();
-      print('Token retrieved from store: $token');
+    request.headers['Authorization'] =
+    token.startsWith('Bearer ') ? token : 'Bearer $token';
+    request.headers['Accept'] = 'application/json';
 
-      if (token == null || token.isEmpty) {
-        throw Exception('Token tidak ditemukan. Silakan login kembali.');
-      }
+    request.fields['location_id'] = locationId.toString();
+    request.fields['ac_unit_id'] = acUnitId.toString();
+    request.fields['keluhan'] = keluhan;
+    request.fields['priority'] = priority;
 
-      // PERBAIKAN: Gunakan format yang sama dengan ApiClient
-      // ApiClient menggunakan token yang sudah termasuk "Bearer "
-      // Jika token dari store sudah termasuk "Bearer ", gunakan langsung
-      // Jika tidak, tambahkan "Bearer "
-      final authHeader = token.startsWith('Bearer ') ? token : 'Bearer $token';
+    if (tanggalBerkunjung != null && tanggalBerkunjung.trim().isNotEmpty) {
+      request.fields['tanggal_berkunjung'] = tanggalBerkunjung.trim();
+    }
 
-      // Add headers
-      request.headers['Authorization'] = authHeader;
-      request.headers['Accept'] = 'application/json';
-
-      print('Authorization header: $authHeader');
-
-      // Add text fields
-      request.fields['location_id'] = locationId.toString();
-      request.fields['ac_unit_id'] = acUnitId.toString();
-      request.fields['keluhan'] = keluhan;
-      request.fields['priority'] = priority;
-
-      if (tanggalBerkunjung != null && tanggalBerkunjung.isNotEmpty) {
-        request.fields['tanggal_berkunjung'] = tanggalBerkunjung;
-      }
-
-      // Add files
-      for (int i = 0; i < fotoKeluhan.length; i++) {
-        final file = fotoKeluhan[i];
-        final fileStream = http.ByteStream(file.openRead());
-        final length = await file.length();
-        final multipartFile = http.MultipartFile(
+    for (int i = 0; i < fotoKeluhan.length; i++) {
+      final file = fotoKeluhan[i];
+      request.files.add(
+        await http.MultipartFile.fromPath(
           'foto_keluhan[$i]',
-          fileStream,
-          length,
-          filename: 'keluhan_${DateTime.now().millisecondsSinceEpoch}_$i.jpg',
-        );
-        request.files.add(multipartFile);
-      }
-
-      // Debug: Print request details
-      print('Request URL: ${request.url}');
-      print('Request headers: ${request.headers}');
-      print('Request fields: ${request.fields}');
-      print('Number of files: ${request.files.length}');
-
-      // Send request
-      final streamedResponse = await request.send();
-      final response = await http.Response.fromStream(streamedResponse);
-
-      print('Response status: ${response.statusCode}');
-      print('Response body: ${response.body}');
-
-      // Handle response
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        final json = jsonDecode(response.body) as Map<String, dynamic>;
-        print('File upload response: $json');
-        return _handleResponse(json);
-      } else {
-        final errorBody = response.body;
-        final errorJson = jsonDecode(errorBody);
-        final errorMessage = errorJson['message'] ?? errorBody;
-        throw Exception('Failed to upload: ${response.statusCode} $errorMessage');
-      }
-    } catch (e, stackTrace) {
-      print('Error in _requestPerbaikanWithFiles: $e');
-      print('Stack trace: $stackTrace');
-      rethrow;
+          file.path,
+        ),
+      );
     }
-  }
 
-  // Helper method untuk handle response
-  Map<String, dynamic> _handleResponse(Map<String, dynamic> response) {
-    if (response.containsKey('data')) {
-      return response['data'] as Map<String, dynamic>;
+    final streamed = await request.send();
+    final response = await http.Response.fromStream(streamed);
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      final json = jsonDecode(response.body) as Map<String, dynamic>;
+      return _extractObject(json);
     }
-    return response;
+
+    final errorJson = jsonDecode(response.body);
+    throw Exception(
+      'Failed to upload: ${response.statusCode} ${errorJson['message'] ?? response.body}',
+    );
   }
 }

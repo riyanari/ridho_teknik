@@ -1,54 +1,58 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+
 import '../models/lokasi_model.dart';
 import '../services/client_master_service.dart';
 
-class ClientMasterProvider extends ChangeNotifier {
+class ClientMasterProvider with ChangeNotifier {
   ClientMasterProvider({required this.service});
+
   final ClientMasterService service;
 
-  bool loading = false;
-  String? error;
+  bool _loading = false;
+  String? _error;
+  List<LokasiModel> _lokasi = [];
 
-  List<LokasiModel> lokasi = [];
+  bool get loading => _loading;
+  String? get error => _error;
+  List<LokasiModel> get lokasi => _lokasi;
 
+  bool get hasData => _lokasi.isNotEmpty;
+  bool get hasError => _error != null && _error!.isNotEmpty;
+
+  void _setLoading(bool value) {
+    _loading = value;
+    notifyListeners();
+  }
 
   Future<void> fetchLokasi() async {
-    loading = true;
-    error = null;
-    notifyListeners();
+    _error = null;
+    _setLoading(true);
 
     try {
-      final rows = await service.getLokasi();
+      final result = await service.getLokasi();
+      _lokasi = result;
 
-      lokasi = rows.map((e) {
-        // mapping field dari API Laravel kamu:
-        // Location model: id, name, address, jumlah_ac, last_service
-        // plus: ac_count (from withCount)
-        final id = (e['id'] ?? '').toString();
-        final nama = (e['name'] ?? '').toString();
-        final alamat = (e['address'] ?? '').toString();
-
-        final jumlahAc = (e['jumlah_ac'] ?? e['ac_count'] ?? 0);
-        final last = e['last_service'];
-
-        DateTime? lastService;
-        if (last != null && last.toString().isNotEmpty) {
-          lastService = DateTime.tryParse(last.toString());
-        }
-
-        return LokasiModel(
-          id: id,
-          nama: nama,
-          alamat: alamat,
-          jumlahAC: (jumlahAc is int) ? jumlahAc : int.tryParse(jumlahAc.toString()) ?? 0,
-          lastService: lastService ?? DateTime.now(),
-        );
-      }).toList();
+      if (result.isEmpty) {
+        _error = 'Belum ada data lokasi';
+      }
     } catch (e) {
-      error = e.toString();
+      _error = e.toString().replaceFirst('Exception: ', '');
+      if (kDebugMode) {
+        debugPrint('❌ fetchLokasi error: $e');
+      }
     } finally {
-      loading = false;
-      notifyListeners();
+      _setLoading(false);
     }
+  }
+
+  void clearError() {
+    _error = null;
+    notifyListeners();
+  }
+
+  void clearData() {
+    _lokasi = [];
+    _error = null;
+    notifyListeners();
   }
 }

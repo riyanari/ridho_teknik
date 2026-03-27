@@ -5,34 +5,30 @@ import '../services/technician_service.dart';
 class TechnicianProvider with ChangeNotifier {
   final TechnicianService service;
 
-  List<Technician> _technicians = [];
-  bool _isLoading = false;
-  String _error = '';
-  Technician? _selectedTechnician;
-
   TechnicianProvider({required this.service});
 
-  // Getters
+  List<Technician> _technicians = [];
+  bool _isLoading = false;
+  String? _error;
+  Technician? _selectedTechnician;
+
+  // ===== GETTERS =====
   List<Technician> get technicians => _technicians;
   bool get isLoading => _isLoading;
-  String get error => _error;
+  String? get error => _error;
   int get totalTechnicians => _technicians.length;
   Technician? get selectedTechnician => _selectedTechnician;
 
-  // Get active technicians
-  List<Technician> get activeTechnicians {
-    return _technicians.where((tech) => tech.status == 'aktif').toList();
-  }
+  // ===== FILTERS =====
 
-  // Get top technicians by rating
-  List<Technician> get topTechnicians {
-    return _technicians.where((tech) => tech.rating >= 4.5).toList();
-  }
+  List<Technician> get activeTechnicians =>
+      _technicians.where((e) => e.status == 'aktif').toList();
 
-  // Get top 3 technicians for home page display
+  List<Technician> get topTechnicians =>
+      _technicians.where((e) => e.rating >= 4.5).toList();
+
   List<Technician> get topTechniciansForHome {
-    // Sort by rating and total service
-    final sorted = List<Technician>.from(activeTechnicians)
+    final sorted = [...activeTechnicians]
       ..sort((a, b) {
         final ratingCompare = b.rating.compareTo(a.rating);
         if (ratingCompare != 0) return ratingCompare;
@@ -41,29 +37,32 @@ class TechnicianProvider with ChangeNotifier {
     return sorted.take(3).toList();
   }
 
-  // Get technicians by specialization
   List<Technician> getTechniciansBySpecialization(String specialization) {
     return _technicians
-        .where((tech) => tech.spesialisasi.toLowerCase() == specialization.toLowerCase())
+        .where((e) =>
+    e.spesialisasi.toLowerCase() ==
+        specialization.toLowerCase())
         .toList();
   }
 
-  // Fetch all technicians
+  // ===== FETCH =====
+
   Future<void> fetchTechnicians() async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
     try {
-      _isLoading = true;
-      _error = '';
-      notifyListeners();
+      final result = await service.getTechnicians();
+      _technicians = result;
 
-      _technicians = await service.getTechnicians();
-
-      if (_technicians.isEmpty) {
+      if (result.isEmpty) {
         _error = 'Belum ada data teknisi';
       }
     } catch (e) {
-      _error = 'Gagal mengambil data teknisi: ${e.toString()}';
+      _error = e.toString();
       if (kDebugMode) {
-        print('Error fetching technicians: $e');
+        print('❌ fetchTechnicians error: $e');
       }
     } finally {
       _isLoading = false;
@@ -71,47 +70,35 @@ class TechnicianProvider with ChangeNotifier {
     }
   }
 
-  // Fetch single technician detail
-  // Future<void> fetchTechnicianDetail(int id) async {
-  //   try {
-  //     _isLoading = true;
-  //     _error = '';
-  //     notifyListeners();
-  //
-  //     _selectedTechnician = await service.getTechnicianDetail(id);
-  //   } catch (e) {
-  //     _error = 'Gagal mengambil detail teknisi: ${e.toString()}';
-  //     if (kDebugMode) {
-  //       print('Error fetching technician detail: $e');
-  //     }
-  //   } finally {
-  //     _isLoading = false;
-  //     notifyListeners();
-  //   }
-  // }
+  // ===== SEARCH =====
 
-  // Search technicians by name, phone, or specialization
   List<Technician> searchTechnicians(String query) {
     if (query.isEmpty) return _technicians;
 
-    final lowercaseQuery = query.toLowerCase();
-    return _technicians.where((tech) {
-      return tech.name.toLowerCase().contains(lowercaseQuery) ||
-          tech.phone.contains(query) ||
-          tech.email.toLowerCase().contains(lowercaseQuery) ||
-          tech.spesialisasi.toLowerCase().contains(lowercaseQuery);
+    final q = query.toLowerCase();
+
+    return _technicians.where((e) {
+      return e.name.toLowerCase().contains(q) ||
+          e.phone.contains(query) ||
+          e.email.toLowerCase().contains(q) ||
+          e.spesialisasi.toLowerCase().contains(q);
     }).toList();
   }
 
-  // Clear error
-  void clearError() {
-    _error = '';
+  // ===== STATE =====
+
+  void selectTechnician(Technician tech) {
+    _selectedTechnician = tech;
     notifyListeners();
   }
 
-  // Clear selected technician
   void clearSelectedTechnician() {
     _selectedTechnician = null;
+    notifyListeners();
+  }
+
+  void clearError() {
+    _error = null;
     notifyListeners();
   }
 }

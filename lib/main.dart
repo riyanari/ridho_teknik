@@ -32,7 +32,7 @@ import 'services/client_servis_service.dart';
 import 'services/location_service.dart';
 import 'services/owner_master_service.dart' hide ClientMasterService;
 import 'services/technician_service.dart';
-import 'services/teknisi_master_service.dart';
+import 'services/teknisi_task_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -84,9 +84,9 @@ void main() async {
           create: (context) =>
               OwnerMasterService(api: context.read<ApiClient>()),
         ),
-        Provider<TeknisiService>(
+        Provider<TechnicianTaskService>(
           create: (context) =>
-              TeknisiService(api: context.read<ApiClient>()),
+              TechnicianTaskService(api: context.read<ApiClient>()),
         ),
 
         // AUTH PROVIDER
@@ -132,7 +132,7 @@ void main() async {
         ),
         ChangeNotifierProvider(
           create: (context) =>
-              TeknisiProvider(service: context.read<TeknisiService>()),
+              TeknisiProvider(service: context.read<TechnicianTaskService>()),
         ),
       ],
       child: const MyApp(),

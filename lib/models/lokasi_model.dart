@@ -5,33 +5,75 @@ class LokasiModel {
   final String nama;
   final String alamat;
   final int jumlahAC;
-  final DateTime lastService;
-  final List<UserModel>? users;
+  final DateTime? lastService;
+
+  final String? latitude;
+  final String? longitude;
+  final String? placeId;
+  final String? gmapsUrl;
+
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+
+  final int totalAcUnits;
+
+  // optional, dipakai kalau endpoint lain memang mengirim users
+  final List<UserModel> users;
 
   LokasiModel({
     required this.id,
     required this.nama,
     required this.alamat,
     this.jumlahAC = 0,
-    required this.lastService,
-    this.users,
+    this.lastService,
+    this.latitude,
+    this.longitude,
+    this.placeId,
+    this.gmapsUrl,
+    this.createdAt,
+    this.updatedAt,
+    this.totalAcUnits = 0,
+    this.users = const [],
   });
 
   factory LokasiModel.fromJson(Map<String, dynamic> json) {
+    int parseInt(dynamic value) {
+      if (value == null) return 0;
+      if (value is int) return value;
+      return int.tryParse(value.toString()) ?? 0;
+    }
+
+    DateTime? parseDate(dynamic value) {
+      if (value == null) return null;
+      final text = value.toString();
+      if (text.isEmpty) return null;
+      return DateTime.tryParse(text);
+    }
+
     return LokasiModel(
       id: json['id'].toString(),
-      nama: json['name'] ?? '',
-      alamat: json['address'] ?? '',
-      jumlahAC: json['jumlah_ac'] ?? json['ac_units_count'] ?? 0,
-      lastService: json['last_service'] != null
-          ? DateTime.tryParse(json['last_service']) ?? DateTime.now()
-          : DateTime.now(),
-      // Ambil data dari 'users' yang ada di dalam JSON dan ubah menjadi objek UserModel
-      users: json['users'] != null
+      nama: (json['name'] ?? '').toString(),
+      alamat: (json['address'] ?? '').toString(),
+
+      // prioritas: jumlah_ac -> total_ac_units -> ac_count
+      jumlahAC: parseInt(
+        json['jumlah_ac'] ?? json['total_ac_units'] ?? json['ac_count'],
+      ),
+
+      lastService: parseDate(json['last_service']),
+      latitude: json['latitude']?.toString(),
+      longitude: json['longitude']?.toString(),
+      placeId: json['place_id']?.toString(),
+      gmapsUrl: json['gmaps_url']?.toString(),
+      createdAt: parseDate(json['created_at']),
+      updatedAt: parseDate(json['updated_at']),
+      totalAcUnits: parseInt(json['total_ac_units'] ?? json['ac_count']),
+
+      users: json['users'] is List
           ? (json['users'] as List)
-          .map((userJson) => UserModel.fromJson(userJson))
+          .map((e) => UserModel.fromJson(e as Map<String, dynamic>))
           .toList()
-          : [], // Jika tidak ada user, simpan null
+          : const [],
     );
   }
 
@@ -41,8 +83,15 @@ class LokasiModel {
       'name': nama,
       'address': alamat,
       'jumlah_ac': jumlahAC,
-      'last_service': lastService.toIso8601String(),
-      'users': users?.map((user) => user.toJson()).toList(), // Perbaiki ini
+      'last_service': lastService?.toIso8601String(),
+      'latitude': latitude,
+      'longitude': longitude,
+      'place_id': placeId,
+      'gmaps_url': gmapsUrl,
+      'created_at': createdAt?.toIso8601String(),
+      'updated_at': updatedAt?.toIso8601String(),
+      'total_ac_units': totalAcUnits,
+      'users': users.map((user) => user.toJson()).toList(),
     };
   }
 }

@@ -1,4 +1,5 @@
-// services/client_service.dart
+import 'package:flutter/foundation.dart';
+
 import '../api/api_client.dart';
 import '../api/api_config.dart';
 import '../models/client_model.dart';
@@ -8,39 +9,44 @@ class ClientService {
 
   ClientService({required this.api});
 
+  void _log(String message) {
+    if (kDebugMode) {
+      debugPrint(message);
+    }
+  }
+
   Future<List<Client>> getClients() async {
     try {
       final response = await api.get(ApiConfig.ownerClients);
+      _log('👥 getClients response: $response');
 
-      // Debug log
-      print('Client API Response (getClients) owner: $response');
-
-      if (response['data'] != null) {
-        final clients = (response['data'] as List)
-            .map((item) => Client.fromJson(item))
+      final data = response['data'];
+      if (data is List) {
+        return data
+            .whereType<Map<String, dynamic>>()
+            .map(Client.fromJson)
             .toList();
-        return clients;
-      } else {
-        throw Exception('Data tidak ditemukan dalam response');
       }
+
+      return <Client>[];
     } catch (e) {
-      print('Error in getClients: $e');
-      rethrow;
+      throw Exception('Gagal mengambil data client: $e');
     }
   }
 
   Future<Client> getClientDetail(int id) async {
     try {
-      final response = await api.get('${ApiConfig.ownerClients}/$id');
+      final response = await api.get(ApiConfig.ownerClientDetail(id));
+      _log('👤 getClientDetail($id) response: $response');
 
-      if (response['data'] != null) {
-        return Client.fromJson(response['data']);
-      } else {
-        throw Exception('Data client tidak ditemukan');
+      final data = response['data'];
+      if (data is Map<String, dynamic>) {
+        return Client.fromJson(data);
       }
+
+      throw Exception('Format data client tidak valid');
     } catch (e) {
-      print('Error in getClientDetail: $e');
-      rethrow;
+      throw Exception('Gagal mengambil detail client: $e');
     }
   }
 }

@@ -1,9 +1,9 @@
 import 'package:flutter/foundation.dart';
 import '../models/servis_model.dart';
-import '../services/teknisi_master_service.dart';
+import '../services/teknisi_task_service.dart';
 
 class TeknisiProvider with ChangeNotifier {
-  final TeknisiService service;
+  final TechnicianTaskService service;
   TeknisiProvider({required this.service});
 
   bool _loading = false;

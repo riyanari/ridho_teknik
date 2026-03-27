@@ -8,7 +8,7 @@ class Technician {
   final double rating;
   final int totalService;
   final DateTime? createdAt;
-  final String status; // aktif, nonaktif, cuti
+  final String status; // lokal saja
 
   Technician({
     required this.id,
@@ -24,19 +24,36 @@ class Technician {
   });
 
   factory Technician.fromJson(Map<String, dynamic> json) {
+    int parseInt(dynamic v) {
+      if (v == null) return 0;
+      if (v is int) return v;
+      return int.tryParse(v.toString()) ?? 0;
+    }
+
+    double parseDouble(dynamic v) {
+      if (v == null) return 0;
+      if (v is double) return v;
+      if (v is int) return v.toDouble();
+      return double.tryParse(v.toString()) ?? 0;
+    }
+
+    DateTime? parseDate(dynamic v) {
+      if (v == null) return null;
+      return DateTime.tryParse(v.toString());
+    }
+
     return Technician(
-      id: json['id'] ?? 0,
-      name: json['name'] ?? '',
-      email: json['email'] ?? '',
-      phone: json['phone'] ?? '',
-      role: json['role'] ?? 'teknisi',
-      spesialisasi: json['spesialisasi'] ?? 'AC Umum',
-      rating: (json['rating'] ?? 0).toDouble(),
-      totalService: json['total_service'] ?? 0,
-      createdAt: json['created_at'] != null
-          ? DateTime.tryParse(json['created_at'])
-          : null,
-      status: json['status'] ?? 'aktif',
+      id: parseInt(json['id']),
+      name: (json['name'] ?? '').toString(),
+      email: (json['email'] ?? '').toString(),
+      phone: (json['phone'] ?? '').toString(),
+      role: (json['role'] ?? 'teknisi').toString(),
+      spesialisasi:
+      (json['spesialisasi'] ?? 'AC Umum').toString(),
+      rating: parseDouble(json['rating']),
+      totalService: parseInt(json['total_service']),
+      createdAt: parseDate(json['created_at']),
+      status: (json['status'] ?? 'aktif').toString(),
     );
   }
 

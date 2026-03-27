@@ -1,7 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
+
 import '../models/ac_model.dart';
 import '../models/lokasi_model.dart';
+import '../models/room_model.dart';
 import '../models/servis_model.dart';
 import '../models/user_model.dart';
 import '../services/owner_master_service.dart';
@@ -11,53 +13,50 @@ class OwnerMasterProvider with ChangeNotifier {
 
   OwnerMasterProvider({required this.service});
 
-  // ===== STATE VARIABLES =====
-
-  // Loading states
   bool _loading = false;
   bool _submitting = false;
 
-  // Error states
   String? _error;
   String? _submitError;
 
-  // Data lists
   List<UserModel> _clients = [];
   List<UserModel> _technicians = [];
   List<LokasiModel> _locations = [];
+  List<RoomModel> _rooms = [];
   List<AcModel> _acUnits = [];
   List<ServisModel> _services = [];
 
-  // Selected items
   UserModel? _selectedClient;
   UserModel? _selectedTechnician;
   LokasiModel? _selectedLocation;
+  RoomModel? _selectedRoom;
   AcModel? _selectedAcUnit;
   ServisModel? _selectedService;
 
-  // Stats and filters
   Map<String, dynamic>? _clientStats;
   Map<String, dynamic>? _dashboardStats;
   Map<String, dynamic>? _filterOptions;
+
   Map<String, dynamic> _lastServicesQuery = {};
   int _servicesFetchToken = 0;
 
-  // ===== GETTERS =====
-
   bool get loading => _loading;
   bool get submitting => _submitting;
+
   String? get error => _error;
   String? get submitError => _submitError;
 
   List<UserModel> get clients => _clients;
   List<UserModel> get technicians => _technicians;
   List<LokasiModel> get locations => _locations;
+  List<RoomModel> get rooms => _rooms;
   List<AcModel> get acUnits => _acUnits;
   List<ServisModel> get services => _services;
 
   UserModel? get selectedClient => _selectedClient;
   UserModel? get selectedTechnician => _selectedTechnician;
   LokasiModel? get selectedLocation => _selectedLocation;
+  RoomModel? get selectedRoom => _selectedRoom;
   AcModel? get selectedAcUnit => _selectedAcUnit;
   ServisModel? get selectedService => _selectedService;
 
@@ -65,53 +64,74 @@ class OwnerMasterProvider with ChangeNotifier {
   Map<String, dynamic>? get dashboardStats => _dashboardStats;
   Map<String, dynamic>? get filterOptions => _filterOptions;
 
-  // ===== HELPER METHODS =====
+  void _startLoading() {
+    _loading = true;
+    _error = null;
+    notifyListeners();
+  }
+
+  void _stopLoading() {
+    _loading = false;
+    notifyListeners();
+  }
+
+  void _startSubmitting() {
+    _submitting = true;
+    _submitError = null;
+    notifyListeners();
+  }
+
+  void _stopSubmitting() {
+    _submitting = false;
+    notifyListeners();
+  }
+
+  // =========================
+  // HELPERS
+  // =========================
 
   List<LokasiModel> getLocationsByClient(String clientId) {
     return _locations.where((loc) {
-      if (loc.users != null && loc.users!.isNotEmpty) {
-        return loc.users!.any((user) => user.id == clientId);
-      }
-      return false;
+      if (loc.users.isEmpty) return false;
+      return loc.users.any((user) => user.id.toString() == clientId);
     }).toList();
   }
 
-// Perbaiki method getAcUnitsByClient
   List<AcModel> getAcUnitsByClient(String clientId) {
     final clientLocations = getLocationsByClient(clientId);
     final locationIds = clientLocations.map((loc) => loc.id).toSet();
-    return _acUnits.where((ac) => locationIds.contains(ac.lokasiId)).toList();
+
+    return _acUnits.where((ac) => locationIds.contains(ac.locationId.toString())).toList();
   }
 
   List<AcModel> getAcUnitsByLocation(int locationId) {
-    return _acUnits.where((ac) => ac.lokasiId == locationId.toString()).toList();
+    return _acUnits.where((ac) => ac.locationId == locationId).toList();
   }
 
-  // List<AcModel> getAcUnitsByClient(int clientId) {
-  //   final clientLocations = getLocationsByClient(clientId);
-  //   final locationIds = clientLocations.map((loc) => loc.id).toList();
-  //   return _acUnits.where((ac) => locationIds.contains(ac.lokasiId)).toList();
-  // }
+  List<RoomModel> getRoomsByLocation(int locationId) {
+    return _rooms.where((room) => room.floor?.locationId == locationId).toList();
+  }
 
   List<ServisModel> getServicesByStatus(String status) {
-    return _services.where((s) => s.status.name.toLowerCase() == status.toLowerCase()).toList();
+    return _services
+        .where((s) => s.status.name.toLowerCase() == status.toLowerCase())
+        .toList();
   }
 
-  List<ServisModel> getServicesByTechnician(String technicianId) {
-    return _services.where((s) => s.teknisiId == technicianId).toList();
+  List<ServisModel> getServicesByTechnician(int technicianId) {
+    return _services.where((s) => s.technicianId == technicianId).toList();
   }
 
-  // ===== CLIENT MANAGEMENT =====
+  // =========================
+  // CLIENT
+  // =========================
 
   Future<void> fetchClients({
     String? search,
     String? sortBy,
     String? sortOrder,
   }) async {
-    _loading = true;
-    _error = null;
-    notifyListeners();
-
+    _startLoading();
     try {
       _clients = await service.getClients(
         search: search,
@@ -119,82 +139,55 @@ class OwnerMasterProvider with ChangeNotifier {
         sortOrder: sortOrder,
       );
     } catch (e) {
-      _error = 'Gagal mengambil data klien: ${e.toString()}';
-      if (kDebugMode) {
-        print('Error fetching clients: $e');
-      }
+      _error = 'Gagal mengambil data klien: $e';
     } finally {
-      _loading = false;
-      notifyListeners();
+      _stopLoading();
     }
   }
 
   Future<UserModel?> fetchClientDetail(int id) async {
-    _loading = true;
-    _error = null;
-    notifyListeners();
-
+    _startLoading();
     try {
       _selectedClient = await service.getClientDetail(id);
       return _selectedClient;
     } catch (e) {
-      _error = 'Gagal mengambil detail klien: ${e.toString()}';
-      if (kDebugMode) {
-        print('Error fetching client detail: $e');
-      }
+      _error = 'Gagal mengambil detail klien: $e';
       return null;
     } finally {
-      _loading = false;
-      notifyListeners();
+      _stopLoading();
     }
   }
 
   Future<Map<String, dynamic>?> fetchClientStats(int id) async {
-    _loading = true;
-    _error = null;
-    notifyListeners();
-
+    _startLoading();
     try {
       _clientStats = await service.getClientStats(id);
       return _clientStats;
     } catch (e) {
-      _error = 'Gagal mengambil statistik klien: ${e.toString()}';
-      if (kDebugMode) {
-        print('Error fetching client stats: $e');
-      }
+      _error = 'Gagal mengambil statistik klien: $e';
       return null;
     } finally {
-      _loading = false;
-      notifyListeners();
+      _stopLoading();
     }
   }
 
   Future<UserModel?> createClient(Map<String, dynamic> data) async {
-    _submitting = true;
-    _submitError = null;
-    notifyListeners();
-
+    _startSubmitting();
     try {
       final newClient = await service.createClient(data);
       _clients.insert(0, newClient);
+      _selectedClient = newClient;
       return newClient;
     } catch (e) {
-      _submitError = 'Gagal membuat klien: ${e.toString()}';
-      if (kDebugMode) {
-        print('Error creating client: $e');
-      }
+      _submitError = 'Gagal membuat klien: $e';
       return null;
     } finally {
-      _submitting = false;
-      notifyListeners();
+      _stopSubmitting();
     }
   }
 
   Future<UserModel?> updateClient(int id, Map<String, dynamic> data) async {
-    _submitting = true;
-    _submitError = null;
-    notifyListeners();
-
+    _startSubmitting();
     try {
       final updatedClient = await service.updateClient(id, data);
 
@@ -209,22 +202,15 @@ class OwnerMasterProvider with ChangeNotifier {
 
       return updatedClient;
     } catch (e) {
-      _submitError = 'Gagal mengupdate klien: ${e.toString()}';
-      if (kDebugMode) {
-        print('Error updating client: $e');
-      }
+      _submitError = 'Gagal mengupdate klien: $e';
       return null;
     } finally {
-      _submitting = false;
-      notifyListeners();
+      _stopSubmitting();
     }
   }
 
   Future<bool> deleteClient(int id) async {
-    _submitting = true;
-    _submitError = null;
-    notifyListeners();
-
+    _startSubmitting();
     try {
       final success = await service.deleteClient(id);
 
@@ -237,18 +223,16 @@ class OwnerMasterProvider with ChangeNotifier {
 
       return success;
     } catch (e) {
-      _submitError = 'Gagal menghapus klien: ${e.toString()}';
-      if (kDebugMode) {
-        print('Error deleting client: $e');
-      }
+      _submitError = 'Gagal menghapus klien: $e';
       return false;
     } finally {
-      _submitting = false;
-      notifyListeners();
+      _stopSubmitting();
     }
   }
 
-  // ===== TECHNICIAN MANAGEMENT =====
+  // =========================
+  // TECHNICIAN
+  // =========================
 
   Future<void> fetchTechnicians({
     String? search,
@@ -256,10 +240,7 @@ class OwnerMasterProvider with ChangeNotifier {
     String? sortBy,
     String? sortOrder,
   }) async {
-    _loading = true;
-    _error = null;
-    notifyListeners();
-
+    _startLoading();
     try {
       _technicians = await service.getTechnicians(
         search: search,
@@ -268,153 +249,98 @@ class OwnerMasterProvider with ChangeNotifier {
         sortOrder: sortOrder,
       );
     } catch (e) {
-      _error = 'Gagal mengambil data teknisi: ${e.toString()}';
-      if (kDebugMode) {
-        print('Error fetching technicians: $e');
-      }
+      _error = 'Gagal mengambil data teknisi: $e';
     } finally {
-      _loading = false;
-      notifyListeners();
+      _stopLoading();
     }
   }
 
   Future<void> fetchAvailableTechnicians() async {
-    _loading = true;
-    _error = null;
-    notifyListeners();
-
+    _startLoading();
     try {
-      final availableTechs = await service.getAvailableTechnicians();
-      _technicians = availableTechs;
+      _technicians = await service.getAvailableTechnicians();
     } catch (e) {
-      _error = 'Gagal mengambil data teknisi tersedia: ${e.toString()}';
-      if (kDebugMode) {
-        print('Error fetching available technicians: $e');
-      }
+      _error = 'Gagal mengambil data teknisi tersedia: $e';
     } finally {
-      _loading = false;
-      notifyListeners();
+      _stopLoading();
     }
   }
 
   Future<UserModel?> fetchTechnicianDetail(int id) async {
-    _loading = true;
-    _error = null;
-    notifyListeners();
-
+    _startLoading();
     try {
       _selectedTechnician = await service.getTechnicianDetail(id);
       return _selectedTechnician;
     } catch (e) {
-      _error = 'Gagal mengambil detail teknisi: ${e.toString()}';
-      if (kDebugMode) {
-        print('Error fetching technician detail: $e');
-      }
+      _error = 'Gagal mengambil detail teknisi: $e';
       return null;
     } finally {
-      _loading = false;
-      notifyListeners();
+      _stopLoading();
     }
   }
 
   Future<UserModel?> createTechnician(Map<String, dynamic> data) async {
-    _submitting = true;
-    _submitError = null;
-    notifyListeners();
-
+    _startSubmitting();
     try {
-      print('➕ OwnerMasterProvider.createTechnician() - Memanggil service');
       final newTechnician = await service.createTechnician(data);
-
-      // Insert ke list (paling atas)
       _technicians.insert(0, newTechnician);
-
-      // Optional: set sebagai selected
       _selectedTechnician = newTechnician;
-
-      print('   ✅ Technician created: ${newTechnician.name}');
       return newTechnician;
     } catch (e) {
-      _submitError = 'Gagal membuat teknisi: ${e.toString()}';
-      if (kDebugMode) {
-        print('❌ Error creating technician: $e');
-      }
+      _submitError = 'Gagal membuat teknisi: $e';
       return null;
     } finally {
-      _submitting = false;
-      notifyListeners();
+      _stopSubmitting();
     }
   }
 
   Future<UserModel?> updateTechnician(int id, Map<String, dynamic> data) async {
-    _submitting = true;
-    _submitError = null;
-    notifyListeners();
-
+    _startSubmitting();
     try {
-      print('✏️ OwnerMasterProvider.updateTechnician($id) - Memanggil service');
       final updatedTechnician = await service.updateTechnician(id, data);
 
-      // Update di list
       final index = _technicians.indexWhere((t) => t.id == id);
       if (index != -1) {
         _technicians[index] = updatedTechnician;
       }
 
-      // Update selected jika sedang dilihat
       if (_selectedTechnician?.id == id) {
         _selectedTechnician = updatedTechnician;
       }
 
-      print('   ✅ Technician updated: ${updatedTechnician.name}');
       return updatedTechnician;
     } catch (e) {
-      _submitError = 'Gagal mengupdate teknisi: ${e.toString()}';
-      if (kDebugMode) {
-        print('❌ Error updating technician: $e');
-      }
+      _submitError = 'Gagal mengupdate teknisi: $e';
       return null;
     } finally {
-      _submitting = false;
-      notifyListeners();
+      _stopSubmitting();
     }
   }
 
   Future<bool> deleteTechnician(int id) async {
-    _submitting = true;
-    _submitError = null;
-    notifyListeners();
-
+    _startSubmitting();
     try {
-      print('🗑️ OwnerMasterProvider.deleteTechnician($id) - Memanggil service');
       final success = await service.deleteTechnician(id);
 
       if (success) {
-        // Hapus dari list
         _technicians.removeWhere((t) => t.id == id);
-
-        // Clear selected jika sedang dilihat
         if (_selectedTechnician?.id == id) {
           _selectedTechnician = null;
         }
-
-        print('   ✅ Technician deleted successfully');
       }
 
       return success;
     } catch (e) {
-      _submitError = 'Gagal menghapus teknisi: ${e.toString()}';
-      if (kDebugMode) {
-        print('❌ Error deleting technician: $e');
-      }
+      _submitError = 'Gagal menghapus teknisi: $e';
       return false;
     } finally {
-      _submitting = false;
-      notifyListeners();
+      _stopSubmitting();
     }
   }
 
-  // ===== LOCATION MANAGEMENT =====
+  // =========================
+  // LOCATION
+  // =========================
 
   Future<void> fetchLocations({
     String? search,
@@ -422,10 +348,7 @@ class OwnerMasterProvider with ChangeNotifier {
     String? sortBy,
     String? sortOrder,
   }) async {
-    _loading = true;
-    _error = null;
-    notifyListeners();
-
+    _startLoading();
     try {
       _locations = await service.getLocations(
         search: search,
@@ -434,81 +357,220 @@ class OwnerMasterProvider with ChangeNotifier {
         sortOrder: sortOrder,
       );
     } catch (e) {
-      _error = 'Gagal mengambil data lokasi: ${e.toString()}';
-      if (kDebugMode) {
-        print('Error fetching locations: $e');
-      }
+      _error = 'Gagal mengambil data lokasi: $e';
     } finally {
-      _loading = false;
-      notifyListeners();
+      _stopLoading();
     }
   }
 
   Future<LokasiModel?> createLocation(Map<String, dynamic> data) async {
-    _submitting = true;
-    _submitError = null;
-    notifyListeners();
-
+    _startSubmitting();
     try {
-      final newLoc = await service.createLocation(data);
-
-      // insert ke list (paling atas)
-      _locations.insert(0, newLoc);
-
-      // optional: set sebagai selected
-      _selectedLocation = newLoc;
-
-      return newLoc;
+      final newLocation = await service.createLocation(data);
+      _locations.insert(0, newLocation);
+      _selectedLocation = newLocation;
+      return newLocation;
     } catch (e) {
-      _submitError = 'Gagal membuat lokasi: ${e.toString()}';
-      if (kDebugMode) {
-        print('Error creating location: $e');
-      }
+      _submitError = 'Gagal membuat lokasi: $e';
       return null;
     } finally {
-      _submitting = false;
-      notifyListeners();
+      _stopSubmitting();
     }
   }
 
-  // ===== AC UNIT MANAGEMENT =====
+  Future<LokasiModel?> updateLocation(int id, Map<String, dynamic> data) async {
+    _startSubmitting();
+    try {
+      final updatedLocation = await service.updateLocation(id, data);
+
+      final index = _locations.indexWhere((l) => l.id == id.toString());
+      if (index != -1) {
+        _locations[index] = updatedLocation;
+      }
+
+      if (_selectedLocation?.id == id.toString()) {
+        _selectedLocation = updatedLocation;
+      }
+
+      return updatedLocation;
+    } catch (e) {
+      _submitError = 'Gagal mengupdate lokasi: $e';
+      return null;
+    } finally {
+      _stopSubmitting();
+    }
+  }
+
+  Future<bool> deleteLocation(int id) async {
+    _startSubmitting();
+    try {
+      final success = await service.deleteLocation(id);
+
+      if (success) {
+        _locations.removeWhere((l) => l.id == id.toString());
+        if (_selectedLocation?.id == id.toString()) {
+          _selectedLocation = null;
+        }
+      }
+
+      return success;
+    } catch (e) {
+      _submitError = 'Gagal menghapus lokasi: $e';
+      return false;
+    } finally {
+      _stopSubmitting();
+    }
+  }
+
+  // =========================
+  // ROOM
+  // =========================
+
+  Future<void> fetchRoomsByLocation(
+      int locationId, {
+        int? floorId,
+      }) async {
+    _startLoading();
+    try {
+      _rooms = await service.getRoomsByLocation(locationId, floorId: floorId);
+    } catch (e) {
+      _error = 'Gagal mengambil data room: $e';
+    } finally {
+      _stopLoading();
+    }
+  }
+
+  Future<void> fetchRoomsByFloor(int floorId) async {
+    _startLoading();
+    try {
+      _rooms = await service.getRoomsByFloor(floorId);
+    } catch (e) {
+      _error = 'Gagal mengambil data room per lantai: $e';
+    } finally {
+      _stopLoading();
+    }
+  }
+
+  // =========================
+  // AC UNIT
+  // =========================
 
   Future<void> fetchAcUnits({
     int? locationId,
     int? clientId,
+    int? roomId,
     String? search,
     String? sortBy,
     String? sortOrder,
   }) async {
-    _loading = true;
-    _error = null;
-    notifyListeners();
-
+    _startLoading();
     try {
       _acUnits = await service.getAcUnits(
         locationId: locationId,
         clientId: clientId,
+        roomId: roomId,
         search: search,
         sortBy: sortBy,
         sortOrder: sortOrder,
       );
     } catch (e) {
-      _error = 'Gagal mengambil data AC unit: ${e.toString()}';
-      if (kDebugMode) {
-        print('Error fetching AC units: $e');
-      }
+      _error = 'Gagal mengambil data AC unit: $e';
     } finally {
-      _loading = false;
-      notifyListeners();
+      _stopLoading();
     }
   }
 
-  // ===== SERVICE MANAGEMENT =====
+  Future<void> fetchAcUnitsByRoom(int roomId) async {
+    _startLoading();
+    try {
+      _acUnits = await service.getAcUnitsByRoom(roomId);
+    } catch (e) {
+      _error = 'Gagal mengambil data AC per room: $e';
+    } finally {
+      _stopLoading();
+    }
+  }
+
+  Future<AcModel?> fetchAcUnitDetail(int id) async {
+    _startLoading();
+    try {
+      _selectedAcUnit = await service.getAcUnitDetail(id);
+      return _selectedAcUnit;
+    } catch (e) {
+      _error = 'Gagal mengambil detail AC unit: $e';
+      return null;
+    } finally {
+      _stopLoading();
+    }
+  }
+
+  Future<AcModel?> createAcUnit(Map<String, dynamic> data) async {
+    _startSubmitting();
+    try {
+      final newAc = await service.createAcUnit(data);
+      _acUnits.insert(0, newAc);
+      _selectedAcUnit = newAc;
+      return newAc;
+    } catch (e) {
+      _submitError = 'Gagal membuat AC unit: $e';
+      return null;
+    } finally {
+      _stopSubmitting();
+    }
+  }
+
+  Future<AcModel?> updateAcUnit(int id, Map<String, dynamic> data) async {
+    _startSubmitting();
+    try {
+      final updatedAc = await service.updateAcUnit(id, data);
+
+      final index = _acUnits.indexWhere((a) => a.id == id);
+      if (index != -1) {
+        _acUnits[index] = updatedAc;
+      }
+
+      if (_selectedAcUnit?.id == id) {
+        _selectedAcUnit = updatedAc;
+      }
+
+      return updatedAc;
+    } catch (e) {
+      _submitError = 'Gagal mengupdate AC unit: $e';
+      return null;
+    } finally {
+      _stopSubmitting();
+    }
+  }
+
+  Future<bool> deleteAcUnit(int id) async {
+    _startSubmitting();
+    try {
+      final success = await service.deleteAcUnit(id);
+
+      if (success) {
+        _acUnits.removeWhere((a) => a.id == id);
+        if (_selectedAcUnit?.id == id) {
+          _selectedAcUnit = null;
+        }
+      }
+
+      return success;
+    } catch (e) {
+      _submitError = 'Gagal menghapus AC unit: $e';
+      return false;
+    } finally {
+      _stopSubmitting();
+    }
+  }
+
+  // =========================
+  // SERVICE
+  // =========================
 
   Future<void> fetchServices({
     String? status,
-    String? jenis,          // ✅ ganti dari type
-    String? keyword,        // ✅ ganti dari search
+    String? jenis,
+    String? keyword,
     int? clientId,
     int? locationId,
     int? acUnitId,
@@ -520,17 +582,15 @@ class OwnerMasterProvider with ChangeNotifier {
     int? perPage,
     DateTime? startDate,
     DateTime? endDate,
-
     bool useLastQuery = false,
   }) async {
-    _loading = true;
-    _error = null;
-    notifyListeners();
-
-    final int token = ++_servicesFetchToken;
+    _startLoading();
+    final token = ++_servicesFetchToken;
 
     try {
-      final Map<String, dynamic> query = useLastQuery ? Map.of(_lastServicesQuery) : {
+      final query = useLastQuery
+          ? Map<String, dynamic>.from(_lastServicesQuery)
+          : <String, dynamic>{
         if (status != null) 'status': status,
         if (jenis != null) 'jenis': jenis,
         if (keyword != null && keyword.isNotEmpty) 'keyword': keyword,
@@ -543,196 +603,117 @@ class OwnerMasterProvider with ChangeNotifier {
         if (sortBy != null) 'sort_by': sortBy,
         if (sortOrder != null) 'sort_order': sortOrder,
         if (perPage != null) 'per_page': perPage,
-        if (startDate != null) 'start_date': DateFormat('yyyy-MM-dd').format(startDate),
-        if (endDate != null) 'end_date': DateFormat('yyyy-MM-dd').format(endDate),
+        if (startDate != null)
+          'start_date': DateFormat('yyyy-MM-dd').format(startDate),
+        if (endDate != null)
+          'end_date': DateFormat('yyyy-MM-dd').format(endDate),
       };
 
       if (!useLastQuery) {
-        _lastServicesQuery = Map.of(query);
+        _lastServicesQuery = Map<String, dynamic>.from(query);
       }
 
       final rows = await service.getServices(query: query);
 
-      // ✅ Anti race: kalau ada request lebih baru, ignore hasil lama
       if (token != _servicesFetchToken) return;
-
       _services = rows;
     } catch (e) {
       if (token != _servicesFetchToken) return;
-      _error = 'Gagal mengambil data servis: ${e.toString()}';
-      if (kDebugMode) print('Error fetching services: $e');
+      _error = 'Gagal mengambil data servis: $e';
     } finally {
       if (token != _servicesFetchToken) return;
-      _loading = false;
-      notifyListeners();
-    }
-  }
-
-  Future<AcModel?> createAcUnit(Map<String, dynamic> data) async {
-    _submitting = true;
-    _submitError = null;
-    notifyListeners();
-
-    try {
-      final newAc = await service.createAcUnit(data);
-
-      // Insert ke list lokal (paling atas)
-      _acUnits.insert(0, newAc);
-
-      // Optional: set selected
-      _selectedAcUnit = newAc;
-
-      return newAc;
-    } catch (e) {
-      _submitError = 'Gagal membuat AC unit: ${e.toString()}';
-      if (kDebugMode) {
-        print('Error creating AC unit: $e');
-      }
-      return null;
-    } finally {
-      _submitting = false;
-      notifyListeners();
+      _stopLoading();
     }
   }
 
   Future<ServisModel?> fetchServiceDetail(int id) async {
-    _loading = true;
-    _error = null;
-    notifyListeners();
-
+    _startLoading();
     try {
       _selectedService = await service.getServiceDetail(id);
       return _selectedService;
     } catch (e) {
-      _error = 'Gagal mengambil detail servis: ${e.toString()}';
-      if (kDebugMode) {
-        print('Error fetching service detail: $e');
-      }
+      _error = 'Gagal mengambil detail servis: $e';
       return null;
     } finally {
-      _loading = false;
-      notifyListeners();
+      _stopLoading();
     }
   }
 
-  // ===== DASHBOARD =====
-
-  Future<Map<String, dynamic>?> fetchDashboardStats() async {
-    _loading = true;
-    _error = null;
-    notifyListeners();
-
+  Future<ServisModel?> updateService(int id, Map<String, dynamic> data) async {
+    _startSubmitting();
     try {
-      _dashboardStats = await service.getDashboardStats();
-      return _dashboardStats;
-    } catch (e) {
-      _error = 'Gagal mengambil statistik dashboard: ${e.toString()}';
-      if (kDebugMode) {
-        print('Error fetching dashboard stats: $e');
+      final updatedService = await service.updateService(id, data);
+
+      final index = _services.indexWhere((s) => s.id == id);
+      if (index != -1) {
+        _services[index] = updatedService;
       }
+
+      if (_selectedService?.id == id) {
+        _selectedService = updatedService;
+      }
+
+      return updatedService;
+    } catch (e) {
+      _submitError = 'Gagal mengupdate servis: $e';
       return null;
     } finally {
-      _loading = false;
-      notifyListeners();
-    }
-  }
-
-  Future<Map<String, dynamic>?> fetchFilterOptions() async {
-    _loading = true;
-    _error = null;
-    notifyListeners();
-
-    try {
-      _filterOptions = await service.getFilterOptions();
-      return _filterOptions;
-    } catch (e) {
-      _error = 'Gagal mengambil opsi filter: ${e.toString()}';
-      if (kDebugMode) {
-        print('Error fetching filter options: $e');
-      }
-      return null;
-    } finally {
-      _loading = false;
-      notifyListeners();
+      _stopSubmitting();
     }
   }
 
   Future<bool> confirmServiceRequest(int id) async {
-    _submitting = true;
-    _submitError = null;
-    notifyListeners();
-
+    _startSubmitting();
     try {
       await service.confirmServiceRequest(id);
 
-      // Update service status in local list
+      final updatedService = await service.getServiceDetail(id);
       final index = _services.indexWhere((s) => s.id == id);
       if (index != -1) {
-        // Update status to 'ditugaskan'
-        // You might need to fetch service detail to get updated data
-        final updatedService = await service.getServiceDetail(id);
         _services[index] = updatedService;
+      }
+      if (_selectedService?.id == id) {
+        _selectedService = updatedService;
       }
 
       return true;
     } catch (e) {
-      _submitError = 'Gagal mengkonfirmasi service: ${e.toString()}';
-      if (kDebugMode) {
-        print('Error confirming service: $e');
-      }
+      _submitError = 'Gagal mengkonfirmasi service: $e';
       return false;
     } finally {
-      _submitting = false;
-      notifyListeners();
+      _stopSubmitting();
     }
   }
 
   Future<bool> assignTechnician(int serviceId, int technicianId) async {
-    _submitting = true;
-    _submitError = null;
-    notifyListeners();
-
+    _startSubmitting();
     try {
-      print('🔄 OwnerMasterProvider.assignTechnician() dipanggil');
-      print('   Service ID: $serviceId, Technician ID: $technicianId');
-
       final response = await service.assignTechnician(serviceId, technicianId);
-      print('   API Response: $response');
 
       if (response['success'] == true) {
-        print('   ✅ Assign technician successful');
-
-        // Refresh services list
         await fetchServices(useLastQuery: true);
+        if (_selectedService?.id == serviceId) {
+          await fetchServiceDetail(serviceId);
+        }
         return true;
-      } else {
-        print('   ❌ API returned error: ${response['message']}');
-        _submitError = response['message'] ?? 'Gagal menugaskan teknisi';
-        notifyListeners();
-        return false;
       }
+
+      _submitError = (response['message'] ?? 'Gagal menugaskan teknisi').toString();
+      return false;
     } catch (e) {
-      print('❌ Error in assignTechnician: $e');
-      _submitError = 'Gagal menugaskan teknisi: ${e.toString()}';
-      notifyListeners();
+      _submitError = 'Gagal menugaskan teknisi: $e';
       return false;
     } finally {
-      _submitting = false;
-      notifyListeners();
+      _stopSubmitting();
     }
   }
-
-  // ===== MULTIPLE TECHNICIANS ASSIGNMENT =====
 
   Future<bool> assignMultipleTechnicians(
       int serviceId,
       List<int> technicianIds, {
-        DateTime? tanggalDitugaskan, // ✅ optional
+        DateTime? tanggalDitugaskan,
       }) async {
-    _submitting = true;
-    _submitError = null;
-    notifyListeners();
-
+    _startSubmitting();
     try {
       final response = await service.assignMultipleTechnicians(
         serviceId,
@@ -742,17 +723,19 @@ class OwnerMasterProvider with ChangeNotifier {
 
       if (response['success'] == true) {
         await fetchServices(useLastQuery: true);
+        if (_selectedService?.id == serviceId) {
+          await fetchServiceDetail(serviceId);
+        }
         return true;
       }
 
-      _submitError = response['message'] ?? 'Gagal menugaskan teknisi';
+      _submitError = (response['message'] ?? 'Gagal menugaskan teknisi').toString();
       return false;
     } catch (e) {
       _submitError = 'Gagal menugaskan teknisi: $e';
       return false;
     } finally {
-      _submitting = false;
-      notifyListeners();
+      _stopSubmitting();
     }
   }
 
@@ -760,105 +743,141 @@ class OwnerMasterProvider with ChangeNotifier {
       int serviceId, {
         required List<Map<String, dynamic>> groups,
         DateTime? tanggalDitugaskan,
-        bool isReassign = false, // ✅ tambah ini
+        bool isReassign = false,
       }) async {
-    _submitting = true;
-    _submitError = null;
-    notifyListeners();
-
+    _startSubmitting();
     try {
       final response = await service.assignTechnicianPerAcGroups(
         serviceId,
         groups: groups,
         tanggalDitugaskan: tanggalDitugaskan,
-        isReassign: isReassign, // ✅ teruskan
+        isReassign: isReassign,
       );
 
-      final ok = response['success'] == true;
-
-      if (ok) {
+      if (response['success'] == true) {
         await fetchServices(useLastQuery: true);
-
-        if (_selectedService?.id == serviceId.toString()) {
+        if (_selectedService?.id == serviceId) {
           await fetchServiceDetail(serviceId);
         }
-
         return true;
       }
 
-      _submitError = response['message'] ?? 'Gagal assign teknisi per AC';
+      _submitError = (response['message'] ?? 'Gagal assign teknisi per AC').toString();
       return false;
     } catch (e) {
       _submitError = 'Gagal assign teknisi per AC: $e';
       return false;
     } finally {
-      _submitting = false;
-      notifyListeners();
+      _stopSubmitting();
     }
   }
 
   Future<bool> reassignTechnician(int serviceId, List<int> technicianIds) async {
-    return await assignMultipleTechnicians(serviceId, technicianIds); // ✅
+    _startSubmitting();
+    try {
+      final response = await service.reassignTechnician(serviceId, technicianIds);
+
+      if (response['success'] == true) {
+        await fetchServices(useLastQuery: true);
+        if (_selectedService?.id == serviceId) {
+          await fetchServiceDetail(serviceId);
+        }
+        return true;
+      }
+
+      _submitError = (response['message'] ?? 'Gagal reassign teknisi').toString();
+      return false;
+    } catch (e) {
+      _submitError = 'Gagal reassign teknisi: $e';
+      return false;
+    } finally {
+      _stopSubmitting();
+    }
   }
 
   Future<bool> confirmWork(int id) async {
-    _submitting = true;
-    _submitError = null;
-    notifyListeners();
-
+    _startSubmitting();
     try {
       await service.confirmWork(id);
 
-      // Update service status in local list
+      final updatedService = await service.getServiceDetail(id);
       final index = _services.indexWhere((s) => s.id == id);
       if (index != -1) {
-        // Get updated service data
-        final updatedService = await service.getServiceDetail(id);
         _services[index] = updatedService;
       }
+      if (_selectedService?.id == id) {
+        _selectedService = updatedService;
+      }
 
       return true;
     } catch (e) {
-      _submitError = 'Gagal mengkonfirmasi pengerjaan: ${e.toString()}';
-      if (kDebugMode) {
-        print('Error confirming work: $e');
-      }
+      _submitError = 'Gagal mengkonfirmasi pengerjaan: $e';
       return false;
     } finally {
-      _submitting = false;
-      notifyListeners();
+      _stopSubmitting();
     }
   }
 
-  Future<bool> startService(int id) async {
-    _submitting = true;
-    _submitError = null;
-    notifyListeners();
+  // =========================
+  // DASHBOARD
+  // =========================
 
+  Future<Map<String, dynamic>?> fetchDashboardStats() async {
+    _startLoading();
     try {
-      // You might need to create a new API endpoint for starting service
-      // For now, we'll update locally
-      final index = _services.indexWhere((s) => s.id == id);
-      if (index != -1) {
-        // Update status locally (in real app, call API)
-        // This is a temporary implementation
-        // _services[index].status = ... // Update status to 'dikerjakan'
-      }
-
-      return true;
+      _dashboardStats = await service.getDashboardStats();
+      return _dashboardStats;
     } catch (e) {
-      _submitError = 'Gagal memulai service: ${e.toString()}';
-      if (kDebugMode) {
-        print('Error starting service: $e');
-      }
-      return false;
+      _error = 'Gagal mengambil statistik dashboard: $e';
+      return null;
     } finally {
-      _submitting = false;
-      notifyListeners();
+      _stopLoading();
     }
   }
 
-  // ===== CLEAR METHODS =====
+  Future<Map<String, dynamic>?> fetchFilterOptions() async {
+    _startLoading();
+    try {
+      _filterOptions = await service.getFilterOptions();
+      return _filterOptions;
+    } catch (e) {
+      _error = 'Gagal mengambil opsi filter: $e';
+      return null;
+    } finally {
+      _stopLoading();
+    }
+  }
+
+  Future<String?> exportServices({
+    String? status,
+    int? clientId,
+    int? locationId,
+    String? type,
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    _startSubmitting();
+    try {
+      final url = await service.exportServices(
+        status: status,
+        clientId: clientId,
+        locationId: locationId,
+        type: type,
+        startDate: startDate,
+        endDate: endDate,
+      );
+      return url.isEmpty ? null : url;
+    } catch (e) {
+      _submitError = 'Gagal export data servis: $e';
+      return null;
+    } finally {
+      _stopSubmitting();
+    }
+  }
+
+  // =========================
+  // CLEAR
+  // =========================
 
   void clearSelectedClient() {
     _selectedClient = null;
@@ -873,6 +892,11 @@ class OwnerMasterProvider with ChangeNotifier {
 
   void clearSelectedLocation() {
     _selectedLocation = null;
+    notifyListeners();
+  }
+
+  void clearSelectedRoom() {
+    _selectedRoom = null;
     notifyListeners();
   }
 
@@ -893,15 +917,17 @@ class OwnerMasterProvider with ChangeNotifier {
   }
 
   void clearData() {
-    _clients.clear();
-    _technicians.clear();
-    _locations.clear();
-    _acUnits.clear();
-    _services.clear();
+    _clients = [];
+    _technicians = [];
+    _locations = [];
+    _rooms = [];
+    _acUnits = [];
+    _services = [];
 
     _selectedClient = null;
     _selectedTechnician = null;
     _selectedLocation = null;
+    _selectedRoom = null;
     _selectedAcUnit = null;
     _selectedService = null;
 
@@ -911,6 +937,7 @@ class OwnerMasterProvider with ChangeNotifier {
 
     _error = null;
     _submitError = null;
+    _lastServicesQuery = {};
 
     notifyListeners();
   }

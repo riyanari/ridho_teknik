@@ -22,18 +22,36 @@ class Client {
   });
 
   factory Client.fromJson(Map<String, dynamic> json) {
+    int parseInt(dynamic value) {
+      if (value == null) return 0;
+      if (value is int) return value;
+      return int.tryParse(value.toString()) ?? 0;
+    }
+
+    double parseDouble(dynamic value) {
+      if (value == null) return 0.0;
+      if (value is double) return value;
+      if (value is int) return value.toDouble();
+      return double.tryParse(value.toString()) ?? 0.0;
+    }
+
+    DateTime? parseDate(dynamic value) {
+      if (value == null) return null;
+      final text = value.toString();
+      if (text.isEmpty) return null;
+      return DateTime.tryParse(text);
+    }
+
     return Client(
-      id: json['id'] ?? 0,
-      name: json['name'] ?? '',
-      email: json['email'] ?? '',
-      phone: json['phone'] ?? '',
-      role: json['role'] ?? 'client',
-      totalService: json['total_service'] ?? 0,
-      rating: (json['rating'] ?? 0).toDouble(),
-      spesialisasi: json['spesialisasi'],
-      createdAt: json['created_at'] != null
-          ? DateTime.tryParse(json['created_at'])
-          : null,
+      id: parseInt(json['id']),
+      name: (json['name'] ?? '').toString(),
+      email: (json['email'] ?? '').toString(),
+      phone: (json['phone'] ?? '').toString(),
+      role: (json['role'] ?? 'client').toString(),
+      totalService: parseInt(json['total_service']),
+      rating: parseDouble(json['rating']),
+      spesialisasi: json['spesialisasi']?.toString(),
+      createdAt: parseDate(json['created_at']),
     );
   }
 
