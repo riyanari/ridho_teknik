@@ -7,52 +7,67 @@ class ModernLokasiCard extends StatelessWidget {
   final LokasiModel lokasi;
   final VoidCallback onTap;
   final VoidCallback onEdit;
-  // final VoidCallback onDelete;
 
-  const ModernLokasiCard({super.key,
+  const ModernLokasiCard({
+    super.key,
     required this.lokasi,
     required this.onTap,
     required this.onEdit,
-    // required this.onDelete,
   });
 
+  DateTime? get _lastService => lokasi.lastService;
+
+  int? get _daysSinceService {
+    final last = _lastService;
+    if (last == null) return null;
+    return DateTime.now().difference(last).inDays;
+  }
+
   Color _getStatusColor() {
-    final daysSinceService = DateTime.now().difference(lokasi.lastService).inDays;
+    final daysSinceService = _daysSinceService;
+
+    if (daysSinceService == null) return kBoxMenuRedColor;
     if (daysSinceService <= 30) return kBoxMenuGreenColor;
     if (daysSinceService <= 60) return kSecondaryColor;
     return kBoxMenuRedColor;
   }
 
   String _getStatusText() {
-    final daysSinceService = DateTime.now().difference(lokasi.lastService).inDays;
+    final daysSinceService = _daysSinceService;
+
+    if (daysSinceService == null) return 'Belum Service';
     if (daysSinceService <= 30) return 'Aktif';
     if (daysSinceService <= 60) return 'Perlu Cek';
     return 'Perlu Service';
   }
 
   Widget _buildServiceIndicator() {
-    final days = DateTime.now().difference(lokasi.lastService).inDays;
+    final days = _daysSinceService;
+    final safeDays = days ?? 9999;
     final statusColor = _getStatusColor();
     final statusText = _getStatusText();
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        gradient: days <= 30
+        gradient: safeDays <= 30
             ? LinearGradient(
-          colors: [statusColor.withValues(alpha:0.9), statusColor],
+          colors: [statusColor.withValues(alpha: 0.9), statusColor],
         )
             : LinearGradient(
-          colors: [statusColor.withValues(alpha:0.1), statusColor.withValues(alpha:0.2)],
+          colors: [
+            statusColor.withValues(alpha: 0.1),
+            statusColor.withValues(alpha: 0.2),
+          ],
         ),
         borderRadius: BorderRadius.circular(20),
-        border: days > 30
-            ? Border.all(color: statusColor.withValues(alpha:0.3))
+        border: safeDays > 30
+            ? Border.all(color: statusColor.withValues(alpha: 0.3))
             : null,
-        boxShadow: days <= 30
+        boxShadow: safeDays <= 30
             ? [
           BoxShadow(
-            color: statusColor.withValues(alpha:0.3),
+            color: statusColor.withValues(alpha: 0.3),
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),
@@ -63,9 +78,9 @@ class ModernLokasiCard extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            _getStatusIcon(days),
+            _getStatusIcon(safeDays),
             size: 14,
-            color: days <= 30 ? Colors.white : statusColor,
+            color: safeDays <= 30 ? Colors.white : statusColor,
           ),
           const SizedBox(width: 6),
           Text(
@@ -73,7 +88,7 @@ class ModernLokasiCard extends StatelessWidget {
             style: primaryTextStyle.copyWith(
               fontSize: 10,
               fontWeight: medium,
-              color: days <= 30 ? Colors.white : statusColor,
+              color: safeDays <= 30 ? Colors.white : statusColor,
             ),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
@@ -89,6 +104,12 @@ class ModernLokasiCard extends StatelessWidget {
     return Icons.warning_amber_rounded;
   }
 
+  String _daysText() {
+    final days = _daysSinceService;
+    if (days == null) return 'Belum service';
+    return '$days hari';
+  }
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -99,7 +120,7 @@ class ModernLokasiCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha:0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 15,
               offset: const Offset(0, 6),
             ),
@@ -110,30 +131,6 @@ class ModernLokasiCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Row(
-              //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              //   children: [
-              //     // Container(
-              //     //   padding: const EdgeInsets.all(12),
-              //     //   decoration: BoxDecoration(
-              //     //     gradient: LinearGradient(
-              //     //       colors: [
-              //     //         kPrimaryColor.withValues(alpha:0.1),
-              //     //         kPrimaryColor.withValues(alpha:0.2),
-              //     //       ],
-              //     //     ),
-              //     //     shape: BoxShape.circle,
-              //     //   ),
-              //     //   child: Icon(
-              //     //     Icons.location_on_rounded,
-              //     //     color: kPrimaryColor,
-              //     //     size: 24,
-              //     //   ),
-              //     // ),
-              //
-              //   ],
-              // ),
-              // const SizedBox(height: 16),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -166,7 +163,7 @@ class ModernLokasiCard extends StatelessWidget {
                   PopupMenuButton<String>(
                     icon: Icon(
                       Icons.more_vert_rounded,
-                      color: kGreyColor.withValues(alpha:0.7),
+                      color: kGreyColor.withValues(alpha: 0.7),
                     ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -174,7 +171,6 @@ class ModernLokasiCard extends StatelessWidget {
                     elevation: 3,
                     onSelected: (value) {
                       if (value == 'edit') onEdit();
-                      // if (value == 'delete') onDelete();
                     },
                     itemBuilder: (_) => [
                       PopupMenuItem(
@@ -184,7 +180,8 @@ class ModernLokasiCard extends StatelessWidget {
                             Container(
                               padding: const EdgeInsets.all(4),
                               decoration: BoxDecoration(
-                                color: kBoxMenuDarkBlueColor.withValues(alpha:0.1),
+                                color:
+                                kBoxMenuDarkBlueColor.withValues(alpha: 0.1),
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(
@@ -201,31 +198,6 @@ class ModernLokasiCard extends StatelessWidget {
                           ],
                         ),
                       ),
-                      // const PopupMenuDivider(),
-                      // PopupMenuItem(
-                      //   value: 'delete',
-                      //   child: Row(
-                      //     children: [
-                      //       Container(
-                      //         padding: const EdgeInsets.all(4),
-                      //         decoration: BoxDecoration(
-                      //           color: kBoxMenuRedColor.withValues(alpha:0.1),
-                      //           shape: BoxShape.circle,
-                      //         ),
-                      //         child: Icon(
-                      //           Icons.delete_rounded,
-                      //           size: 16,
-                      //           color: kBoxMenuRedColor,
-                      //         ),
-                      //       ),
-                      //       const SizedBox(width: 12),
-                      //       Text(
-                      //         'Hapus Lokasi',
-                      //         style: errorTextStyle.copyWith(fontSize: 14),
-                      //       ),
-                      //     ],
-                      //   ),
-                      // ),
                     ],
                   ),
                 ],
@@ -241,7 +213,7 @@ class ModernLokasiCard extends StatelessWidget {
                   const SizedBox(width: 12),
                   _buildInfoBadge(
                     icon: Icons.calendar_month_rounded,
-                    text: '${DateTime.now().difference(lokasi.lastService).inDays} hari',
+                    text: _daysText(),
                     color: kBoxMenuCoklatColor,
                   ),
                   const Spacer(),
@@ -250,12 +222,10 @@ class ModernLokasiCard extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               Divider(
-                color: kGreyColor.withValues(alpha:0.2),
+                color: kGreyColor.withValues(alpha: 0.2),
                 height: 1,
               ),
               const SizedBox(height: 12),
-
-              // Single Action Button - Lihat AC
               ElevatedButton.icon(
                 onPressed: onTap,
                 style: ElevatedButton.styleFrom(
@@ -267,7 +237,7 @@ class ModernLokasiCard extends StatelessWidget {
                   ),
                   elevation: 2,
                 ),
-                icon: Icon(Icons.air_rounded, size: 20),
+                icon: const Icon(Icons.air_rounded, size: 20),
                 label: Text(
                   'Lihat AC',
                   style: whiteTextStyle.copyWith(
@@ -289,26 +259,26 @@ class ModernLokasiCard extends StatelessWidget {
     required Color color,
   }) {
     return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha:0.08),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 14, color: color),
-            const SizedBox(width: 6),
-            Text(
-              text,
-              style: primaryTextStyle.copyWith(
-                fontSize: 10,
-                fontWeight: medium,
-                color: color,
-              ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 6),
+          Text(
+            text,
+            style: primaryTextStyle.copyWith(
+              fontSize: 10,
+              fontWeight: medium,
+              color: color,
             ),
-          ],
-        )
+          ),
+        ],
+      ),
     );
   }
 }

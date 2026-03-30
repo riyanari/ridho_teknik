@@ -49,7 +49,12 @@ class _ClientLocationsPageState extends State<ClientLocationsPage> {
         builder: (context, provider, child) {
           if (provider.isLoading) return _buildLoadingShimmer();
 
-          if (provider.error.isNotEmpty) return _buildError(provider.error, provider);
+          if ((provider.error ?? '').isNotEmpty) {
+            return _buildError(
+              provider.error ?? 'Terjadi kesalahan',
+              provider,
+            );
+          }
 
           final clientLocations = provider.getLocationsByClient(widget.client.id);
           provider.getClientTotalAc(widget.client.id);
@@ -858,7 +863,9 @@ class _ClientLocationsPageState extends State<ClientLocationsPage> {
     );
   }
 
-  String _formatDate(DateTime date) {
+  String _formatDate(DateTime? date) {
+    if (date == null) return 'Belum pernah service';
+
     final now = DateTime.now();
     final difference = now.difference(date);
 

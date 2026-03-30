@@ -51,8 +51,11 @@ class _ClientListPageState extends State<ClientListPage> {
           }
 
           // Tampilkan error
-          if (provider.error.isNotEmpty) {
-            return _buildError(provider.error, provider);
+          if ((provider.error ?? '').isNotEmpty) {
+            return _buildError(
+              provider.error ?? 'Terjadi kesalahan',
+              provider,
+            );
           }
 
           // Filter clients berdasarkan search dan filter

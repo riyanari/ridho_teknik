@@ -2,12 +2,13 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
-import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+
+import 'package:ridho_teknik/models/servis_model.dart';
 import 'package:ridho_teknik/providers/owner_master_provider.dart';
 import 'package:ridho_teknik/theme/theme.dart';
-import 'package:ridho_teknik/models/servis_model.dart';
 
 import 'owner_service_detail_page.dart';
 import 'owner_service_monitoring_page.dart';
@@ -21,17 +22,21 @@ class ServiceListPage extends StatefulWidget {
 
 class _ServiceListPageState extends State<ServiceListPage> {
   final ScrollController _scrollController = ScrollController();
+  final TextEditingController _searchController = TextEditingController();
+
   String _selectedStatus = 'Semua';
   String _selectedJenis = 'Semua';
   DateTime? _selectedDate;
   String _searchQuery = '';
-  final TextEditingController _searchController = TextEditingController();
   Timer? _searchDebounce;
 
-  // PERBAIKAN: Update mapping status ke snake_case dan sesuai backend
   final List<Map<String, dynamic>> _statusChips = [
     {'value': 'Semua', 'display': 'Semua', 'color': kPrimaryColor},
-    {'value': 'menunggu_konfirmasi', 'display': 'Menunggu Konfirmasi', 'color': Colors.orange},
+    {
+      'value': 'menunggu_konfirmasi',
+      'display': 'Menunggu Konfirmasi',
+      'color': Colors.orange,
+    },
     {'value': 'ditugaskan', 'display': 'Ditugaskan', 'color': Colors.blue},
     {'value': 'dikerjakan', 'display': 'Dikerjakan', 'color': Colors.purple},
     {'value': 'selesai', 'display': 'Selesai', 'color': Colors.green},
@@ -44,7 +49,6 @@ class _ServiceListPageState extends State<ServiceListPage> {
     {'value': 'perbaikan', 'display': 'Perbaikan AC'},
     {'value': 'instalasi', 'display': 'Instalasi AC'},
   ];
-
 
   @override
   void initState() {
@@ -64,14 +68,11 @@ class _ServiceListPageState extends State<ServiceListPage> {
   }
 
   Future<void> _loadInitialData() async {
-    final provider = context.read<OwnerMasterProvider>();
-    await provider.fetchServices();
+    await context.read<OwnerMasterProvider>().fetchServices();
   }
 
   Future<void> _refreshData() async {
-    final provider = context.read<OwnerMasterProvider>();
-
-    await provider.fetchServices(
+    await context.read<OwnerMasterProvider>().fetchServices(
       status: _selectedStatus == 'Semua' ? null : _selectedStatus,
       jenis: _selectedJenis == 'Semua' ? null : _selectedJenis,
       keyword: _searchQuery.isEmpty ? null : _searchQuery,
@@ -84,8 +85,47 @@ class _ServiceListPageState extends State<ServiceListPage> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (context) => _buildDateFilterSheet(),
+      builder: (_) => _buildDateFilterSheet(),
     );
+  }
+
+  List<String> _extractTechnicianNames(ServisModel service) {
+    final names = <String>[];
+
+    for (final item in service.techniciansData) {
+      final name = (item['name'] ?? '').toString().trim();
+      if (name.isNotEmpty && !names.contains(name)) {
+        names.add(name);
+      }
+    }
+
+    if (names.isEmpty && service.teknisiData != null) {
+      final singleName = (service.teknisiData?['name'] ?? '').toString().trim();
+      if (singleName.isNotEmpty) {
+        names.add(singleName);
+      }
+    }
+
+    if (names.isEmpty) {
+      final fallback = service.teknisiNama.trim();
+      if (fallback.isNotEmpty && fallback != 'Belum ditugaskan') {
+        names.add(fallback);
+      }
+    }
+
+    return names;
+  }
+
+  String _technicianTitle(ServisModel service) {
+    final count = _extractTechnicianNames(service).length;
+    if (count <= 1) return 'Teknisi';
+    return 'Tim Teknisi';
+  }
+
+  String _technicianDisplay(ServisModel service) {
+    final names = _extractTechnicianNames(service);
+    if (names.isEmpty) return 'Belum ditugaskan';
+    return names.join(', ');
   }
 
   Widget _buildDateFilterSheet() {
@@ -99,7 +139,7 @@ class _ServiceListPageState extends State<ServiceListPage> {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withValues(alpha:0.2),
+            color: Colors.grey.withValues(alpha: 0.2),
             blurRadius: 10,
             offset: const Offset(0, -3),
           ),
@@ -110,7 +150,6 @@ class _ServiceListPageState extends State<ServiceListPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
                 'Filter Tanggal',
@@ -119,6 +158,7 @@ class _ServiceListPageState extends State<ServiceListPage> {
                   fontWeight: bold,
                 ),
               ),
+              const Spacer(),
               IconButton(
                 onPressed: () => Navigator.pop(context),
                 icon: const Icon(Iconsax.close_circle),
@@ -138,20 +178,23 @@ class _ServiceListPageState extends State<ServiceListPage> {
             children: [
               Expanded(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   decoration: BoxDecoration(
                     color: Colors.grey[100],
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Row(
                     children: [
-                      Icon(Iconsax.calendar_1, color: kPrimaryColor, size: 20),
+                      Icon(Iconsax.calendar_1,
+                          color: kPrimaryColor, size: 20),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
                           _selectedDate == null
                               ? 'Pilih tanggal'
-                              : DateFormat('dd MMMM yyyy', 'id_ID').format(_selectedDate!),
+                              : DateFormat('dd MMMM yyyy', 'id_ID')
+                              .format(_selectedDate!),
                           style: greyTextStyle.copyWith(fontSize: 14),
                         ),
                       ),
@@ -162,18 +205,17 @@ class _ServiceListPageState extends State<ServiceListPage> {
               const SizedBox(width: 10),
               IconButton(
                 onPressed: () async {
-                  final DateTime? picked = await showDatePicker(
+                  final picked = await showDatePicker(
                     context: context,
-                    initialDate: DateTime.now(),
+                    initialDate: _selectedDate ?? DateTime.now(),
                     firstDate: DateTime(2020),
                     lastDate: DateTime(2030),
                   );
-                  if (picked != null) {
-                    setState(() => _selectedDate = picked);
-                    if (!mounted) return;
-                    Navigator.pop(context);
-                    _refreshData();
-                  }
+                  if (picked == null) return;
+                  setState(() => _selectedDate = picked);
+                  if (!mounted) return;
+                  Navigator.pop(context);
+                  _refreshData();
                 },
                 icon: Icon(Iconsax.calendar_edit, color: kPrimaryColor),
               ),
@@ -183,7 +225,7 @@ class _ServiceListPageState extends State<ServiceListPage> {
                   Navigator.pop(context);
                   _refreshData();
                 },
-                icon: Icon(Iconsax.close_circle, color: Colors.red),
+                icon: const Icon(Iconsax.close_circle, color: Colors.red),
               ),
             ],
           ),
@@ -244,12 +286,11 @@ class _ServiceListPageState extends State<ServiceListPage> {
         ],
       ),
       body: Consumer<OwnerMasterProvider>(
-        builder: (context, provider, child) {
+        builder: (context, provider, _) {
           final services = provider.services;
 
           return Column(
             children: [
-              // Search Bar
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: Container(
@@ -259,7 +300,7 @@ class _ServiceListPageState extends State<ServiceListPage> {
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.grey.withValues(alpha:0.1),
+                        color: Colors.grey.withValues(alpha: 0.1),
                         blurRadius: 10,
                         offset: const Offset(0, 3),
                       ),
@@ -267,21 +308,23 @@ class _ServiceListPageState extends State<ServiceListPage> {
                   ),
                   child: Row(
                     children: [
-                      const Icon(Iconsax.search_normal_1, color: kPrimaryColor),
+                      const Icon(Iconsax.search_normal_1,
+                          color: kPrimaryColor),
                       const SizedBox(width: 12),
                       Expanded(
                         child: TextField(
                           controller: _searchController,
                           onChanged: (value) {
                             setState(() => _searchQuery = value);
-
                             _searchDebounce?.cancel();
-                            _searchDebounce = Timer(const Duration(milliseconds: 500), () {
-                              _refreshData();
-                            });
+                            _searchDebounce =
+                                Timer(const Duration(milliseconds: 500), () {
+                                  _refreshData();
+                                });
                           },
                           decoration: InputDecoration(
-                            hintText: 'Cari berdasarkan lokasi atau jenis service...',
+                            hintText:
+                            'Cari berdasarkan lokasi atau jenis service...',
                             hintStyle: greyTextStyle.copyWith(fontSize: 14),
                             border: InputBorder.none,
                           ),
@@ -295,21 +338,23 @@ class _ServiceListPageState extends State<ServiceListPage> {
                             setState(() => _searchQuery = '');
                             _refreshData();
                           },
-                          icon: const Icon(Iconsax.close_circle, color: Colors.red),
+                          icon: const Icon(Iconsax.close_circle,
+                              color: Colors.red),
                         ),
                     ],
                   ),
                 ),
               ),
 
-              // Filter Status Chips
               SizedBox(
                 height: 60,
                 child: ListView(
                   scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   children: _statusChips.map((statusChip) {
                     final isSelected = _selectedStatus == statusChip['value'];
+
                     return Padding(
                       padding: const EdgeInsets.only(right: 8),
                       child: ChoiceChip(
@@ -318,25 +363,32 @@ class _ServiceListPageState extends State<ServiceListPage> {
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: medium,
-                            color: isSelected ? Colors.white : (statusChip['color'] as Color),
+                            color: isSelected
+                                ? Colors.white
+                                : (statusChip['color'] as Color),
                           ),
                         ),
                         selected: isSelected,
                         selectedColor: statusChip['color'] as Color,
-                        backgroundColor: (statusChip['color'] as Color).withValues(alpha:0.1),
-                        onSelected: (selected) {
-                          setState(() => _selectedStatus = statusChip['value'] as String);
+                        backgroundColor:
+                        (statusChip['color'] as Color).withValues(alpha: 0.1),
+                        onSelected: (_) {
+                          setState(() {
+                            _selectedStatus = statusChip['value'] as String;
+                          });
                           _refreshData();
                         },
                         avatar: isSelected
-                            ? const Icon(Iconsax.tick_circle, size: 16, color: Colors.white)
+                            ? const Icon(Iconsax.tick_circle,
+                            size: 16, color: Colors.white)
                             : null,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20),
                           side: BorderSide(
                             color: isSelected
                                 ? Colors.transparent
-                                : (statusChip['color'] as Color).withValues(alpha:0.3),
+                                : (statusChip['color'] as Color)
+                                .withValues(alpha: 0.3),
                           ),
                         ),
                       ),
@@ -345,9 +397,9 @@ class _ServiceListPageState extends State<ServiceListPage> {
                 ),
               ),
 
-              // Dropdown Filter Jenis
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   decoration: BoxDecoration(
@@ -355,7 +407,7 @@ class _ServiceListPageState extends State<ServiceListPage> {
                     borderRadius: BorderRadius.circular(10),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.grey.withValues(alpha:0.1),
+                        color: Colors.grey.withValues(alpha: 0.1),
                         blurRadius: 5,
                         offset: const Offset(0, 2),
                       ),
@@ -370,21 +422,22 @@ class _ServiceListPageState extends State<ServiceListPage> {
                           value: _selectedJenis,
                           isExpanded: true,
                           underline: const SizedBox(),
-                          icon: Icon(Iconsax.arrow_down_1, color: kPrimaryColor),
+                          icon: Icon(Iconsax.arrow_down_1,
+                              color: kPrimaryColor),
                           items: _jenisList.map((jenis) {
                             return DropdownMenuItem<String>(
                               value: jenis['value'] as String,
                               child: Text(
                                 jenis['display'] as String,
-                                style: primaryTextStyle.copyWith(fontSize: 14),
+                                style:
+                                primaryTextStyle.copyWith(fontSize: 14),
                               ),
                             );
                           }).toList(),
-                          onChanged: (String? newValue) {
-                            if (newValue != null) {
-                              setState(() => _selectedJenis = newValue);
-                              _refreshData();
-                            }
+                          onChanged: (newValue) {
+                            if (newValue == null) return;
+                            setState(() => _selectedJenis = newValue);
+                            _refreshData();
                           },
                         ),
                       ),
@@ -394,7 +447,8 @@ class _ServiceListPageState extends State<ServiceListPage> {
                             setState(() => _selectedJenis = 'Semua');
                             _refreshData();
                           },
-                          icon: Icon(Iconsax.close_circle, color: Colors.red, size: 18),
+                          icon: const Icon(Iconsax.close_circle,
+                              color: Colors.red, size: 18),
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
                         ),
@@ -403,16 +457,16 @@ class _ServiceListPageState extends State<ServiceListPage> {
                 ),
               ),
 
-              // Info jumlah service ditemukan
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                padding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: Colors.blue.withValues(alpha:0.1),
+                        color: Colors.blue.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
@@ -424,6 +478,7 @@ class _ServiceListPageState extends State<ServiceListPage> {
                         ),
                       ),
                     ),
+                    const Spacer(),
                     if (_selectedStatus != 'Semua' ||
                         _selectedJenis != 'Semua' ||
                         _selectedDate != null ||
@@ -465,12 +520,20 @@ class _ServiceListPageState extends State<ServiceListPage> {
     );
   }
 
-  Widget _buildServicesList(OwnerMasterProvider provider, List<ServisModel> services) {
+  Widget _buildServicesList(
+      OwnerMasterProvider provider,
+      List<ServisModel> services,
+      ) {
     if (provider.loading && services.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
 
     if (services.isEmpty) {
+      final hasFilter = _selectedStatus != 'Semua' ||
+          _selectedJenis != 'Semua' ||
+          _selectedDate != null ||
+          _searchQuery.isNotEmpty;
+
       return ListView(
         children: [
           const SizedBox(height: 100),
@@ -480,24 +543,19 @@ class _ServiceListPageState extends State<ServiceListPage> {
               const SizedBox(height: 16),
               Text(
                 'Tidak ada jadwal service',
-                style: greyTextStyle.copyWith(fontSize: 16, fontWeight: medium),
+                style:
+                greyTextStyle.copyWith(fontSize: 16, fontWeight: medium),
               ),
               const SizedBox(height: 8),
               Text(
-                _selectedStatus != 'Semua' ||
-                    _selectedJenis != 'Semua' ||
-                    _selectedDate != null ||
-                    _searchQuery.isNotEmpty
+                hasFilter
                     ? 'Coba ubah filter pencarian'
                     : 'Belum ada jadwal service yang tercatat',
                 style: greyTextStyle.copyWith(fontSize: 14),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 20),
-              if (_selectedStatus != 'Semua' ||
-                  _selectedJenis != 'Semua' ||
-                  _selectedDate != null ||
-                  _searchQuery.isNotEmpty)
+              if (hasFilter)
                 ElevatedButton(
                   onPressed: () {
                     setState(() {
@@ -511,9 +569,14 @@ class _ServiceListPageState extends State<ServiceListPage> {
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: kPrimaryColor,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
-                  child: Text('Reset Filter', style: whiteTextStyle.copyWith(fontSize: 14)),
+                  child: Text(
+                    'Reset Filter',
+                    style: whiteTextStyle.copyWith(fontSize: 14),
+                  ),
                 ),
             ],
           ),
@@ -532,39 +595,59 @@ class _ServiceListPageState extends State<ServiceListPage> {
     );
   }
 
-  // Jika ingin ada dialog untuk melihat detail tim teknisi
-
-  // ================= MODERN SERVICE CARD =================
   Widget _buildModernServiceCard(ServisModel service) {
-    final statusColor = _getStatusColor(service.status.name);
-    final statusDisplay = _getStatusDisplay(service.status.name);
-    final time = service.tanggalBerkunjung != null ? DateFormat('HH:mm').format(service.tanggalBerkunjung!) : '-';
+    final statusKey = service.status.name;
+    final statusColor = _getStatusColor(statusKey);
+    final statusDisplay = _getStatusDisplay(statusKey);
+
+    final time = service.tanggalBerkunjung != null
+        ? DateFormat('HH:mm').format(service.tanggalBerkunjung!)
+        : '-';
+
     final date = service.tanggalBerkunjung != null
         ? DateFormat('dd MMM y', 'id_ID').format(service.tanggalBerkunjung!)
         : 'Tanggal belum ditentukan';
+
+    final technicianText = _technicianDisplay(service);
+    final technicianTitle = _technicianTitle(service);
+    final catatan = service.catatan ?? '';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha:0.05), blurRadius: 15, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 15,
+            offset: const Offset(0, 4),
+          ),
+        ],
         border: Border.all(color: Colors.grey[100]!, width: 1),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(20),
         child: Column(
           children: [
-            // Header
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              padding:
+              const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.centerLeft,
                   end: Alignment.centerRight,
-                  colors: [statusColor.withValues(alpha:0.1), statusColor.withValues(alpha:0.05)],
+                  colors: [
+                    statusColor.withValues(alpha: 0.1),
+                    statusColor.withValues(alpha: 0.05),
+                  ],
                 ),
-                border: Border(bottom: BorderSide(color: statusColor.withValues(alpha:0.2), width: 1)),
+                border: Border(
+                  bottom: BorderSide(
+                    color: statusColor.withValues(alpha: 0.2),
+                    width: 1,
+                  ),
+                ),
               ),
               child: Row(
                 children: [
@@ -573,49 +656,75 @@ class _ServiceListPageState extends State<ServiceListPage> {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
-                      boxShadow: [BoxShadow(color: statusColor.withValues(alpha:0.1), blurRadius: 8, offset: const Offset(0, 2))],
+                      boxShadow: [
+                        BoxShadow(
+                          color: statusColor.withValues(alpha: 0.1),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
-                    child: Icon(_getServiceIcon(service.jenisDisplay), color: statusColor, size: 20),
+                    child: Icon(
+                      _getServiceIcon(service.jenisDisplay),
+                      color: statusColor,
+                      size: 20,
+                    ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Service ${service.jenisDisplay}',
-                            style: primaryTextStyle.copyWith(fontSize: 14, fontWeight: FontWeight.bold)),
+                        Text(
+                          'Service ${service.jenisDisplay}',
+                          style: primaryTextStyle.copyWith(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                         const SizedBox(height: 4),
                         Row(
                           children: [
-                            Icon(Iconsax.calendar_1, size: 12, color: Colors.grey[600]),
+                            Icon(Iconsax.calendar_1,
+                                size: 12, color: Colors.grey[600]),
                             const SizedBox(width: 6),
-                            Text(date, style: greyTextStyle.copyWith(fontSize: 10)),
+                            Text(date,
+                                style: greyTextStyle.copyWith(fontSize: 10)),
                             const SizedBox(width: 12),
-                            Icon(Iconsax.clock, size: 10, color: Colors.grey[600]),
+                            Icon(Iconsax.clock,
+                                size: 10, color: Colors.grey[600]),
                             const SizedBox(width: 6),
-                            Text(time, style: greyTextStyle.copyWith(fontSize: 10)),
+                            Text(time,
+                                style: greyTextStyle.copyWith(fontSize: 10)),
                           ],
                         ),
                       ],
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: statusColor.withValues(alpha:0.15),
+                      color: statusColor.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: statusColor.withValues(alpha:0.3), width: 1),
+                      border: Border.all(
+                        color: statusColor.withValues(alpha: 0.3),
+                        width: 1,
+                      ),
                     ),
                     child: Text(
                       statusDisplay,
-                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: statusColor),
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: statusColor,
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
 
-            // Detail
             Padding(
               padding: const EdgeInsets.all(20),
               child: Column(
@@ -629,19 +738,19 @@ class _ServiceListPageState extends State<ServiceListPage> {
                           title: 'Lokasi',
                           value: service.lokasiNama,
                           iconColor: kPrimaryColor,
-                          backgroundColor: kPrimaryColor.withValues(alpha:0.05),
+                          backgroundColor:
+                          kPrimaryColor.withValues(alpha: 0.05),
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: _buildDetailCard(
                           icon: Iconsax.profile_2user,
-                          title: service.technicianIds?.isEmpty ?? true
-                              ? 'Teknisi'
-                              : (service.technicianIds!.length == 1 ? 'Teknisi' : 'Tim Teknisi'),
-                          value: service.techniciansNamesDisplay, // ✅ tampil "Andi Teknisi, Rina Teknisi"
+                          title: technicianTitle,
+                          value: technicianText,
                           iconColor: Colors.blue,
-                          backgroundColor: Colors.blue.withValues(alpha:0.05),
+                          backgroundColor:
+                          Colors.blue.withValues(alpha: 0.05),
                         ),
                       ),
                     ],
@@ -656,43 +765,61 @@ class _ServiceListPageState extends State<ServiceListPage> {
                         color: Colors.purple,
                       ),
                       const SizedBox(width: 8),
-                      if (service.noInvoice != null && service.noInvoice!.isNotEmpty)
-                        _buildInfoChip(icon: Iconsax.receipt, label: service.noInvoice!, color: Colors.green),
+                      if ((service.noInvoice ?? '').isNotEmpty)
+                        _buildInfoChip(
+                          icon: Iconsax.receipt,
+                          label: service.noInvoice!,
+                          color: Colors.green,
+                        ),
                     ],
                   ),
 
-                  if (_shouldShowProgress(service.status.name)) ...[
+                  if (_shouldShowProgress(statusKey)) ...[
                     const SizedBox(height: 16),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      padding:
+                      const EdgeInsets.symmetric(horizontal: 4),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text('Proses Service', style: greyTextStyle.copyWith(fontSize: 11, fontWeight: FontWeight.w500)),
-                              Text('${_getProgressStep(service.status.name)}/4', style: greyTextStyle.copyWith(fontSize: 11)),
+                              Text(
+                                'Proses Service',
+                                style: greyTextStyle.copyWith(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              const Spacer(),
+                              Text(
+                                '${_getProgressStep(statusKey)}/4',
+                                style: greyTextStyle.copyWith(fontSize: 11),
+                              ),
                             ],
                           ),
                           const SizedBox(height: 6),
                           ClipRRect(
                             borderRadius: BorderRadius.circular(4),
                             child: LinearProgressIndicator(
-                              value: _getProgressValue(service.status.name),
+                              value: _getProgressValue(statusKey),
                               backgroundColor: Colors.grey[200],
                               color: statusColor,
                               minHeight: 6,
                             ),
                           ),
                           const SizedBox(height: 4),
-                          Text(_getProgressDescription(service.status.name), style: greyTextStyle.copyWith(fontSize: 10)),
+                          Text(
+                            _getProgressDescription(statusKey),
+                            style:
+                            greyTextStyle.copyWith(fontSize: 10),
+                          ),
                         ],
                       ),
                     ),
                   ],
 
-                  if (service.catatan.isNotEmpty) ...[
+                  if (catatan.isNotEmpty) ...[
                     const SizedBox(height: 16),
                     Container(
                       padding: const EdgeInsets.all(12),
@@ -704,12 +831,16 @@ class _ServiceListPageState extends State<ServiceListPage> {
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(Iconsax.note_text, color: Colors.amber[700], size: 16),
+                          Icon(Iconsax.note_text,
+                              color: Colors.amber[700], size: 16),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              service.catatan,
-                              style: TextStyle(fontSize: 12, color: Colors.amber[800]),
+                              catatan,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.amber[800],
+                              ),
                             ),
                           ),
                         ],
@@ -740,7 +871,7 @@ class _ServiceListPageState extends State<ServiceListPage> {
       decoration: BoxDecoration(
         color: backgroundColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: iconColor.withValues(alpha:0.1)),
+        border: Border.all(color: iconColor.withValues(alpha: 0.1)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -749,13 +880,22 @@ class _ServiceListPageState extends State<ServiceListPage> {
             children: [
               Icon(icon, size: 14, color: iconColor),
               const SizedBox(width: 6),
-              Text(title, style: greyTextStyle.copyWith(fontSize: 11, fontWeight: FontWeight.w500)),
+              Text(
+                title,
+                style: greyTextStyle.copyWith(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 6),
           Text(
             value,
-            style: primaryTextStyle.copyWith(fontSize: 13, fontWeight: FontWeight.w600),
+            style: primaryTextStyle.copyWith(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
@@ -772,16 +912,23 @@ class _ServiceListPageState extends State<ServiceListPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withValues(alpha:0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withValues(alpha:0.2)),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: 12, color: color),
           const SizedBox(width: 4),
-          Text(label, style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.w500)),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              color: color,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
         ],
       ),
     );
@@ -798,23 +945,34 @@ class _ServiceListPageState extends State<ServiceListPage> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => OwnerServiceDetailPage(service: service, isReassign: false),
+                      builder: (_) => OwnerServiceDetailPage(
+                        service: service,
+                        isReassign: false,
+                      ),
                     ),
                   );
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: kPrimaryColor,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding:
+                  const EdgeInsets.symmetric(vertical: 14),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: const [
-                    Icon(Iconsax.document, size: 18, color: Colors.white),
+                    Icon(Iconsax.document,
+                        size: 18, color: Colors.white),
                     SizedBox(width: 8),
                     Text(
                       'Detail & Assign AC',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white),
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
                     ),
                   ],
                 ),
@@ -832,9 +990,13 @@ class _ServiceListPageState extends State<ServiceListPage> {
                   final result = await Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => OwnerServiceDetailPage(service: service, isReassign: true),
+                      builder: (_) => OwnerServiceDetailPage(
+                        service: service,
+                        isReassign: true,
+                      ),
                     ),
                   );
+
                   if (!mounted) return;
                   if (result == true) {
                     await _refreshData();
@@ -842,18 +1004,29 @@ class _ServiceListPageState extends State<ServiceListPage> {
                 },
                 style: OutlinedButton.styleFrom(
                   backgroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  side: const BorderSide(color: Colors.blue, width: 1.5),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding:
+                  const EdgeInsets.symmetric(vertical: 14),
+                  side: const BorderSide(
+                    color: Colors.blue,
+                    width: 1.5,
+                  ),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: const [
-                    Icon(Iconsax.profile_2user, size: 18, color: Colors.blue),
+                    Icon(Iconsax.profile_2user,
+                        size: 18, color: Colors.blue),
                     SizedBox(width: 8),
                     Text(
                       'Ganti Teknisi',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.blue),
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.blue,
+                      ),
                     ),
                   ],
                 ),
@@ -862,16 +1035,23 @@ class _ServiceListPageState extends State<ServiceListPage> {
             const SizedBox(width: 12),
             Expanded(
               child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
+                padding: const EdgeInsets.symmetric(
+                    vertical: 14, horizontal: 4),
                 decoration: BoxDecoration(
                   color: Colors.blue.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
+                  border: Border.all(
+                    color: Colors.blue.withValues(alpha: 0.3),
+                  ),
                 ),
                 child: const Center(
                   child: Text(
                     'Menunggu Teknisi',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.blue),
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.blue,
+                    ),
                   ),
                 ),
               ),
@@ -879,7 +1059,6 @@ class _ServiceListPageState extends State<ServiceListPage> {
           ],
         );
 
-    // Di bagian status 'dikerjakan' dan 'selesai'
       case 'dikerjakan':
         return Row(
           children: [
@@ -889,16 +1068,18 @@ class _ServiceListPageState extends State<ServiceListPage> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => OwnerServiceMonitoringPage(
-                        service: service,  // ← PAKAI HALAMAN BARU
-                      ),
+                      builder: (_) =>
+                          OwnerServiceMonitoringPage(service: service),
                     ),
                   );
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.purple,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding:
+                  const EdgeInsets.symmetric(vertical: 14),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -907,7 +1088,11 @@ class _ServiceListPageState extends State<ServiceListPage> {
                     SizedBox(width: 8),
                     Text(
                       'Lihat Progress',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white),
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
                     ),
                   ],
                 ),
@@ -925,25 +1110,32 @@ class _ServiceListPageState extends State<ServiceListPage> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => OwnerServiceMonitoringPage(
-                        service: service,  // ← PAKAI HALAMAN BARU
-                      ),
+                      builder: (_) =>
+                          OwnerServiceMonitoringPage(service: service),
                     ),
                   );
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding:
+                  const EdgeInsets.symmetric(vertical: 14),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: const [
-                    Icon(Iconsax.document_text, size: 18, color: Colors.white),
+                    Icon(Iconsax.document_text,
+                        size: 18, color: Colors.white),
                     SizedBox(width: 8),
                     Text(
                       'Lihat Detail',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white),
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
                     ),
                   ],
                 ),
@@ -952,23 +1144,32 @@ class _ServiceListPageState extends State<ServiceListPage> {
             const SizedBox(width: 12),
             Expanded(
               child: OutlinedButton(
-                onPressed: () {
-                  // TODO: Navigasi ke halaman invoice
-                },
+                onPressed: () {},
                 style: OutlinedButton.styleFrom(
                   backgroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  side: const BorderSide(color: Colors.green, width: 1.5),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding:
+                  const EdgeInsets.symmetric(vertical: 14),
+                  side: const BorderSide(
+                    color: Colors.green,
+                    width: 1.5,
+                  ),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: const [
-                    Icon(Iconsax.receipt, size: 18, color: Colors.green),
+                    Icon(Iconsax.receipt,
+                        size: 18, color: Colors.green),
                     SizedBox(width: 8),
                     Text(
                       'Invoice',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.green),
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.green,
+                      ),
                     ),
                   ],
                 ),
@@ -1016,7 +1217,9 @@ class _ServiceListPageState extends State<ServiceListPage> {
     }
   }
 
-  bool _shouldShowProgress(String status) => status != 'selesai' && status != 'batal';
+  bool _shouldShowProgress(String status) {
+    return status != 'selesai' && status != 'batal';
+  }
 
   int _getProgressStep(String status) {
     switch (status) {
@@ -1048,7 +1251,9 @@ class _ServiceListPageState extends State<ServiceListPage> {
     }
   }
 
-  double _getProgressValue(String status) => _getProgressStep(status) / 4;
+  double _getProgressValue(String status) {
+    return _getProgressStep(status) / 4;
+  }
 
   IconData _getServiceIcon(String jenis) {
     switch (jenis.toLowerCase()) {

@@ -15,9 +15,6 @@ import 'owner_ac_detail_view_page.dart';
 
 class OwnerServiceMonitoringPage extends StatefulWidget {
   final ServisModel service;
-
-  /// Kalau endpoint foto butuh Bearer token (umumnya iya), isi token owner di sini.
-  /// Kalau fotonya public, boleh null.
   final String? token;
 
   const OwnerServiceMonitoringPage({
@@ -39,11 +36,9 @@ class _OwnerServiceMonitoringPageState extends State<OwnerServiceMonitoringPage>
   String? _token;
   bool _loadingToken = true;
 
-  // Untuk animasi
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
 
-  // ===== DEBUG =====
   bool _debugPhoto = true;
 
   void _debugPrint(String msg) {
@@ -65,7 +60,6 @@ class _OwnerServiceMonitoringPageState extends State<OwnerServiceMonitoringPage>
     });
   }
 
-
   @override
   void initState() {
     super.initState();
@@ -76,13 +70,13 @@ class _OwnerServiceMonitoringPageState extends State<OwnerServiceMonitoringPage>
       vsync: this,
       duration: const Duration(milliseconds: 500),
     );
-    _fadeAnimation = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeIn),
-    );
+    _fadeAnimation = Tween<double>(
+      begin: 0,
+      end: 1,
+    ).animate(CurvedAnimation(parent: _animationController, curve: Curves.easeIn));
     _animationController.forward();
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      // 1) prioritas: kalau widget.token ada, pakai itu
       final argToken = (widget.token ?? '').trim();
       if (argToken.isNotEmpty) {
         setState(() {
@@ -90,14 +84,12 @@ class _OwnerServiceMonitoringPageState extends State<OwnerServiceMonitoringPage>
           _loadingToken = false;
         });
       } else {
-        // 2) kalau tidak ada, ambil dari TokenStore
         await _loadToken();
       }
 
       _debugPrint('token length: ${(_token ?? '').trim().length}');
       _debugPrint('auth headers: $_authHeaders');
 
-      // Cari 1 foto untuk probe (setelah token siap)
       for (final it in _service.itemsData) {
         final itemId = int.tryParse((it['id'] ?? '').toString()) ?? 0;
         if (itemId <= 0) continue;
@@ -107,17 +99,14 @@ class _OwnerServiceMonitoringPageState extends State<OwnerServiceMonitoringPage>
         final urlsSesudah = _photoUrlsOfItem(it, 'sesudah');
 
         if (urlsSebelum.isNotEmpty) {
-          _debugPrint('test itemId=$itemId type=sebelum url=${urlsSebelum.first}');
           await _probeImage(urlsSebelum.first);
           break;
         }
         if (urlsPengerjaan.isNotEmpty) {
-          _debugPrint('test itemId=$itemId type=pengerjaan url=${urlsPengerjaan.first}');
           await _probeImage(urlsPengerjaan.first);
           break;
         }
         if (urlsSesudah.isNotEmpty) {
-          _debugPrint('test itemId=$itemId type=sesudah url=${urlsSesudah.first}');
           await _probeImage(urlsSesudah.first);
           break;
         }
@@ -132,13 +121,11 @@ class _OwnerServiceMonitoringPageState extends State<OwnerServiceMonitoringPage>
     super.dispose();
   }
 
-  // ==================== AUTH HEADERS ====================
   Map<String, String> get _authHeaders {
     final t = (_token ?? '').trim();
     if (t.isEmpty) return const {'Accept': 'image/*'};
     return {'Authorization': 'Bearer $t', 'Accept': 'image/*'};
   }
-
 
   Future<void> _probeImage(String url) async {
     try {
@@ -153,7 +140,6 @@ class _OwnerServiceMonitoringPageState extends State<OwnerServiceMonitoringPage>
     }
   }
 
-  // ==================== HELPER FUNCTIONS ====================
   Color _getStatusColor(String status) {
     switch (status) {
       case 'dikerjakan':
@@ -183,8 +169,7 @@ class _OwnerServiceMonitoringPageState extends State<OwnerServiceMonitoringPage>
   }
 
   int? _getTechnicianIdForAc(int acId) {
-    final items = _service.itemsData;
-    for (final item in items) {
+    for (final item in _service.itemsData) {
       final itemAcId = int.tryParse((item['ac_unit_id'] ?? '').toString()) ?? 0;
       if (itemAcId == acId) {
         final techId =
@@ -196,8 +181,7 @@ class _OwnerServiceMonitoringPageState extends State<OwnerServiceMonitoringPage>
   }
 
   Map<String, dynamic>? _getItemByAcId(int acId) {
-    final items = _service.itemsData;
-    for (final item in items) {
+    for (final item in _service.itemsData) {
       final itemAcId = int.tryParse((item['ac_unit_id'] ?? '').toString()) ?? 0;
       if (itemAcId == acId) {
         return item;
@@ -231,10 +215,14 @@ class _OwnerServiceMonitoringPageState extends State<OwnerServiceMonitoringPage>
     return DateFormat('dd MMM yyyy • HH:mm', 'id_ID').format(dt);
   }
 
+  String _lokasiAlamat() {
+    final map = _service.lokasiData;
+    if (map == null) return '-';
+    return (map['address'] ?? '-').toString();
+  }
+
   List<Map<String, dynamic>> _getAcList() {
-    // Priority: itemsData -> ambil ac_unit
-    final items = _service.itemsData;
-    final fromItems = items
+    final fromItems = _service.itemsData
         .map((it) => it['ac_unit'])
         .where((u) => u is Map)
         .map((u) => Map<String, dynamic>.from(u as Map))
@@ -253,11 +241,10 @@ class _OwnerServiceMonitoringPageState extends State<OwnerServiceMonitoringPage>
       return uniq;
     }
 
-    // Fallback
-    if (_service.acUnitsDetail.isNotEmpty) return _service.acUnitsDetail;
     if (_service.acData != null && _service.acData!.isNotEmpty) {
       return [_service.acData!];
     }
+
     return [];
   }
 
@@ -273,7 +260,6 @@ class _OwnerServiceMonitoringPageState extends State<OwnerServiceMonitoringPage>
     return (completed * 100 / items.length).round();
   }
 
-  // ==================== FOTO ====================
   List<String> _photoUrlsOfItem(Map<String, dynamic>? item, String type) {
     if (item == null) return const [];
     final itemId = int.tryParse((item['id'] ?? '').toString()) ?? 0;
@@ -288,10 +274,6 @@ class _OwnerServiceMonitoringPageState extends State<OwnerServiceMonitoringPage>
 
     final raw = item[key];
 
-    // DEBUG raw value
-    _debugPrint('itemId=$itemId key=$key rawType=${raw.runtimeType} raw=$raw');
-
-    // 1) Jika API kirim URL langsung (http/https), pakai langsung
     List<String> directUrls = [];
 
     if (raw is List) {
@@ -320,25 +302,15 @@ class _OwnerServiceMonitoringPageState extends State<OwnerServiceMonitoringPage>
       }
     }
 
-    if (directUrls.isNotEmpty) {
-      _debugPrint('itemId=$itemId type=$type directUrls=${directUrls.length} first=${directUrls.first}');
-      return directUrls;
-    }
+    if (directUrls.isNotEmpty) return directUrls;
 
-    // 2) Pakai strategi helper (API media pakai index i)
-    final urls = asServiceItemPhotoUrls(
+    return asServiceItemPhotoUrls(
       itemId: itemId,
       type: type,
       valueFromApi: raw,
     );
-
-    if (urls.isNotEmpty) {
-      _debugPrint('itemId=$itemId type=$type helperUrls=${urls.length} first=${urls.first}');
-    }
-    return urls;
   }
 
-  // ==================== BUILD METHODS ====================
   @override
   Widget build(BuildContext context) {
     final status = (_service.status.name).toLowerCase();
@@ -386,10 +358,7 @@ class _OwnerServiceMonitoringPageState extends State<OwnerServiceMonitoringPage>
                     gradient: LinearGradient(
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
-                      colors: [
-                        statusColor,
-                        statusColor.withValues(alpha: 0.8),
-                      ],
+                      colors: [statusColor, statusColor.withValues(alpha: 0.8)],
                     ),
                   ),
                   child: SafeArea(
@@ -456,7 +425,7 @@ class _OwnerServiceMonitoringPageState extends State<OwnerServiceMonitoringPage>
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  _service.lokasiAlamat,
+                                  _lokasiAlamat(),
                                   style: TextStyle(
                                     fontSize: 13,
                                     color: Colors.white.withValues(alpha: 0.9),
@@ -524,8 +493,6 @@ class _OwnerServiceMonitoringPageState extends State<OwnerServiceMonitoringPage>
                                     statusColor.withValues(alpha: 0.1),
                                     statusColor.withValues(alpha: 0.05),
                                   ],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
                                 ),
                                 borderRadius: BorderRadius.circular(12),
                               ),
@@ -669,13 +636,9 @@ class _OwnerServiceMonitoringPageState extends State<OwnerServiceMonitoringPage>
                   ),
 
                   const SizedBox(height: 20),
-
                   _buildTimelineCard(),
-
                   const SizedBox(height: 20),
-
                   _buildServiceDetailsCard(),
-
                   const SizedBox(height: 40),
                 ]),
               ),
@@ -686,7 +649,6 @@ class _OwnerServiceMonitoringPageState extends State<OwnerServiceMonitoringPage>
     );
   }
 
-  // ==================== TAB 1: DAFTAR AC ====================
   Widget _buildAcListTab(List<Map<String, dynamic>> acList) {
     if (acList.isEmpty) {
       return Center(
@@ -698,7 +660,9 @@ class _OwnerServiceMonitoringPageState extends State<OwnerServiceMonitoringPage>
             Text(
               'Tidak Ada Unit AC',
               style: greyTextStyle.copyWith(
-                  fontSize: 16, fontWeight: FontWeight.w600),
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
@@ -729,12 +693,12 @@ class _OwnerServiceMonitoringPageState extends State<OwnerServiceMonitoringPage>
 
         return GestureDetector(
           onTap: () {
-            final acId = int.tryParse((ac['id'] ?? '').toString()) ?? 0;
             final item = _getItemByAcId(acId);
-
             if (item == null) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Item service untuk AC ini tidak ditemukan')),
+                const SnackBar(
+                  content: Text('Item service untuk AC ini tidak ditemukan'),
+                ),
               );
               return;
             }
@@ -786,11 +750,7 @@ class _OwnerServiceMonitoringPageState extends State<OwnerServiceMonitoringPage>
                     color: statusColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(
-                    Iconsax.airdrop,
-                    color: statusColor,
-                    size: 26,
-                  ),
+                  child: Icon(Iconsax.airdrop, color: statusColor, size: 26),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -906,7 +866,6 @@ class _OwnerServiceMonitoringPageState extends State<OwnerServiceMonitoringPage>
     );
   }
 
-  // ==================== TAB 2: TIM TEKNISI ====================
   Widget _buildTechniciansTab() {
     final Set<int> techIds = {};
     for (final item in _service.itemsData) {
@@ -924,7 +883,9 @@ class _OwnerServiceMonitoringPageState extends State<OwnerServiceMonitoringPage>
             Text(
               'Belum Ada Teknisi',
               style: greyTextStyle.copyWith(
-                  fontSize: 16, fontWeight: FontWeight.w600),
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
@@ -980,8 +941,6 @@ class _OwnerServiceMonitoringPageState extends State<OwnerServiceMonitoringPage>
                           Colors.blue.withValues(alpha: 0.2),
                           Colors.blue.withValues(alpha: 0.1),
                         ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
                       ),
                       borderRadius: BorderRadius.circular(16),
                     ),
@@ -1056,7 +1015,6 @@ class _OwnerServiceMonitoringPageState extends State<OwnerServiceMonitoringPage>
     );
   }
 
-  // ==================== TIMELINE CARD ====================
   Widget _buildTimelineCard() {
     final steps = [
       _TimelineStep(
@@ -1100,8 +1058,8 @@ class _OwnerServiceMonitoringPageState extends State<OwnerServiceMonitoringPage>
                   color: kPrimaryColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Iconsax.timer_1,
-                    color: kPrimaryColor, size: 20),
+                child:
+                const Icon(Iconsax.timer_1, color: kPrimaryColor, size: 20),
               ),
               const SizedBox(width: 12),
               const Text(
@@ -1190,8 +1148,11 @@ class _OwnerServiceMonitoringPageState extends State<OwnerServiceMonitoringPage>
     );
   }
 
-  // ==================== DETAIL SERVICE CARD ====================
   Widget _buildServiceDetailsCard() {
+    final catatan = _service.catatan ?? '';
+    final diagnosa = _service.diagnosa ?? '';
+    final tindakan = _service.tindakanSummary ?? '';
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -1234,26 +1195,22 @@ class _OwnerServiceMonitoringPageState extends State<OwnerServiceMonitoringPage>
           _buildDetailItem(
             icon: Iconsax.message_text,
             title: 'Keluhan',
-            content: _service.catatan.isNotEmpty
-                ? _service.catatan
-                : 'Tidak ada keluhan',
+            content: catatan.isNotEmpty ? catatan : 'Tidak ada keluhan',
             color: Colors.orange,
           ),
           const SizedBox(height: 16),
           _buildDetailItem(
             icon: Iconsax.key,
             title: 'Tindakan',
-            content: _service.tindakan.isEmpty
-                ? 'Belum ada tindakan'
-                : _service.tindakan.map((e) => e.name).join(', '),
+            content: tindakan.isNotEmpty ? tindakan : 'Belum ada tindakan',
             color: Colors.blue,
           ),
-          if (_service.diagnosa.trim().isNotEmpty) ...[
+          if (diagnosa.trim().isNotEmpty) ...[
             const SizedBox(height: 16),
             _buildDetailItem(
               icon: Iconsax.clipboard_text,
               title: 'Diagnosa',
-              content: _service.diagnosa,
+              content: diagnosa,
               color: Colors.purple,
             ),
           ],
@@ -1309,7 +1266,6 @@ class _OwnerServiceMonitoringPageState extends State<OwnerServiceMonitoringPage>
     );
   }
 
-  // ==================== INFO STAT ====================
   Widget _buildInfoStat({
     required IconData icon,
     required String label,
@@ -1346,661 +1302,6 @@ class _OwnerServiceMonitoringPageState extends State<OwnerServiceMonitoringPage>
             ],
           ),
         ],
-      ),
-    );
-  }
-
-  // ==================== DETAIL AC DIALOG ====================
-  void _showAcDetailDialog(BuildContext context, Map<String, dynamic> ac) {
-    final acId = int.tryParse((ac['id'] ?? '').toString()) ?? 0;
-    final name = (ac['name'] ?? '-').toString();
-    final brand = (ac['brand'] ?? '-').toString();
-    final type = (ac['type'] ?? '-').toString();
-    final capacity = (ac['capacity'] ?? '-').toString();
-    final location = (ac['location'] ?? '-').toString();
-    final serialNumber = (ac['serial_number'] ?? '-').toString();
-    const condition = 'Baik';
-
-    final techId = _getTechnicianIdForAc(acId);
-    final item = _getItemByAcId(acId);
-    final itemStatus = _getItemStatus(acId);
-    final statusColor = _getItemStatusColor(itemStatus);
-
-    final fotoSebelum = _photoUrlsOfItem(item, 'sebelum');
-    final fotoPengerjaan = _photoUrlsOfItem(item, 'pengerjaan');
-    final fotoSesudah = _photoUrlsOfItem(item, 'sesudah');
-
-    _debugPrint('AC dialog acId=$acId itemStatus=$itemStatus '
-        'sebelum=${fotoSebelum.length} pengerjaan=${fotoPengerjaan.length} sesudah=${fotoSesudah.length}');
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.85,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                margin: const EdgeInsets.only(top: 12),
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Row(
-                children: [
-                  Container(
-                    width: 60,
-                    height: 60,
-                    decoration: BoxDecoration(
-                      color: statusColor.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Icon(
-                      Iconsax.airdrop,
-                      color: statusColor,
-                      size: 30,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          name,
-                          style: primaryTextStyle.copyWith(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '$brand • $type',
-                          style: greyTextStyle.copyWith(fontSize: 14),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: statusColor.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      itemStatus,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: statusColor,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Divider(height: 1),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.all(20),
-                children: [
-                  _buildDetailSection(
-                    title: 'Spesifikasi AC',
-                    icon: Iconsax.cpu,
-                    color: kPrimaryColor,
-                    children: [
-                      _buildInfoRow('Merk', brand, Iconsax.building),
-                      _buildInfoRow('Tipe', type, Iconsax.category),
-                      _buildInfoRow('Kapasitas', capacity, Iconsax.speedometer),
-                      _buildInfoRow('Lokasi', location, Iconsax.location),
-                      _buildInfoRow('Serial Number', serialNumber, Iconsax.barcode),
-                      _buildInfoRow('Kondisi', condition, Iconsax.health),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  if (techId != null) ...[
-                    _buildDetailSection(
-                      title: 'Teknisi',
-                      icon: Iconsax.profile_2user,
-                      color: Colors.blue,
-                      children: [
-                        Consumer<OwnerMasterProvider>(
-                          builder: (context, prov, _) => _buildInfoRow(
-                            'Ditugaskan ke',
-                            _techNameById(prov, techId),
-                            Iconsax.profile_circle,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                  ],
-                  if (item != null) ...[
-                    _buildDetailSection(
-                      title: 'Timeline Item',
-                      icon: Iconsax.timer,
-                      color: Colors.orange,
-                      children: [
-                        _buildInfoRow(
-                          'Status',
-                          itemStatus.toUpperCase(),
-                          Iconsax.status,
-                          valueColor: statusColor,
-                        ),
-                        if (item['tanggal_mulai'] != null)
-                          _buildInfoRow(
-                            'Mulai',
-                            _formatDateTime(DateTime.parse(item['tanggal_mulai'].toString())),
-                            Iconsax.play_circle,
-                          ),
-                        if (item['tanggal_selesai'] != null)
-                          _buildInfoRow(
-                            'Selesai',
-                            _formatDateTime(DateTime.parse(item['tanggal_selesai'].toString())),
-                            Iconsax.tick_circle,
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                  ],
-                  if (fotoSebelum.isNotEmpty || fotoPengerjaan.isNotEmpty || fotoSesudah.isNotEmpty) ...[
-                    _buildPhotoGallerySection(
-                      fotoSebelum: fotoSebelum,
-                      fotoPengerjaan: fotoPengerjaan,
-                      fotoSesudah: fotoSesudah,
-                    ),
-                  ] else ...[
-                    Container(
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[50],
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Column(
-                        children: [
-                          Icon(Iconsax.gallery, size: 48, color: Colors.grey[400]),
-                          const SizedBox(height: 12),
-                          Text(
-                            'Belum Ada Dokumentasi',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Foto dokumentasi belum tersedia',
-                            style: TextStyle(fontSize: 13, color: Colors.grey[500]),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 20),
-                  if (item != null) ...[
-                    if (item['diagnosa'] != null && item['diagnosa'].toString().trim().isNotEmpty) ...[
-                      _buildDetailSection(
-                        title: 'Diagnosa',
-                        icon: Iconsax.clipboard_text,
-                        color: Colors.purple,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Text(
-                              item['diagnosa'].toString(),
-                              style: const TextStyle(fontSize: 14, color: Colors.black87),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                    ],
-                    if (item['tindakan'] != null && item['tindakan'].toString().trim().isNotEmpty) ...[
-                      _buildDetailSection(
-                        title: 'Tindakan',
-                        icon: Iconsax.key,
-                        color: Colors.blue,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Text(
-                              item['tindakan'].toString(),
-                              style: const TextStyle(fontSize: 14, color: Colors.black87),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ],
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDetailSection({
-    required String title,
-    required IconData icon,
-    required Color color,
-    required List<Widget> children,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.grey[50],
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey[200]!),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(icon, size: 18, color: color),
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey[800],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const Divider(height: 1, indent: 16, endIndent: 16),
-          ...children,
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(
-      String label,
-      String value,
-      IconData icon, {
-        Color? valueColor,
-      }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 16, color: Colors.grey[500]),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(label, style: TextStyle(fontSize: 13, color: Colors.grey[600])),
-                const SizedBox(width: 16),
-                Flexible(
-                  child: Text(
-                    value,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: valueColor ?? Colors.black87,
-                    ),
-                    textAlign: TextAlign.right,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPhotoGallerySection({
-    required List<String> fotoSebelum,
-    required List<String> fotoPengerjaan,
-    required List<String> fotoSesudah,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: kPrimaryColor.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(Iconsax.gallery, size: 18, color: kPrimaryColor),
-            ),
-            const SizedBox(width: 12),
-            const Text(
-              'Dokumentasi',
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        if (fotoSebelum.isNotEmpty) ...[
-          _buildPhotoCategory('Sebelum Servis', fotoSebelum, Colors.orange),
-          const SizedBox(height: 16),
-        ],
-        if (fotoPengerjaan.isNotEmpty) ...[
-          _buildPhotoCategory('Proses Pengerjaan', fotoPengerjaan, Colors.blue),
-          const SizedBox(height: 16),
-        ],
-        if (fotoSesudah.isNotEmpty) ...[
-          _buildPhotoCategory('Sesudah Servis', fotoSesudah, Colors.green),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildPhotoCategory(String title, List<String> photos, Color color) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 8),
-          child: Text(
-            title,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: Colors.grey[700],
-            ),
-          ),
-        ),
-        SizedBox(
-          height: 100,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: photos.length > 5 ? 5 : photos.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 8),
-            itemBuilder: (context, index) {
-              final url = photos[index];
-              return GestureDetector(
-                onTap: () => _showFullScreenImage(context, url),
-                child: Container(
-                  width: 100,
-                  height: 100,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: color.withValues(alpha: 0.3)),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.05),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Image.network(
-                      url,
-                      headers: _authHeaders,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, err, st) {
-                        debugPrint('[PHOTO_DEBUG] Image error: $err');
-                        return Container(
-                          color: Colors.grey[200],
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.broken_image,
-                                  color: Colors.grey[400], size: 32),
-                              const SizedBox(height: 4),
-                              Text('Gagal',
-                                  style: TextStyle(
-                                      fontSize: 10,
-                                      color: Colors.grey[500])),
-                            ],
-                          ),
-                        );
-                      },
-                      loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
-                        return Container(
-                          color: Colors.grey[200],
-                          child: const Center(
-                            child: SizedBox(
-                              width: 24,
-                              height: 24,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-        if (photos.length > 5) ...[
-          const SizedBox(height: 8),
-          TextButton(
-            onPressed: () => _showAllPhotos(context, title, photos, color),
-            style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              minimumSize: Size.zero,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-            child: Text(
-              'Lihat ${photos.length} foto',
-              style: TextStyle(
-                fontSize: 12,
-                color: color,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-
-  void _showFullScreenImage(BuildContext context, String url) {
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        insetPadding: const EdgeInsets.all(16),
-        backgroundColor: Colors.transparent,
-        child: Stack(
-          alignment: Alignment.topRight,
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: Container(
-                width: double.infinity,
-                height: MediaQuery.of(context).size.height * 0.6,
-                color: Colors.black,
-                child: Image.network(
-                  url,
-                  headers: _authHeaders,
-                  fit: BoxFit.contain,
-                  errorBuilder: (_, err, st) {
-                    debugPrint('[PHOTO_DEBUG] Image error(full): $err');
-                    return const Center(
-                      child: Icon(Icons.broken_image,
-                          color: Colors.white70, size: 50),
-                    );
-                  },
-                  loadingBuilder: (context, child, loadingProgress) {
-                    if (loadingProgress == null) return child;
-                    return const Center(
-                      child: CircularProgressIndicator(color: Colors.white),
-                    );
-                  },
-                ),
-              ),
-            ),
-            Positioned(
-              top: 10,
-              right: 10,
-              child: CircleAvatar(
-                backgroundColor: Colors.black.withValues(alpha: 0.5),
-                child: IconButton(
-                  icon: const Icon(Icons.close, color: Colors.white),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showAllPhotos(
-      BuildContext context,
-      String title,
-      List<String> photos,
-      Color color,
-      ) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.85,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: Column(
-          children: [
-            Center(
-              child: Container(
-                margin: const EdgeInsets.only(top: 12),
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: color.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(Iconsax.gallery, color: color, size: 20),
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  const Spacer(),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: color.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      '${photos.length} foto',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: color,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Divider(height: 1),
-            Expanded(
-              child: GridView.builder(
-                padding: const EdgeInsets.all(16),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 3,
-                  crossAxisSpacing: 8,
-                  mainAxisSpacing: 8,
-                  childAspectRatio: 1,
-                ),
-                itemCount: photos.length,
-                itemBuilder: (context, index) {
-                  final url = photos[index];
-                  return GestureDetector(
-                    onTap: () {
-                      Navigator.pop(context);
-                      _showFullScreenImage(context, url);
-                    },
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Image.network(
-                        url,
-                        headers: _authHeaders,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, err, st) {
-                          debugPrint('[PHOTO_DEBUG] Image error(grid): $err');
-                          return Container(
-                            color: Colors.grey[200],
-                            child: Center(
-                              child: Icon(Icons.broken_image,
-                                  color: Colors.grey[400], size: 30),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

@@ -21,7 +21,7 @@ class OwnerAcDetailViewPage extends StatelessWidget {
   Map<String, String> get _authHeaders {
     var t = (token ?? '').trim();
     if (t.toLowerCase().startsWith('bearer ')) {
-      t = t.substring(7).trim();
+      t = t.replaceFirst(RegExp(r'(?i)bearer '), '').trim();
     }
     if (t.isEmpty) return const {'Accept': 'image/*'};
     return {
@@ -84,19 +84,24 @@ class OwnerAcDetailViewPage extends StatelessWidget {
 
   String _formatDateTime(dynamic raw) {
     if (raw == null) return '-';
-    try {
-      final dt = raw is DateTime ? raw : DateTime.parse(raw.toString());
-      return DateFormat('dd MMM yyyy • HH:mm', 'id_ID').format(dt);
-    } catch (_) {
-      return raw.toString();
+
+    DateTime? dt;
+
+    if (raw is DateTime) {
+      dt = raw;
+    } else {
+      dt = DateTime.tryParse(raw.toString());
     }
+
+    if (dt == null) return '-';
+
+    return DateFormat('dd MMM yyyy • HH:mm', 'id_ID').format(dt);
   }
 
   @override
   Widget build(BuildContext context) {
-    final ac = (item['ac_unit'] is Map)
-        ? Map<String, dynamic>.from(item['ac_unit'] as Map)
-        : <String, dynamic>{};
+    final acRaw = item['ac_unit'];
+    final ac = acRaw is Map<String, dynamic> ? acRaw : <String, dynamic>{};
 
     final name = (ac['name'] ?? '-').toString();
     final brand = (ac['brand'] ?? '-').toString();

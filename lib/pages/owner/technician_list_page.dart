@@ -46,7 +46,12 @@ class _TechnicianListPageState extends State<TechnicianListPage> {
         builder: (context, provider, child) {
           if (provider.isLoading) return _buildLoadingShimmer();
 
-          if (provider.error.isNotEmpty) return _buildError(provider.error, provider);
+          if ((provider.error ?? '').isNotEmpty) {
+            return _buildError(
+              provider.error ?? 'Terjadi kesalahan',
+              provider,
+            );
+          }
 
           // Filter teknisi berdasarkan search dan filter
           List<Technician> filteredTechnicians = provider.technicians;

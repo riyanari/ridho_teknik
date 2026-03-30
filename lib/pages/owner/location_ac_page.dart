@@ -29,7 +29,7 @@ class _LocationAcPageState extends State<LocationAcPage> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<AcUnitProvider>().fetchAcUnits(
-        locationId: int.tryParse(widget.location.id) ?? 0,
+        locationId: widget.location.id,
       );
     });
   }
@@ -43,22 +43,28 @@ class _LocationAcPageState extends State<LocationAcPage> {
         builder: (context, provider, child) {
           if (provider.isLoading) return _buildLoadingShimmer();
 
-          if (provider.error.isNotEmpty) return _buildError(provider.error, provider);
+          if ((provider.error ?? '').isNotEmpty) {
+            return _buildError(
+              provider.error ?? 'Terjadi kesalahan',
+              provider,
+            );
+          }
 
           final locationAcUnits = provider.getAcUnitsByLocation(
-            int.tryParse(widget.location.id) ?? 0,
+            widget.location.id,
           );
 
           // Filter AC units berdasarkan tab yang dipilih
           List<AcModel> filteredAcUnits = locationAcUnits;
           if (_selectedTabIndex == 1) { // Butuh Service
             final sixMonthsAgo = DateTime.now().subtract(const Duration(days: 180));
-            filteredAcUnits = locationAcUnits.where((ac) =>
-                ac.terakhirService.isBefore(sixMonthsAgo)
+            filteredAcUnits = locationAcUnits.where((ac) => (ac.terakhirService == null ||
+                ac.terakhirService!.isBefore(sixMonthsAgo))
             ).toList();
           } else if (_selectedTabIndex == 2) { // Aktif
             filteredAcUnits = locationAcUnits.where((ac) =>
-                ac.terakhirService.isAfter(DateTime.now().subtract(const Duration(days: 30)))
+            (ac.terakhirService != null &&
+                ac.terakhirService!.isAfter(DateTime.now().subtract(const Duration(days: 30))))
             ).toList();
           }
 
@@ -370,11 +376,13 @@ class _LocationAcPageState extends State<LocationAcPage> {
     final threeMonthsAgo = now.subtract(const Duration(days: 90));
 
     final needServiceCount = acUnits.where((ac) =>
-        ac.terakhirService.isBefore(threeMonthsAgo)
+    (ac.terakhirService == null ||
+        ac.terakhirService!.isBefore(threeMonthsAgo))
     ).length;
 
     final activeCount = acUnits.where((ac) =>
-        ac.terakhirService.isAfter(now.subtract(const Duration(days: 30)))
+    (ac.terakhirService != null &&
+        ac.terakhirService!.isAfter(now.subtract(const Duration(days: 30))))
     ).length;
 
     return Container(
@@ -507,7 +515,7 @@ class _LocationAcPageState extends State<LocationAcPage> {
   Widget _buildAcList(AcUnitProvider provider, List<AcModel> acUnits) {
     return RefreshIndicator.adaptive(
       onRefresh: () => provider.fetchAcUnits(
-        locationId: int.tryParse(widget.location.id) ?? 0,
+        locationId: widget.location.id ,
       ),
       backgroundColor: Colors.white,
       color: kPrimaryColor,
@@ -567,8 +575,13 @@ class _LocationAcPageState extends State<LocationAcPage> {
   Widget _buildAcUnitCard(AcModel acUnit) {
     final now = DateTime.now();
     final threeMonthsAgo = now.subtract(const Duration(days: 90));
-    final needsService = acUnit.terakhirService.isBefore(threeMonthsAgo);
-    final isNew = acUnit.terakhirService.isAfter(now.subtract(const Duration(days: 30)));
+    final needsService = acUnit.terakhirService == null ||
+        acUnit.terakhirService!.isBefore(threeMonthsAgo);
+
+    final isNew = acUnit.terakhirService != null &&
+        acUnit.terakhirService!.isAfter(
+          now.subtract(const Duration(days: 30)),
+        );
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -777,7 +790,9 @@ class _LocationAcPageState extends State<LocationAcPage> {
     );
   }
 
-  String _formatDate(DateTime date) {
+  String _formatDate(DateTime? date) {
+    if (date == null) return 'Belum pernah service';
+
     final now = DateTime.now();
     final difference = now.difference(date);
 
@@ -859,7 +874,7 @@ class _LocationAcPageState extends State<LocationAcPage> {
               children: [
                 ElevatedButton(
                   onPressed: () => provider.fetchAcUnits(
-                    locationId: int.tryParse(widget.location.id) ?? 0,
+                    locationId: widget.location.id,
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: kPrimaryColor,
@@ -1018,7 +1033,7 @@ class _LocationAcPageState extends State<LocationAcPage> {
   }
 
   void _showAddAcDialog() async {
-    final locationId = int.tryParse(widget.location.id) ?? 0;
+    final locationId = widget.location.id;
     if (locationId == 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('❌ Location ID tidak valid')),

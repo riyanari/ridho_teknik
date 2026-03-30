@@ -29,7 +29,7 @@ class _AcListPageState extends State<AcListPage> {
     _searchController.addListener(_onSearchChanged);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final locId = int.tryParse(widget.lokasi.id) ?? 0;
+      final locId = widget.lokasi.id;
       context.read<ClientAcProvider>().fetchAc(locationId: locId);
     });
   }
@@ -82,7 +82,7 @@ class _AcListPageState extends State<AcListPage> {
   Widget _buildHeader(List<AcModel> list) {
     final totalAC = list.length;
     final needService = list
-        .where((ac) => DateTime.now().difference(ac.terakhirService).inDays > 60)
+        .where((ac) => DateTime.now().difference(ac.terakhirService!).inDays > 60)
         .length;
 
     return Container(
@@ -375,7 +375,7 @@ class _AcListPageState extends State<AcListPage> {
                         : 'Coba dengan kata kunci lain',
                     actionText: 'Refresh',
                     onAction: () async {
-                      final locId = int.tryParse(widget.lokasi.id) ?? 0;
+                      final locId = widget.lokasi.id;
                       await context
                           .read<ClientAcProvider>()
                           .fetchAc(locationId: locId);

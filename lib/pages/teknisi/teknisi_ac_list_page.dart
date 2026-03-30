@@ -1,139 +1,139 @@
-// lib/pages/teknisi/teknisi_ac_list_page.dart
 import 'package:flutter/material.dart';
+
 import '../../models/ac_model.dart';
-import '../../models/keluhan_model.dart';
 import '../../models/lokasi_model.dart';
 import '../../models/servis_model.dart';
-import '../../models/teknisi_model.dart';
 import '../../theme/theme.dart';
 import 'teknisi_servis_detail_page.dart';
-import 'package:ridho_teknik/extensions/servis_extensions.dart';
 
 class TeknisiAcListPage extends StatefulWidget {
-  final TeknisiModel teknisi;
   final LokasiModel lokasi;
-  const TeknisiAcListPage({super.key, required this.teknisi, required this.lokasi});
+  final List<ServisModel> servisList;
+  final String? teknisiId;
+  final String? teknisiNama;
+
+  const TeknisiAcListPage({
+    super.key,
+    required this.lokasi,
+    required this.servisList,
+    this.teknisiId,
+    this.teknisiNama,
+  });
 
   @override
   State<TeknisiAcListPage> createState() => _TeknisiAcListPageState();
 }
 
 class _TeknisiAcListPageState extends State<TeknisiAcListPage> {
-  final List<AcModel> _acList = [
-    AcModel(
-      id: 'A1',
-      lokasiId: 'L1',
-      nama: 'AC Split 1 PK - Ruang Tamu',
-      merk: 'Daikin',
-      type: 'FTKN50',
-      kapasitas: '1 PK',
-      terakhirService: DateTime.now().subtract(const Duration(days: 30)),
-    ),
-    AcModel(
-      id: 'A2',
-      lokasiId: 'L1',
-      nama: 'AC Kamar 0.5 PK',
-      merk: 'Panasonic',
-      type: 'CS-EN5',
-      kapasitas: '0.5 PK',
-      terakhirService: DateTime.now().subtract(const Duration(days: 90)),
-    ),
-  ];
+  List<_AssignedAcTask> get _assignedTasks {
+    final result = <_AssignedAcTask>[];
 
-  final List<KeluhanModel> _keluhanList = [
-    KeluhanModel(
-      id: 'K1',
-      lokasiId: 'L1',
-      acId: 'A1',
-      judul: 'AC Tidak Dingin',
-      deskripsi: 'AC tidak dingin meski suhu minimum',
-      status: KeluhanStatus.diproses,
-      prioritas: Prioritas.tinggi,
-      tanggalDiajukan: DateTime.now().subtract(const Duration(days: 1)),
-      assignedTo: 'T1',
-    ),
-    KeluhanModel(
-      id: 'K2',
-      lokasiId: 'L1',
-      acId: 'A2',
-      judul: 'AC Berisik',
-      deskripsi: 'Suara berisik dari unit outdoor',
-      status: KeluhanStatus.diproses,
-      prioritas: Prioritas.sedang,
-      tanggalDiajukan: DateTime.now().subtract(const Duration(days: 2)),
-      assignedTo: 'T1',
-    ),
-  ];
+    for (final servis in widget.servisList) {
+      final sameLocation = servis.locationId?.toString() == widget.lokasi.id;
+      if (!sameLocation) continue;
 
-  final List<ServisModel> _servisList = [
-    ServisModel(
-      id: 'SRV1',
-      keluhanId: 'K1',
-      lokasiId: 'L1',
-      acId: 'A1',
-      teknisiId: 'T1',
-      status: ServisStatus.dalam_perjalanan,
-      tindakan: [TindakanServis.pembersihan, TindakanServis.isiFreon],
-      tanggalDitugaskan: DateTime.now().subtract(const Duration(hours: 2)),
-      biayaServis: 250000,
-      biayaSukuCadang: 150000,
-    ),
-    ServisModel(
-      id: 'SRV2',
-      keluhanId: 'K2',
-      lokasiId: 'L1',
-      acId: 'A2',
-      teknisiId: 'T1',
-      status: ServisStatus.ditugaskan,
-      tanggalDitugaskan: DateTime.now().subtract(const Duration(hours: 1)),
-    ),
-  ];
+      if (servis.itemsData.isNotEmpty) {
+        for (final item in servis.itemsData) {
+          final acRaw = item['ac_unit'];
+          final acMap = acRaw is Map<String, dynamic>
+              ? acRaw
+              : (acRaw is Map ? Map<String, dynamic>.from(acRaw) : null);
 
-  List<AcModel> get _acDitugaskan {
-    final acIds = _servisList
-        .where((s) => s.lokasiId == widget.lokasi.id && s.teknisiId == widget.teknisi.id)
-        .map((s) => s.acId)
-        .toSet();
+          if (acMap == null) continue;
 
-    return _acList
-        .where((ac) => acIds.contains(ac.id))
-        .toList();
+          final itemTechnicianId =
+          (item['technician_id'] ?? servis.technicianId)?.toString();
+          if (widget.teknisiId != null &&
+              widget.teknisiId!.isNotEmpty &&
+              itemTechnicianId != widget.teknisiId) {
+            continue;
+          }
+
+          final ac = _acFromMap(acMap, servis);
+          result.add(
+            _AssignedAcTask(
+              ac: ac,
+              servis: servis,
+              item: item,
+            ),
+          );
+        }
+        continue;
+      }
+
+      if (servis.acData != null) {
+        final serviceTechnicianId = servis.technicianId?.toString();
+        if (widget.teknisiId != null &&
+            widget.teknisiId!.isNotEmpty &&
+            serviceTechnicianId != widget.teknisiId) {
+          continue;
+        }
+
+        final ac = _acFromMap(servis.acData!, servis);
+        result.add(
+          _AssignedAcTask(
+            ac: ac,
+            servis: servis,
+            item: null,
+          ),
+        );
+      }
+    }
+
+    final seen = <String>{};
+    final unique = <_AssignedAcTask>[];
+
+    for (final task in result) {
+      final key = '${task.servis.id}-${task.ac.id}';
+      if (seen.add(key)) {
+        unique.add(task);
+      }
+    }
+
+    return unique;
   }
 
-  ServisModel? getServisByAcId(String acId) {
-    final idx = _servisList.indexWhere(
-          (s) => s.acId == acId &&
-          s.lokasiId == widget.lokasi.id &&
-          s.teknisiId == widget.teknisi.id,
-    );
-    if (idx == -1) return null;
-    return _servisList[idx];
-  }
+  AcModel _acFromMap(Map<String, dynamic> map, ServisModel servis) {
+    int parseInt(dynamic value) {
+      if (value is int) return value;
+      return int.tryParse(value?.toString() ?? '') ?? 0;
+    }
 
-  KeluhanModel? getKeluhanByAcId(String acId) {
-    final idx = _keluhanList.indexWhere(
-          (k) => k.acId == acId &&
-          k.lokasiId == widget.lokasi.id &&
-          k.assignedTo == widget.teknisi.id,
+    DateTime? parseDate(dynamic value) {
+      if (value == null) return null;
+      return DateTime.tryParse(value.toString());
+    }
+
+    return AcModel(
+      id: parseInt(map['id']),
+      roomId: parseInt(map['room_id']),
+      locationId: parseInt(map['location_id'] ?? servis.locationId),
+      nama: (map['name'] ?? 'Unit AC').toString(),
+      merk: (map['brand'] ?? '-').toString(),
+      type: (map['type'] ?? '-').toString(),
+      kapasitas: (map['capacity'] ?? '-').toString(),
+      lantai: parseInt(map['lantai']),
+      terakhirService: parseDate(map['last_service']),
+      createdAt: parseDate(map['created_at']),
+      updatedAt: parseDate(map['updated_at']),
+      room: null,
     );
-    if (idx == -1) return null;
-    return _keluhanList[idx];
   }
 
   Widget _buildHeader() {
-    final totalAC = _acDitugaskan.length;
-    final acdalam_perbaikan = _acDitugaskan.where((ac) {
-      final servis = getServisByAcId(ac.id);
-      if (servis == null) return false;
-      return servis.status.index >= ServisStatus.tiba_di_lokasi.index &&
-          servis.status.index < ServisStatus.selesai.index;
+    final totalAc = _assignedTasks.length;
+
+    final dalamPengerjaan = _assignedTasks.where((task) {
+      final status = _itemStatus(task).toLowerCase();
+      return status == 'dikerjakan';
     }).length;
 
-    final acMenunggu = _acDitugaskan.where((ac) {
-      final servis = getServisByAcId(ac.id);
-      return servis?.status == ServisStatus.menunggu_konfirmasi;
+    final menunggu = _assignedTasks.where((task) {
+      final status = _itemStatus(task).toLowerCase();
+      return status == 'menunggukonfirmasi' ||
+          status == 'menunggu_konfirmasi' ||
+          status == 'ditugaskan';
     }).length;
-
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -141,7 +141,7 @@ class _TeknisiAcListPageState extends State<TeknisiAcListPage> {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [kPrimaryColor, Color(0xFF5D6BC0)],
+          colors: [kPrimaryColor, const Color(0xFF5D6BC0)],
         ),
         borderRadius: const BorderRadius.only(
           bottomLeft: Radius.circular(30),
@@ -149,7 +149,7 @@ class _TeknisiAcListPageState extends State<TeknisiAcListPage> {
         ),
         boxShadow: [
           BoxShadow(
-            color: kPrimaryColor.withValues(alpha:0.3),
+            color: kPrimaryColor.withValues(alpha: 0.3),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -158,7 +158,6 @@ class _TeknisiAcListPageState extends State<TeknisiAcListPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Back button and title
           Row(
             children: [
               GestureDetector(
@@ -166,10 +165,14 @@ class _TeknisiAcListPageState extends State<TeknisiAcListPage> {
                 child: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha:0.2),
+                    color: Colors.white.withValues(alpha: 0.2),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 20),
+                  child: const Icon(
+                    Icons.arrow_back_rounded,
+                    color: Colors.white,
+                    size: 20,
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -188,58 +191,49 @@ class _TeknisiAcListPageState extends State<TeknisiAcListPage> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'AC yang perlu ditangani',
+                      widget.teknisiNama?.isNotEmpty == true
+                          ? 'Tugas untuk ${widget.teknisiNama}'
+                          : 'AC yang perlu ditangani',
                       style: whiteTextStyle.copyWith(
                         fontSize: 12,
-                        color: Colors.white.withValues(alpha:0.8),
+                        color: Colors.white.withValues(alpha: 0.8),
                       ),
                     ),
                   ],
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha:0.2),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.menu_rounded, color: Colors.white, size: 20),
-              ),
             ],
           ),
           const SizedBox(height: 24),
-
-          // Stats Cards
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(
                 child: _buildStatCard(
                   title: 'Total AC',
-                  value: totalAC.toString(),
+                  value: totalAc.toString(),
                   icon: Icons.ac_unit_rounded,
                   color: Colors.white,
-                  bgColor: Colors.white.withValues(alpha:0.2),
+                  bgColor: Colors.white.withValues(alpha: 0.2),
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: _buildStatCard(
-                  title: 'Dalam Perbaikan',
-                  value: acdalam_perbaikan.toString(),
+                  title: 'Dikerjakan',
+                  value: dalamPengerjaan.toString(),
                   icon: Icons.build_rounded,
                   color: Colors.white,
-                  bgColor: Colors.white.withValues(alpha:0.2),
+                  bgColor: Colors.white.withValues(alpha: 0.2),
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: _buildStatCard(
                   title: 'Menunggu',
-                  value: acMenunggu.toString(),
+                  value: menunggu.toString(),
                   icon: Icons.hourglass_top_rounded,
                   color: Colors.white,
-                  bgColor: Colors.white.withValues(alpha:0.2),
+                  bgColor: Colors.white.withValues(alpha: 0.2),
                 ),
               ),
             ],
@@ -267,7 +261,7 @@ class _TeknisiAcListPageState extends State<TeknisiAcListPage> {
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha:0.3),
+              color: Colors.white.withValues(alpha: 0.3),
               shape: BoxShape.circle,
             ),
             child: Icon(icon, size: 16, color: color),
@@ -285,7 +279,7 @@ class _TeknisiAcListPageState extends State<TeknisiAcListPage> {
             title,
             style: whiteTextStyle.copyWith(
               fontSize: 10,
-              color: Colors.white.withValues(alpha:0.8),
+              color: Colors.white.withValues(alpha: 0.8),
             ),
             textAlign: TextAlign.center,
           ),
@@ -294,82 +288,84 @@ class _TeknisiAcListPageState extends State<TeknisiAcListPage> {
     );
   }
 
-  Widget _buildAcCard(AcModel ac) {
-    final servis = getServisByAcId(ac.id);
-
-    // kalau data servis belum ada, jangan render card (atau tampilkan card "belum ada tugas")
-    if (servis == null) return const SizedBox.shrink();
-
-    final keluhan = getKeluhanByAcId(ac.id); // boleh null
-    final daysSinceService = DateTime.now().difference(ac.terakhirService).inDays;
-
-    final statusColor = servis.status.color;   // dari extension
-    final statusText  = servis.status.text;
-
-    Color _getStatusColor() {
-      switch (servis.status) {
-        case ServisStatus.ditugaskan:
-          return Colors.blue;
-        case ServisStatus.dalam_perjalanan:
-          return Colors.orange;
-        case ServisStatus.tiba_di_lokasi:
-          return Colors.purple;
-        case ServisStatus.sedang_diperiksa:
-          return Colors.indigo;
-        case ServisStatus.dalam_perbaikan:
-          return Colors.red;
-        case ServisStatus.menunggu_suku_cadang:
-          return Colors.amber;
-        case ServisStatus.selesai:
-          return Colors.green;
-        case ServisStatus.ditolak:
-          return Colors.red[900]!;
-        case ServisStatus.menunggu_konfirmasi:
-          return Colors.yellow[700]!;
-        case ServisStatus.dikerjakan:
-          return Colors.red;
-          // TODO: Handle this case.
-          throw UnimplementedError();
-        case ServisStatus.batal:
-          // TODO: Handle this case.
-          throw UnimplementedError();
-        case ServisStatus.menunggu_konfirmasi_owner:
-          // TODO: Handle this case.
-          throw UnimplementedError();
-      }
+  String _itemStatus(_AssignedAcTask task) {
+    if (task.item != null) {
+      final raw = (task.item!['status'] ?? '').toString().trim();
+      if (raw.isNotEmpty) return raw;
     }
+    return task.servis.status.name;
+  }
 
-    String _getStatusIcon() {
-      switch (servis.status) {
-        case ServisStatus.ditugaskan:
-          return '📋';
-        case ServisStatus.dalam_perjalanan:
-          return '🚗';
-        case ServisStatus.tiba_di_lokasi:
-          return '📍';
-        case ServisStatus.sedang_diperiksa:
-          return '🔍';
-        case ServisStatus.dalam_perbaikan:
-          return '🔧';
-        case ServisStatus.menunggu_suku_cadang:
-          return '⏳';
-        case ServisStatus.selesai:
-          return '✅';
-        case ServisStatus.ditolak:
-          return '❌';
-        case ServisStatus.menunggu_konfirmasi:
-          return '⏰';
-        case ServisStatus.dikerjakan:
-          // TODO: Handle this case.
-          throw UnimplementedError();
-        case ServisStatus.batal:
-          // TODO: Handle this case.
-          throw UnimplementedError();
-        case ServisStatus.menunggu_konfirmasi_owner:
-          // TODO: Handle this case.
-          throw UnimplementedError();
-      }
+  Color _statusColorFromKey(String key) {
+    switch (key.toLowerCase()) {
+      case 'menunggukonfirmasi':
+      case 'menunggu_konfirmasi':
+        return Colors.orange;
+      case 'ditugaskan':
+        return Colors.blue;
+      case 'dikerjakan':
+        return Colors.purple;
+      case 'selesai':
+        return Colors.green;
+      case 'batal':
+        return Colors.red;
+      default:
+        return Colors.grey;
     }
+  }
+
+  String _statusTextFromKey(String key) {
+    switch (key.toLowerCase()) {
+      case 'menunggukonfirmasi':
+      case 'menunggu_konfirmasi':
+        return 'Menunggu Konfirmasi';
+      case 'ditugaskan':
+        return 'Ditugaskan';
+      case 'dikerjakan':
+        return 'Dikerjakan';
+      case 'selesai':
+        return 'Selesai';
+      case 'batal':
+        return 'Batal';
+      default:
+        return key;
+    }
+  }
+
+  String _statusEmojiFromKey(String key) {
+    switch (key.toLowerCase()) {
+      case 'menunggukonfirmasi':
+      case 'menunggu_konfirmasi':
+        return '⏰';
+      case 'ditugaskan':
+        return '📋';
+      case 'dikerjakan':
+        return '🔧';
+      case 'selesai':
+        return '✅';
+      case 'batal':
+        return '❌';
+      default:
+        return '📄';
+    }
+  }
+
+  Widget _buildAcCard(_AssignedAcTask task) {
+    final ac = task.ac;
+    final servis = task.servis;
+
+    final lastService = ac.terakhirService;
+    final daysSinceService = lastService == null
+        ? null
+        : DateTime.now().difference(lastService).inDays;
+
+    final statusKey = _itemStatus(task);
+    final statusColor = _statusColorFromKey(statusKey);
+    final statusText = _statusTextFromKey(statusKey);
+
+    final keluhan =
+    (servis.keluhanClient ?? servis.catatan ?? '').toString().trim();
+    final tindakan = (servis.tindakanSummary ?? '').toString().trim();
 
     return GestureDetector(
       onTap: () {
@@ -377,10 +373,8 @@ class _TeknisiAcListPageState extends State<TeknisiAcListPage> {
           context,
           MaterialPageRoute(
             builder: (_) => TeknisiServisDetailPage(
-              teknisi: widget.teknisi,
               lokasi: widget.lokasi,
               ac: ac,
-              keluhan: keluhan,
               servis: servis,
             ),
           ),
@@ -393,7 +387,7 @@ class _TeknisiAcListPageState extends State<TeknisiAcListPage> {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha:0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 15,
               offset: const Offset(0, 6),
             ),
@@ -412,30 +406,35 @@ class _TeknisiAcListPageState extends State<TeknisiAcListPage> {
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          _getStatusColor().withValues(alpha:0.1),
-                          _getStatusColor().withValues(alpha:0.2),
+                          statusColor.withValues(alpha: 0.1),
+                          statusColor.withValues(alpha: 0.2),
                         ],
                       ),
                       shape: BoxShape.circle,
                     ),
                     child: Text(
-                      _getStatusIcon(),
+                      _statusEmojiFromKey(statusKey),
                       style: const TextStyle(fontSize: 18),
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
-                      color: _getStatusColor().withValues(alpha:0.1),
+                      color: statusColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: _getStatusColor().withValues(alpha:0.3)),
+                      border: Border.all(
+                        color: statusColor.withValues(alpha: 0.3),
+                      ),
                     ),
                     child: Text(
                       statusText,
                       style: primaryTextStyle.copyWith(
                         fontSize: 12,
                         fontWeight: medium,
-                        color: _getStatusColor(),
+                        color: statusColor,
                       ),
                     ),
                   ),
@@ -456,41 +455,51 @@ class _TeknisiAcListPageState extends State<TeknisiAcListPage> {
                 '${ac.merk} • ${ac.type} • ${ac.kapasitas}',
                 style: greyTextStyle.copyWith(fontSize: 13),
               ),
-              if (keluhan != null && keluhan.judul.isNotEmpty) ...[
+              if (keluhan.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: keluhan.prioritasColor.withValues(alpha:0.05),
+                    color: statusColor.withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: keluhan.prioritasColor.withValues(alpha:0.1)),
+                    border: Border.all(
+                      color: statusColor.withValues(alpha: 0.1),
+                    ),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.warning_rounded, size: 14, color: keluhan.prioritasColor),
+                          Icon(
+                            Icons.warning_rounded,
+                            size: 14,
+                            color: statusColor,
+                          ),
                           const SizedBox(width: 6),
-                          Text(
-                            'Keluhan: ${keluhan.judul}',
-                            style: primaryTextStyle.copyWith(
-                              fontSize: 14,
-                              fontWeight: medium,
-                              color: keluhan.prioritasColor,
+                          Expanded(
+                            child: Text(
+                              keluhan,
+                              style: primaryTextStyle.copyWith(
+                                fontSize: 14,
+                                fontWeight: medium,
+                                color: statusColor,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        keluhan.deskripsi,
-                        style: greyTextStyle.copyWith(fontSize: 12),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                      if (tindakan.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Text(
+                          'Tindakan: $tindakan',
+                          style: greyTextStyle.copyWith(fontSize: 12),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -500,15 +509,17 @@ class _TeknisiAcListPageState extends State<TeknisiAcListPage> {
                 children: [
                   _buildInfoBadge(
                     icon: Icons.calendar_today_rounded,
-                    text: '$daysSinceService hari',
+                    text: daysSinceService == null
+                        ? 'Belum pernah service'
+                        : '$daysSinceService hari',
                     color: kBoxMenuCoklatColor,
                   ),
                   const SizedBox(width: 12),
-                  // _buildInfoBadge(
-                  //   icon: Icons.monetization_on_rounded,
-                  //   text: 'Rp ${servis.totalBiaya.toInt()}',
-                  //   color: kBoxMenuGreenColor,
-                  // ),
+                  _buildInfoBadge(
+                    icon: Icons.receipt_long_rounded,
+                    text: 'Rp ${servis.totalBiaya.toInt()}',
+                    color: kBoxMenuGreenColor,
+                  ),
                   const Spacer(),
                   ElevatedButton.icon(
                     onPressed: () {
@@ -516,10 +527,8 @@ class _TeknisiAcListPageState extends State<TeknisiAcListPage> {
                         context,
                         MaterialPageRoute(
                           builder: (_) => TeknisiServisDetailPage(
-                            teknisi: widget.teknisi,
                             lokasi: widget.lokasi,
                             ac: ac,
-                            keluhan: keluhan,
                             servis: servis,
                           ),
                         ),
@@ -529,12 +538,15 @@ class _TeknisiAcListPageState extends State<TeknisiAcListPage> {
                       backgroundColor: kPrimaryColor,
                       foregroundColor: Colors.white,
                       minimumSize: const Size(0, 30),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 4,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    icon: Icon(Icons.arrow_forward_rounded, size: 16),
+                    icon: const Icon(Icons.arrow_forward_rounded, size: 16),
                     label: Text(
                       'Tangani',
                       style: whiteTextStyle.copyWith(fontSize: 12),
@@ -557,7 +569,7 @@ class _TeknisiAcListPageState extends State<TeknisiAcListPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withValues(alpha:0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
@@ -578,53 +590,54 @@ class _TeknisiAcListPageState extends State<TeknisiAcListPage> {
     );
   }
 
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.ac_unit,
+            size: 64,
+            color: kGreyColor,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Tidak Ada AC',
+            style: primaryTextStyle.copyWith(
+              fontSize: 18,
+              fontWeight: bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Tidak ada AC yang perlu ditangani di lokasi ini',
+            style: greyTextStyle,
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final tasks = _assignedTasks;
+
     return Scaffold(
       backgroundColor: kBackgroundColor,
       body: SafeArea(
         child: Column(
           children: [
-            // Header dengan gradient
             _buildHeader(),
-
-            // Content
             Expanded(
-              child: _acDitugaskan.isEmpty
-                  ? Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.ac_unit,
-                      size: 64,
-                      color: kGreyColor,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Tidak Ada AC',
-                      style: primaryTextStyle.copyWith(
-                        fontSize: 18,
-                        fontWeight: bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Tidak ada AC yang perlu ditangani di lokasi ini',
-                      style: greyTextStyle,
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              )
+              child: tasks.isEmpty
+                  ? _buildEmptyState()
                   : SingleChildScrollView(
                 padding: const EdgeInsets.only(bottom: 10),
                 child: Column(
                   children: [
                     const SizedBox(height: 20),
-                    ..._acDitugaskan.map((ac) {
-                      return _buildAcCard(ac);
-                    }),
+                    ...tasks.map(_buildAcCard),
                   ],
                 ),
               ),
@@ -634,4 +647,16 @@ class _TeknisiAcListPageState extends State<TeknisiAcListPage> {
       ),
     );
   }
+}
+
+class _AssignedAcTask {
+  final AcModel ac;
+  final ServisModel servis;
+  final Map<String, dynamic>? item;
+
+  const _AssignedAcTask({
+    required this.ac,
+    required this.servis,
+    required this.item,
+  });
 }

@@ -34,7 +34,7 @@ class _CuciAcPageState extends State<CuciAcPage> {
 
     // Default: pilih semua AC (convert id String -> int)
     _selectedAcIds = widget.acList
-        .map((ac) => int.tryParse(ac.id))
+        .map((ac) => ac.id)
         .whereType<int>()
         .toList();
 
@@ -103,7 +103,7 @@ class _CuciAcPageState extends State<CuciAcPage> {
         _selectedAcIds.clear();
       } else {
         _selectedAcIds = widget.acList
-            .map((ac) => int.tryParse(ac.id))
+            .map((ac) => ac.id)
             .whereType<int>()
             .toList();
       }
@@ -114,7 +114,7 @@ class _CuciAcPageState extends State<CuciAcPage> {
   Future<void> _submitRequest(BuildContext context) async {
     if (_selectedAcIds.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text('Pilih minimal 1 AC untuk dicuci'),
           backgroundColor: Colors.orange,
         ),
@@ -122,13 +122,11 @@ class _CuciAcPageState extends State<CuciAcPage> {
       return;
     }
 
-    // Akses provider
     final provider = Provider.of<ClientServisProvider>(context, listen: false);
 
     try {
-      print('Submitting cuci AC request...');
+      debugPrint('Submitting cuci AC request...');
 
-      // Format tanggal_berkunjung untuk API (format Y-m-d H:i:s)
       final tanggalBerkunjung = DateTime(
         _preferredDate.year,
         _preferredDate.month,
@@ -137,10 +135,8 @@ class _CuciAcPageState extends State<CuciAcPage> {
         _preferredTime.minute,
       );
 
-      // Format ke string untuk API
       final tanggalBerkunjungStr = tanggalBerkunjung.toIso8601String();
 
-      // Panggil method requestCuci dari provider dengan tanggal_berkunjung
       await provider.requestCuci(
         locationId: widget.lokasi.id,
         semuaAc: _semuaAc,
@@ -148,42 +144,38 @@ class _CuciAcPageState extends State<CuciAcPage> {
         catatan: _catatanController.text.isNotEmpty
             ? _catatanController.text
             : null,
-        tanggalBerkunjung: tanggalBerkunjungStr, // Kirim tanggal berkunjung
+        tanggalBerkunjung: tanggalBerkunjungStr,
       );
 
-      // Tampilkan pesan sukses
+      if (!mounted) return; // 🔥 FIX PENTING
+
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text('Permintaan cuci AC berhasil dikirim!'),
           backgroundColor: Colors.green,
           duration: Duration(seconds: 2),
         ),
       );
 
-      // Kembali ke halaman sebelumnya setelah delay
-      Future.delayed(const Duration(seconds: 1), () {
-        Navigator.pop(context, true); // Return true untuk refresh data
-      });
+      await Future.delayed(const Duration(seconds: 1));
+
+      if (!mounted) return; // 🔥 FIX PENTING
+
+      Navigator.pop(context, true);
 
     } catch (e) {
-      print('Error submitting request: $e');
+      debugPrint('Error submitting request: $e');
 
-      // Tampilkan error dari provider jika ada
-      if (provider.submitError != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(provider.submitError!),
-            backgroundColor: Colors.red,
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      if (!mounted) return; // 🔥 FIX PENTING
+
+      final message = e.toString();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -380,7 +372,7 @@ class _CuciAcPageState extends State<CuciAcPage> {
                 itemCount: widget.acList.length,
                 itemBuilder: (context, index) {
                   final ac = widget.acList[index];
-                  final acId = int.tryParse(ac.id);
+                  final acId = ac.id;
                   final isSelected = acId != null && _selectedAcIds.contains(acId);
 
                   return _buildAcListItem(ac, isSelected, acId);

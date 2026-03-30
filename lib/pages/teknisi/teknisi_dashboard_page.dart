@@ -85,17 +85,19 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
     return 'dikerjakan';
   }
 
+  // String _jenisKey(ServisModel s) {
+  //   switch (s.jenis) {
+  //     case JenisPenanganan.cuci:
+  //       return 'cuci';
+  //     case JenisPenanganan.perbaikan:
+  //       return 'perbaikan';
+  //     case JenisPenanganan.instalasi:
+  //       return 'instalasi';
+  //   }
+  // }
 
   String _jenisKey(ServisModel s) {
-    // s.jenis adalah enum JenisPenanganan
-    switch (s.jenis) {
-      case JenisPenanganan.cuciAc:
-        return 'cuci';
-      case JenisPenanganan.perbaikanAc:
-        return 'perbaikan';
-      case JenisPenanganan.instalasi:
-        return 'instalasi';
-    }
+    return s.jenis.name;
   }
 
   bool _matchStatus(ServisModel s) {
@@ -112,13 +114,22 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
     if (_searchQuery.trim().isEmpty) return true;
     final q = _searchQuery.toLowerCase();
 
-    final id = s.id.toLowerCase();
+    final id = s.id.toString();
+
     final lokasiNama = s.lokasiNama.toLowerCase();
-    final lokasiAlamat = s.lokasiAlamat.toLowerCase();
-    final acText = s.acDisplay.toLowerCase();
-    final tindakanText = s.tindakan.isEmpty
-        ? ''
-        : s.tindakan.map((e) => e.name.toLowerCase()).join(' ');
+
+    // ambil alamat dari lokasiData
+    final lokasiAlamat = (s.lokasiData?['address'] ?? '')
+        .toString()
+        .toLowerCase();
+
+    // ambil AC dari itemsData
+    final acText = s.itemsData
+        .map((it) => (it['ac_unit']?['name'] ?? '').toString().toLowerCase())
+        .join(' ');
+
+    // tindakan pakai tindakanSummary
+    final tindakanText = (s.tindakanSummary ?? '').toLowerCase();
 
     return id.contains(q) ||
         lokasiNama.contains(q) ||
@@ -135,8 +146,9 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
         .toList();
 
     rows.sort((a, b) {
-      DateTime aKey = a.tanggalSelesai ?? a.tanggalDitugaskan;
-      DateTime bKey = b.tanggalSelesai ?? b.tanggalDitugaskan;
+      DateTime aKey = a.tanggalSelesai ?? a.tanggalDitugaskan ?? DateTime(2000);
+
+      DateTime bKey = b.tanggalSelesai ?? b.tanggalDitugaskan ?? DateTime(2000);
       return bKey.compareTo(aKey);
     });
 
@@ -261,7 +273,11 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
             if (_selectedJenis != 'Semua')
               IconButton(
                 onPressed: () => setState(() => _selectedJenis = 'Semua'),
-                icon: const Icon(Iconsax.close_circle, color: Colors.red, size: 18),
+                icon: const Icon(
+                  Iconsax.close_circle,
+                  color: Colors.red,
+                  size: 18,
+                ),
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
               ),
@@ -311,7 +327,10 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
                   children: [
                     Text(
                       nama,
-                      style: whiteTextStyle.copyWith(fontSize: 20, fontWeight: bold),
+                      style: whiteTextStyle.copyWith(
+                        fontSize: 20,
+                        fontWeight: bold,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -332,7 +351,11 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
                     color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Iconsax.logout_1, color: Colors.white, size: 20),
+                  child: const Icon(
+                    Iconsax.logout_1,
+                    color: Colors.white,
+                    size: 20,
+                  ),
                 ),
               ),
             ],
@@ -340,11 +363,29 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
           const SizedBox(height: 18),
           Row(
             children: [
-              Expanded(child: _buildHeaderStat(icon: Iconsax.task_square, value: '$ditugaskan', label: 'Ditugaskan')),
+              Expanded(
+                child: _buildHeaderStat(
+                  icon: Iconsax.task_square,
+                  value: '$ditugaskan',
+                  label: 'Ditugaskan',
+                ),
+              ),
               const SizedBox(width: 10),
-              Expanded(child: _buildHeaderStat(icon: Iconsax.timer_start, value: '$dikerjakan', label: 'Dikerjakan')),
+              Expanded(
+                child: _buildHeaderStat(
+                  icon: Iconsax.timer_start,
+                  value: '$dikerjakan',
+                  label: 'Dikerjakan',
+                ),
+              ),
               const SizedBox(width: 10),
-              Expanded(child: _buildHeaderStat(icon: Iconsax.tick_circle, value: '$selesai', label: 'Selesai')),
+              Expanded(
+                child: _buildHeaderStat(
+                  icon: Iconsax.tick_circle,
+                  value: '$selesai',
+                  label: 'Selesai',
+                ),
+              ),
             ],
           ),
         ],
@@ -371,13 +412,19 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
             children: [
               Icon(icon, color: Colors.white, size: 16),
               const SizedBox(width: 6),
-              Text(value, style: whiteTextStyle.copyWith(fontSize: 18, fontWeight: bold)),
+              Text(
+                value,
+                style: whiteTextStyle.copyWith(fontSize: 18, fontWeight: bold),
+              ),
             ],
           ),
           const SizedBox(height: 4),
           Text(
             label,
-            style: whiteTextStyle.copyWith(fontSize: 11, color: Colors.white.withValues(alpha: 0.85)),
+            style: whiteTextStyle.copyWith(
+              fontSize: 11,
+              color: Colors.white.withValues(alpha: 0.85),
+            ),
           ),
         ],
       ),
@@ -409,10 +456,13 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
                 controller: _searchController,
                 onChanged: (v) {
                   _searchDebounce?.cancel();
-                  _searchDebounce = Timer(const Duration(milliseconds: 350), () {
-                    if (!mounted) return;
-                    setState(() => _searchQuery = v);
-                  });
+                  _searchDebounce = Timer(
+                    const Duration(milliseconds: 350),
+                    () {
+                      if (!mounted) return;
+                      setState(() => _searchQuery = v);
+                    },
+                  );
                 },
                 decoration: InputDecoration(
                   hintText: 'Cari ID / lokasi / AC / tindakan...',
@@ -460,11 +510,22 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
               selected: isSelected,
               selectedColor: color,
               backgroundColor: color.withValues(alpha: 0.1),
-              avatar: isSelected ? const Icon(Iconsax.tick_circle, size: 16, color: Colors.white) : null,
-              onSelected: (_) => setState(() => _selectedStatus = chip['value'] as String),
+              avatar: isSelected
+                  ? const Icon(
+                      Iconsax.tick_circle,
+                      size: 16,
+                      color: Colors.white,
+                    )
+                  : null,
+              onSelected: (_) =>
+                  setState(() => _selectedStatus = chip['value'] as String),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
-                side: BorderSide(color: isSelected ? Colors.transparent : color.withValues(alpha: 0.25)),
+                side: BorderSide(
+                  color: isSelected
+                      ? Colors.transparent
+                      : color.withValues(alpha: 0.25),
+                ),
               ),
             ),
           );
@@ -485,20 +546,28 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
 
     final jumlahText = s.itemsData.isNotEmpty
         ? '${s.itemsData.length}'
-        : (s.acUnitsNames.isNotEmpty ? '${s.acUnitsNames.length}' : (s.jumlahAc?.toString() ?? '-'));
+        : (s.jumlahAc.toString() ?? '0');
 
-    final lokasiText = s.lokasiAlamat;
+    final lokasiText = (s.lokasiData?['address'] ?? '-').toString();
     final assignedAt = _fmtDateTime(s.tanggalDitugaskan);
 
-    final keluhanText = s.catatan.trim();
-    final tindakanText = s.tindakan.isEmpty ? '' : s.tindakan.map((e) => e.name).join(', ');
+    final keluhanText = (s.catatan ?? '').trim();
+    final tindakanText = (s.tindakanSummary ?? '').trim();
 
     final infoUtama = (status == 'ditugaskan')
         ? (keluhanText.isNotEmpty ? keluhanText : 'Belum ada keluhan')
-        : (tindakanText.isNotEmpty ? tindakanText : (keluhanText.isNotEmpty ? keluhanText : 'Belum ada tindakan'));
+        : (tindakanText.isNotEmpty
+              ? tindakanText
+              : (keluhanText.isNotEmpty ? keluhanText : 'Belum ada tindakan'));
 
-    final clientName = s.lokasiNama.trim();
+    final clientName = (s.lokasiNama).toString().trim();
     final titleText = clientName.isNotEmpty ? clientName : 'Client #${s.id}';
+
+    final techNames = s.itemsData
+        .map((it) => (it['technician_name'] ?? '').toString())
+        .where((e) => e.isNotEmpty)
+        .toSet()
+        .toList();
 
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -507,7 +576,7 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha:0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 20,
             offset: const Offset(0, 6),
             spreadRadius: 0,
@@ -519,12 +588,15 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             decoration: BoxDecoration(
-              color: statusColor.withValues(alpha:0.08),
+              color: statusColor.withValues(alpha: 0.08),
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(24),
                 topRight: Radius.circular(24),
               ),
-              border: Border.all(color: statusColor.withValues(alpha:0.15), width: 1.5),
+              border: Border.all(
+                color: statusColor.withValues(alpha: 0.15),
+                width: 1.5,
+              ),
             ),
             child: Row(
               children: [
@@ -535,7 +607,7 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: statusColor.withValues(alpha:0.15),
+                        color: statusColor.withValues(alpha: 0.15),
                         blurRadius: 10,
                         offset: const Offset(0, 3),
                       ),
@@ -550,16 +622,28 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
                     children: [
                       Text(
                         titleText,
-                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, height: 1.2),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          height: 1.2,
+                        ),
                       ),
                       const SizedBox(height: 6),
                       Row(
                         children: [
-                          Icon(Iconsax.calendar_1, size: 13, color: Colors.grey[600]),
+                          Icon(
+                            Iconsax.calendar_1,
+                            size: 13,
+                            color: Colors.grey[600],
+                          ),
                           const SizedBox(width: 6),
                           Text(
                             assignedAt,
-                            style: TextStyle(fontSize: 10, color: Colors.grey[600], fontWeight: FontWeight.w500),
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.grey[600],
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                         ],
                       ),
@@ -567,15 +651,24 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [statusColor.withValues(alpha:0.2), statusColor.withValues(alpha:0.1)],
+                      colors: [
+                        statusColor.withValues(alpha: 0.2),
+                        statusColor.withValues(alpha: 0.1),
+                      ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: statusColor.withValues(alpha:0.3), width: 1.5),
+                    border: Border.all(
+                      color: statusColor.withValues(alpha: 0.3),
+                      width: 1.5,
+                    ),
                   ),
                   child: Text(
                     statusText,
@@ -637,32 +730,46 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
                     title: 'Alamat',
                     value: lokasiText,
                     iconColor: kPrimaryColor,
-                    gradientColors: [kPrimaryColor.withValues(alpha:0.1), kPrimaryColor.withValues(alpha:0.05)],
+                    gradientColors: [
+                      kPrimaryColor.withValues(alpha: 0.1),
+                      kPrimaryColor.withValues(alpha: 0.05),
+                    ],
                     maxLines: 2,
                   ),
                   const SizedBox(height: 12),
                 ],
 
                 _modernDetailTile(
-                  icon: status == 'ditugaskan' ? Iconsax.message_text : Iconsax.note_text,
+                  icon: status == 'ditugaskan'
+                      ? Iconsax.message_text
+                      : Iconsax.note_text,
                   title: status == 'ditugaskan' ? 'Keluhan Client' : 'Tindakan',
                   value: infoUtama,
-                  iconColor: status == 'ditugaskan' ? Colors.orange : Colors.purple,
+                  iconColor: status == 'ditugaskan'
+                      ? Colors.orange
+                      : Colors.purple,
                   gradientColors: status == 'ditugaskan'
-                      ? [Colors.orange.withValues(alpha:0.1), Colors.orange.withValues(alpha:0.05)]
-                      : [Colors.purple.withValues(alpha:0.1), Colors.purple.withValues(alpha:0.05)],
+                      ? [
+                          Colors.orange.withValues(alpha: 0.1),
+                          Colors.orange.withValues(alpha: 0.05),
+                        ]
+                      : [
+                          Colors.purple.withValues(alpha: 0.1),
+                          Colors.purple.withValues(alpha: 0.05),
+                        ],
                   maxLines: 3,
                 ),
 
-                if (s.technicianNames.length > 1) ...[
-                  const SizedBox(height: 12),
+                if (techNames.length > 1) ...[
                   _modernDetailTile(
                     icon: Iconsax.profile_2user,
                     title: 'Tim Teknisi',
-                    value: s.techniciansNamesDisplay,
+                    value: techNames.join(', '),
                     iconColor: Colors.indigo,
-                    gradientColors: [Colors.indigo.withValues(alpha:0.1), Colors.indigo.withValues(alpha:0.05)],
-                    maxLines: 2,
+                    gradientColors: [
+                      Colors.indigo.withValues(alpha: 0.1),
+                      Colors.indigo.withValues(alpha: 0.05)
+                    ],
                   ),
                 ],
 
@@ -688,11 +795,15 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
       children: [
         Row(
           children: [
-            Icon(icon, size: 16, color: color.withValues(alpha:0.8)),
+            Icon(icon, size: 16, color: color.withValues(alpha: 0.8)),
             const SizedBox(width: 8),
             Text(
               title,
-              style: TextStyle(fontSize: 11, color: Colors.grey[600], fontWeight: FontWeight.w600),
+              style: TextStyle(
+                fontSize: 11,
+                color: Colors.grey[600],
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ],
         ),
@@ -710,7 +821,11 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
           const SizedBox(height: 2),
           Text(
             subtitle,
-            style: TextStyle(fontSize: 10, color: Colors.grey[500], fontWeight: FontWeight.w500),
+            style: TextStyle(
+              fontSize: 10,
+              color: Colors.grey[500],
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ],
       ],
@@ -728,9 +843,16 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: LinearGradient(colors: gradientColors, begin: Alignment.topLeft, end: Alignment.bottomRight),
+        gradient: LinearGradient(
+          colors: gradientColors,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: iconColor.withValues(alpha:0.15), width: 1.5),
+        border: Border.all(
+          color: iconColor.withValues(alpha: 0.15),
+          width: 1.5,
+        ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -741,7 +863,13 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(12),
-              boxShadow: [BoxShadow(color: iconColor.withValues(alpha:0.1), blurRadius: 8, offset: const Offset(0, 2))],
+              boxShadow: [
+                BoxShadow(
+                  color: iconColor.withValues(alpha: 0.1),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
             child: Icon(icon, size: 20, color: iconColor),
           ),
@@ -755,14 +883,19 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
-                    color: iconColor.withValues(alpha:0.9),
+                    color: iconColor.withValues(alpha: 0.9),
                     letterSpacing: 0.5,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   value,
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey[800], height: 1.4),
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey[800],
+                    height: 1.4,
+                  ),
                   maxLines: maxLines,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -785,12 +918,21 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
           padding: const EdgeInsets.symmetric(vertical: 16),
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [statusColor.withValues(alpha:0.95), statusColor.withValues(alpha:0.75)],
+              colors: [
+                statusColor.withValues(alpha: 0.95),
+                statusColor.withValues(alpha: 0.75),
+              ],
               begin: Alignment.centerLeft,
               end: Alignment.centerRight,
             ),
             borderRadius: BorderRadius.circular(16),
-            boxShadow: [BoxShadow(color: statusColor.withValues(alpha:0.25), blurRadius: 15, offset: const Offset(0, 4))],
+            boxShadow: [
+              BoxShadow(
+                color: statusColor.withValues(alpha: 0.25),
+                blurRadius: 15,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
           child: const Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -799,7 +941,12 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
               SizedBox(width: 10),
               Text(
                 'Detail',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white, letterSpacing: 0.5),
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                  letterSpacing: 0.5,
+                ),
               ),
             ],
           ),
@@ -826,12 +973,18 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
         final all = prov.tasks;
         final list = _filtered(all);
 
-        final ditugaskan = all.where((s) => _statusKey(s) == 'ditugaskan').length;
-        final dikerjakan = all.where((s) => _statusKey(s) == 'dikerjakan').length;
+        final ditugaskan = all
+            .where((s) => _statusKey(s) == 'ditugaskan')
+            .length;
+        final dikerjakan = all
+            .where((s) => _statusKey(s) == 'dikerjakan')
+            .length;
         final selesai = all.where((s) => _statusKey(s) == 'selesai').length;
 
         final user = auth.user;
-        final nama = (user?.name?.toString().trim().isNotEmpty ?? false) ? user!.name! : 'Teknisi';
+        final nama = (user?.name?.toString().trim().isNotEmpty ?? false)
+            ? user!.name!
+            : 'Teknisi';
         final subtitle = (user?.role?.toString().trim().isNotEmpty ?? false)
             ? user!.role!.toString().toUpperCase()
             : 'TEKNISI';
@@ -861,7 +1014,9 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
                     decoration: BoxDecoration(
                       color: Colors.red.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: Colors.red.withValues(alpha: 0.18)),
+                      border: Border.all(
+                        color: Colors.red.withValues(alpha: 0.18),
+                      ),
                     ),
                     child: Row(
                       children: [
@@ -870,10 +1025,16 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
                         Expanded(
                           child: Text(
                             prov.error!,
-                            style: primaryTextStyle.copyWith(fontSize: 12, color: Colors.red),
+                            style: primaryTextStyle.copyWith(
+                              fontSize: 12,
+                              color: Colors.red,
+                            ),
                           ),
                         ),
-                        TextButton(onPressed: _refresh, child: const Text('Coba lagi')),
+                        TextButton(
+                          onPressed: _refresh,
+                          child: const Text('Coba lagi'),
+                        ),
                       ],
                     ),
                   ),
@@ -883,53 +1044,67 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
                     onRefresh: _refresh,
                     child: prov.loading && all.isEmpty
                         ? ListView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      children: const [
-                        SizedBox(height: 120),
-                        Center(child: CircularProgressIndicator()),
-                      ],
-                    )
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            children: const [
+                              SizedBox(height: 120),
+                              Center(child: CircularProgressIndicator()),
+                            ],
+                          )
                         : list.isEmpty
                         ? ListView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      children: [
-                        const SizedBox(height: 90),
-                        Column(
-                          children: [
-                            Icon(Iconsax.note_remove, color: Colors.grey[400], size: 78),
-                            const SizedBox(height: 14),
-                            Text('Tidak ada data',
-                                style: greyTextStyle.copyWith(fontSize: 16, fontWeight: medium)),
-                            const SizedBox(height: 6),
-                            Text('Coba ubah filter atau kata kunci.',
-                                style: greyTextStyle.copyWith(fontSize: 13)),
-                            const SizedBox(height: 18),
-                            ElevatedButton(
-                              onPressed: () {
-                                setState(() {
-                                  _selectedStatus = 'Semua';
-                                  _selectedJenis = 'Semua';
-                                  _searchQuery = '';
-                                  _searchController.clear();
-                                });
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: kPrimaryColor,
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            children: [
+                              const SizedBox(height: 90),
+                              Column(
+                                children: [
+                                  Icon(
+                                    Iconsax.note_remove,
+                                    color: Colors.grey[400],
+                                    size: 78,
+                                  ),
+                                  const SizedBox(height: 14),
+                                  Text(
+                                    'Tidak ada data',
+                                    style: greyTextStyle.copyWith(
+                                      fontSize: 16,
+                                      fontWeight: medium,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    'Coba ubah filter atau kata kunci.',
+                                    style: greyTextStyle.copyWith(fontSize: 13),
+                                  ),
+                                  const SizedBox(height: 18),
+                                  ElevatedButton(
+                                    onPressed: () {
+                                      setState(() {
+                                        _selectedStatus = 'Semua';
+                                        _selectedJenis = 'Semua';
+                                        _searchQuery = '';
+                                        _searchController.clear();
+                                      });
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: kPrimaryColor,
+                                      foregroundColor: Colors.white,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                    child: const Text('Reset'),
+                                  ),
+                                ],
                               ),
-                              child: const Text('Reset'),
-                            ),
-                          ],
-                        ),
-                      ],
-                    )
+                            ],
+                          )
                         : ListView.builder(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.only(top: 8, bottom: 90),
-                      itemCount: list.length,
-                      itemBuilder: (context, i) => _buildTaskCard(list[i]),
-                    ),
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            padding: const EdgeInsets.only(top: 8, bottom: 90),
+                            itemCount: list.length,
+                            itemBuilder: (context, i) =>
+                                _buildTaskCard(list[i]),
+                          ),
                   ),
                 ),
               ],

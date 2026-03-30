@@ -179,7 +179,7 @@ class _LokasiFormDialogState extends State<LokasiFormDialog> {
                       onPressed: () {
                         if (_formKey.currentState!.validate()) {
                           final id = widget.initial?.id ??
-                              DateTime.now().millisecondsSinceEpoch.toString();
+                              DateTime.now().millisecondsSinceEpoch;
                           Navigator.pop(
                             context,
                             LokasiModel(

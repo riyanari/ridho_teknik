@@ -17,21 +17,24 @@ class ModernAcCard extends StatelessWidget {
   });
 
   Color _getStatusColor() {
-    final daysSinceService = DateTime.now().difference(ac.terakhirService).inDays;
+    final last = ac.terakhirService ?? DateTime.now();
+    final daysSinceService = DateTime.now().difference(last).inDays;
     if (daysSinceService <= 30) return kBoxMenuGreenColor;
     if (daysSinceService <= 60) return kSecondaryColor;
     return kBoxMenuRedColor;
   }
 
   String _getStatusText() {
-    final daysSinceService = DateTime.now().difference(ac.terakhirService).inDays;
+    final last = ac.terakhirService ?? DateTime.now();
+    final daysSinceService = DateTime.now().difference(last).inDays;
     if (daysSinceService <= 30) return 'Normal';
     if (daysSinceService <= 60) return 'Perlu Cek';
     return 'Perlu Service';
   }
 
   Widget _buildServiceIndicator() {
-    final days = DateTime.now().difference(ac.terakhirService).inDays;
+    final last = ac.terakhirService ?? DateTime.now();
+    final days = DateTime.now().difference(last).inDays;
     final statusColor = _getStatusColor();
     final statusText = _getStatusText();
 
@@ -89,7 +92,8 @@ class ModernAcCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final daysSinceService = DateTime.now().difference(ac.terakhirService).inDays;
+    final last = ac.terakhirService ?? DateTime.now();
+    final daysSinceService = DateTime.now().difference(last).inDays;
     final statusColor = _getStatusColor();
 
     return GestureDetector(

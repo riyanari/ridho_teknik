@@ -1,7 +1,7 @@
 import 'package:ridho_teknik/models/user_model.dart';
 
 class LokasiModel {
-  final String id;
+  final int id;
   final String nama;
   final String alamat;
   final int jumlahAC;
@@ -51,7 +51,7 @@ class LokasiModel {
     }
 
     return LokasiModel(
-      id: json['id'].toString(),
+      id: json['id'],
       nama: (json['name'] ?? '').toString(),
       alamat: (json['address'] ?? '').toString(),
 

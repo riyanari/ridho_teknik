@@ -1,32 +1,21 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show Uint8List, rootBundle;
+import 'package:image_gallery_saver_plus/image_gallery_saver_plus.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:ridho_teknik/models/servis_model.dart';
 import 'package:ridho_teknik/pages/klien/servis_item_ac_detail_page.dart';
 import 'package:ridho_teknik/theme/theme.dart';
-
-import 'package:flutter/services.dart' show rootBundle, Uint8List;
-import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:image_gallery_saver_plus/image_gallery_saver_plus.dart';
 
 class ServisDetailPage extends StatelessWidget {
   final ServisModel servis;
 
-  ServisDetailPage({super.key, required this.servis}) {
-    print('=== SERVIS DETAIL DATA ===');
-    print('ID: ${servis.id} | Status: ${servis.statusDisplay}');
-    print('Lokasi: ${servis.lokasiNama}');
-    print('AC Display: ${servis.acDisplay}');
-    print('Teknisi: ${servis.techniciansNamesDisplay}');
-    print('Biaya: ${servis.formattedTotalBiaya}');
-    print('Foto Sebelum: ${servis.fotoSebelum.length}');
-    print('Foto Pengerjaan: ${servis.fotoPengerjaan.length}');
-    print('Foto Sesudah: ${servis.fotoSesudah.length}');
-    print('Foto Suku Cadang: ${servis.fotoSukuCadang.length}');
-    print('Items: ${servis.itemsData.length}');
-    print('==========================');
-  }
+  const ServisDetailPage({
+    super.key,
+    required this.servis,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -44,10 +33,13 @@ class ServisDetailPage extends StatelessWidget {
                 const SizedBox(height: 20),
                 _buildModernInfoSection(),
                 const SizedBox(height: 20),
-                if (servis.keluhanData != null) _buildModernKeluhanSection(),
-                const SizedBox(height: 20),
-                if (servis.itemsData.isNotEmpty) _buildModernItemsAcSection(context),
-                const SizedBox(height: 20),
+                if ((servis.keluhanClient ?? '').trim().isNotEmpty)
+                  _buildModernKeluhanSection(),
+                if ((servis.keluhanClient ?? '').trim().isNotEmpty)
+                  const SizedBox(height: 20),
+                if (servis.itemsData.isNotEmpty)
+                  _buildModernItemsAcSection(context),
+                if (servis.itemsData.isNotEmpty) const SizedBox(height: 20),
                 _buildModernDetailSection(),
                 const SizedBox(height: 20),
                 _buildModernBiayaSection(context),
@@ -77,7 +69,7 @@ class ServisDetailPage extends StatelessWidget {
       leading: Container(
         margin: const EdgeInsets.only(left: 8, top: 8),
         child: CircleAvatar(
-          backgroundColor: Colors.white.withValues(alpha:0.2),
+          backgroundColor: Colors.white.withValues(alpha: 0.2),
           child: IconButton(
             icon: const Icon(Icons.arrow_back, size: 20, color: Colors.white),
             onPressed: () => Navigator.pop(context),
@@ -93,14 +85,13 @@ class ServisDetailPage extends StatelessWidget {
               end: Alignment.bottomRight,
               colors: [
                 kPrimaryColor,
-                kPrimaryColor.withValues(alpha:0.8),
+                kPrimaryColor.withValues(alpha: 0.8),
                 const Color(0xFF2A5C8A),
               ],
             ),
           ),
           child: Stack(
             children: [
-              // Decorative circles
               Positioned(
                 right: -50,
                 top: -50,
@@ -109,7 +100,7 @@ class ServisDetailPage extends StatelessWidget {
                   height: 200,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Colors.white.withValues(alpha:0.05),
+                    color: Colors.white.withValues(alpha: 0.05),
                   ),
                 ),
               ),
@@ -121,7 +112,7 @@ class ServisDetailPage extends StatelessWidget {
                   height: 150,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Colors.white.withValues(alpha:0.05),
+                    color: Colors.white.withValues(alpha: 0.05),
                   ),
                 ),
               ),
@@ -139,17 +130,17 @@ class ServisDetailPage extends StatelessWidget {
                             vertical: 8,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha:0.2),
+                            color: Colors.white.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                              color: Colors.white.withValues(alpha:0.3),
+                              color: Colors.white.withValues(alpha: 0.3),
                             ),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(
-                                servis.jenisIcon,
+                                _getJenisIcon(servis.jenis),
                                 size: 16,
                                 color: Colors.white,
                               ),
@@ -172,11 +163,11 @@ class ServisDetailPage extends StatelessWidget {
                             vertical: 8,
                           ),
                           decoration: BoxDecoration(
-                            color: servis.statusColor.withValues(alpha:0.9),
+                            color: servis.statusColor.withValues(alpha: 0.9),
                             borderRadius: BorderRadius.circular(20),
                             boxShadow: [
                               BoxShadow(
-                                color: servis.statusColor.withValues(alpha:0.3),
+                                color: servis.statusColor.withValues(alpha: 0.3),
                                 blurRadius: 8,
                                 offset: const Offset(0, 4),
                               ),
@@ -224,7 +215,7 @@ class ServisDetailPage extends StatelessWidget {
                         const SizedBox(width: 4),
                         Expanded(
                           child: Text(
-                            servis.lokasiAlamat,
+                            _lokasiAlamat,
                             style: const TextStyle(
                               color: Colors.white70,
                               fontSize: 13,
@@ -246,7 +237,9 @@ class ServisDetailPage extends StatelessWidget {
   }
 
   Widget _buildStatusHero() {
-    if (servis.status == ServisStatus.selesai && servis.durationDisplay != null) {
+    final duration = _durationDisplay;
+
+    if (servis.status == ServisStatus.selesai && duration != null) {
       return Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
@@ -254,13 +247,13 @@ class ServisDetailPage extends StatelessWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              kBoxMenuGreenColor.withValues(alpha:0.2),
-              kBoxMenuGreenColor.withValues(alpha:0.05),
+              kBoxMenuGreenColor.withValues(alpha: 0.2),
+              kBoxMenuGreenColor.withValues(alpha: 0.05),
             ],
           ),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: kBoxMenuGreenColor.withValues(alpha:0.3),
+            color: kBoxMenuGreenColor.withValues(alpha: 0.3),
           ),
         ),
         child: Row(
@@ -272,7 +265,7 @@ class ServisDetailPage extends StatelessWidget {
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: kBoxMenuGreenColor.withValues(alpha:0.3),
+                    color: kBoxMenuGreenColor.withValues(alpha: 0.3),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -298,7 +291,7 @@ class ServisDetailPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Durasi pengerjaan: ${servis.durationDisplay}',
+                    'Durasi pengerjaan: $duration',
                     style: TextStyle(
                       fontSize: 13,
                       color: Colors.grey[600],
@@ -309,7 +302,7 @@ class ServisDetailPage extends StatelessWidget {
             ),
             Container(
               padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 color: Colors.white,
                 shape: BoxShape.circle,
               ),
@@ -324,7 +317,7 @@ class ServisDetailPage extends StatelessWidget {
       );
     }
 
-    if (servis.isInProgress) {
+    if (_isInProgress) {
       return Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
@@ -332,20 +325,20 @@ class ServisDetailPage extends StatelessWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Colors.blue.withValues(alpha:0.2),
-              Colors.purple.withValues(alpha:0.05),
+              Colors.blue.withValues(alpha: 0.2),
+              Colors.purple.withValues(alpha: 0.05),
             ],
           ),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: Colors.blue.withValues(alpha:0.3),
+            color: Colors.blue.withValues(alpha: 0.3),
           ),
         ),
         child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 color: Colors.blue,
                 shape: BoxShape.circle,
               ),
@@ -370,7 +363,7 @@ class ServisDetailPage extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     servis.tanggalMulai != null
-                        ? 'Mulai: ${_formatDateTime(servis.tanggalMulai!)}'
+                        ? 'Mulai: ${_formatDateTime(servis.tanggalMulai)}'
                         : 'Menunggu teknisi memulai',
                     style: TextStyle(
                       fontSize: 13,
@@ -389,6 +382,10 @@ class ServisDetailPage extends StatelessWidget {
   }
 
   Widget _buildModernInfoSection() {
+    final acNames = _acNames;
+    final teknisiList = _teknisiList;
+    final teknisiDisplay = _teknisiDisplay;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -404,7 +401,7 @@ class ServisDetailPage extends StatelessWidget {
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha:0.03),
+                color: Colors.black.withValues(alpha: 0.03),
                 blurRadius: 20,
                 offset: const Offset(0, 10),
               ),
@@ -416,19 +413,18 @@ class ServisDetailPage extends StatelessWidget {
                 icon: Icons.ac_unit,
                 iconColor: kSecondaryColor,
                 title: 'Unit AC',
-                value: servis.acDisplay,
-                subtitle: servis.acUnitsNames.length > 1
-                    ? '${servis.acUnitsNames.length} unit terdaftar'
-                    : null,
+                value: _acDisplay,
+                subtitle:
+                acNames.length > 1 ? '${acNames.length} unit terdaftar' : null,
               ),
               _buildDivider(),
               _buildModernInfoTile(
                 icon: Icons.person_outline,
                 iconColor: Colors.orange,
                 title: 'Teknisi',
-                value: servis.techniciansNamesDisplay,
-                subtitle: servis.techniciansNamesDisplay != 'Belum ditugaskan'
-                    ? '${servis.technicianNames.length} teknisi'
+                value: teknisiDisplay,
+                subtitle: teknisiDisplay != 'Belum ditugaskan'
+                    ? '${teknisiList.length} teknisi'
                     : null,
               ),
               _buildDivider(),
@@ -437,9 +433,9 @@ class ServisDetailPage extends StatelessWidget {
                 iconColor: Colors.purple,
                 title: 'Tanggal Ditugaskan',
                 value: _formatDate(servis.tanggalDitugaskan),
-                subtitle: '${_getDayName(servis.tanggalDitugaskan)}',
+                subtitle: _getDayName(servis.tanggalDitugaskan),
               ),
-              if (servis.noInvoice != null) ...[
+              if ((servis.noInvoice ?? '').trim().isNotEmpty) ...[
                 _buildDivider(),
                 _buildModernInfoTile(
                   icon: Icons.receipt_outlined,
@@ -470,7 +466,7 @@ class ServisDetailPage extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: iconColor.withValues(alpha:0.1),
+              color: iconColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Icon(
@@ -530,10 +526,10 @@ class ServisDetailPage extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: Colors.orange.withValues(alpha:0.05),
+            color: Colors.orange.withValues(alpha: 0.05),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: Colors.orange.withValues(alpha:0.2),
+              color: Colors.orange.withValues(alpha: 0.2),
             ),
           ),
           child: Column(
@@ -554,10 +550,10 @@ class ServisDetailPage extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  Expanded(
+                  const Expanded(
                     child: Text(
-                      servis.keluhanJudul,
-                      style: const TextStyle(
+                      'Keluhan Klien',
+                      style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
                         color: Colors.orange,
@@ -574,7 +570,7 @@ class ServisDetailPage extends StatelessWidget {
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.orange.withValues(alpha:0.1),
+                      color: Colors.orange.withValues(alpha: 0.1),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
@@ -584,14 +580,16 @@ class ServisDetailPage extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      servis.keluhanDeskripsi,
+                      (servis.keluhanClient ?? '-').trim().isEmpty
+                          ? '-'
+                          : (servis.keluhanClient ?? '-').trim(),
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.grey[800],
                         height: 1.5,
                       ),
                     ),
-                    if (servis.keluhanSubmittedAt != null) ...[
+                    if (servis.tanggalBerkunjung != null) ...[
                       const SizedBox(height: 12),
                       Row(
                         children: [
@@ -602,7 +600,7 @@ class ServisDetailPage extends StatelessWidget {
                           ),
                           const SizedBox(width: 6),
                           Text(
-                            'Diajukan: ${_formatDateTime(servis.keluhanSubmittedAt!)}',
+                            'Diajukan: ${_formatDateTime(servis.tanggalBerkunjung)}',
                             style: TextStyle(
                               fontSize: 12,
                               color: Colors.grey[600],
@@ -631,13 +629,21 @@ class ServisDetailPage extends StatelessWidget {
           color: kPrimaryColor,
         ),
         const SizedBox(height: 12),
-        ...servis.itemsData.map((it) => _buildModernAcItemCard(context, it)).toList(),
+        ...servis.itemsData
+            .map((it) => _buildModernAcItemCard(context, it))
+            .toList(),
       ],
     );
   }
 
-  Widget _buildModernAcItemCard(BuildContext context, Map<String, dynamic> it) {
-    final ac = (it['ac_unit'] is Map) ? Map<String, dynamic>.from(it['ac_unit']) : <String, dynamic>{};
+  Widget _buildModernAcItemCard(
+      BuildContext context,
+      Map<String, dynamic> it,
+      ) {
+    final ac = (it['ac_unit'] is Map)
+        ? Map<String, dynamic>.from(it['ac_unit'])
+        : <String, dynamic>{};
+
     final itemStatus = (it['status'] ?? '').toString();
     final acName = (ac['name'] ?? '-').toString();
     final brand = (ac['brand'] ?? '').toString();
@@ -651,7 +657,7 @@ class ServisDetailPage extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha:0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -667,7 +673,7 @@ class ServisDetailPage extends StatelessWidget {
               context,
               MaterialPageRoute(
                 builder: (_) => ServisItemAcDetailPage(
-                  servisId: servis.id,
+                  servisId: servis.id.toString(),
                   item: it,
                 ),
               ),
@@ -681,7 +687,7 @@ class ServisDetailPage extends StatelessWidget {
                   width: 60,
                   height: 60,
                   decoration: BoxDecoration(
-                    color: kPrimaryColor.withValues(alpha:0.08),
+                    color: kPrimaryColor.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Stack(
@@ -689,7 +695,7 @@ class ServisDetailPage extends StatelessWidget {
                     children: [
                       Icon(
                         Icons.ac_unit,
-                        color: kPrimaryColor.withValues(alpha:0.5),
+                        color: kPrimaryColor.withValues(alpha: 0.5),
                         size: 32,
                       ),
                       if (servis.fotoSesudah.isNotEmpty)
@@ -741,7 +747,9 @@ class ServisDetailPage extends StatelessWidget {
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
-                              [brand, capacity].where((e) => e.trim().isNotEmpty).join(' • '),
+                              [brand, capacity]
+                                  .where((e) => e.trim().isNotEmpty)
+                                  .join(' • '),
                               style: TextStyle(
                                 fontSize: 11,
                                 color: Colors.grey[700],
@@ -771,7 +779,7 @@ class ServisDetailPage extends StatelessWidget {
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: _itemStatusColor(itemStatus).withValues(alpha:0.1),
+                        color: _itemStatusColor(itemStatus).withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
@@ -800,6 +808,10 @@ class ServisDetailPage extends StatelessWidget {
   }
 
   Widget _buildModernDetailSection() {
+    final tindakan = _tindakanList;
+    final acNamesFromItemsOnly = _acNamesFromItemsOnly;
+    final diagnosa = (servis.diagnosa ?? '').trim();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -817,7 +829,7 @@ class ServisDetailPage extends StatelessWidget {
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha:0.03),
+                color: Colors.black.withValues(alpha: 0.03),
                 blurRadius: 20,
                 offset: const Offset(0, 10),
               ),
@@ -826,33 +838,25 @@ class ServisDetailPage extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (servis.tindakan.isNotEmpty) ...[
+              if (tindakan.isNotEmpty) ...[
                 _buildDetailChipSection(
                   icon: Icons.handyman,
                   title: 'Tindakan yang dilakukan',
-                  items: servis.tindakan.map((t) => _getTindakanText(t)).toList(),
+                  items: tindakan.map(_getTindakanText).toList(),
                   color: kPrimaryColor,
                 ),
                 const SizedBox(height: 16),
               ],
-              if (servis.diagnosa.isNotEmpty) ...[
+              if (diagnosa.isNotEmpty) ...[
                 _buildDetailTextSection(
                   icon: Icons.medical_services,
                   title: 'Diagnosa',
-                  content: servis.diagnosa,
+                  content: diagnosa,
                   color: Colors.orange,
                 ),
                 const SizedBox(height: 16),
               ],
-              // if (servis.catatan.isNotEmpty) ...[
-              //   _buildDetailTextSection(
-              //     icon: Icons.note_alt,
-              //     title: 'Catatan Teknisi',
-              //     content: servis.catatan,
-              //     color: Colors.green,
-              //   ),
-              // ],
-              if (servis.acUnitsNamesFromItemsOnly.isNotEmpty && servis.tindakan.isEmpty) ...[
+              if (acNamesFromItemsOnly.isNotEmpty && tindakan.isEmpty) ...[
                 Padding(
                   padding: const EdgeInsets.only(top: 8),
                   child: Text(
@@ -868,17 +872,17 @@ class ServisDetailPage extends StatelessWidget {
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
-                  children: servis.acUnitsNamesFromItemsOnly.map((name) {
+                  children: acNamesFromItemsOnly.map((name) {
                     return Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 12,
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: kPrimaryColor.withValues(alpha:0.08),
+                        color: kPrimaryColor.withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: kPrimaryColor.withValues(alpha:0.2),
+                          color: kPrimaryColor.withValues(alpha: 0.2),
                         ),
                       ),
                       child: Text(
@@ -933,10 +937,10 @@ class ServisDetailPage extends StatelessWidget {
                 vertical: 8,
               ),
               decoration: BoxDecoration(
-                color: color.withValues(alpha:0.08),
+                color: color.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(25),
                 border: Border.all(
-                  color: color.withValues(alpha:0.2),
+                  color: color.withValues(alpha: 0.2),
                 ),
               ),
               child: Text(
@@ -981,10 +985,10 @@ class ServisDetailPage extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: color.withValues(alpha:0.05),
+            color: color.withValues(alpha: 0.05),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: color.withValues(alpha:0.2),
+              color: color.withValues(alpha: 0.2),
             ),
           ),
           child: Text(
@@ -1000,102 +1004,7 @@ class ServisDetailPage extends StatelessWidget {
     );
   }
 
-  // Widget _buildModernBiayaSection() {
-  //   return Column(
-  //     crossAxisAlignment: CrossAxisAlignment.start,
-  //     children: [
-  //       _buildSectionHeader(
-  //         icon: Icons.receipt_long,
-  //         title: 'Rincian Biaya',
-  //         color: Colors.green,
-  //       ),
-  //       const SizedBox(height: 12),
-  //       Container(
-  //         padding: const EdgeInsets.all(20),
-  //         decoration: BoxDecoration(
-  //           color: Colors.white,
-  //           borderRadius: BorderRadius.circular(20),
-  //           boxShadow: [
-  //             BoxShadow(
-  //               color: Colors.black.withValues(alpha:0.03),
-  //               blurRadius: 20,
-  //               offset: const Offset(0, 10),
-  //             ),
-  //           ],
-  //         ),
-  //         child: Column(
-  //           children: [
-  //             _buildModernBiayaRow(
-  //               icon: Icons.build,
-  //               label: 'Biaya Servis',
-  //               value: servis.formattedBiayaServis,
-  //             ),
-  //             // const SizedBox(height: 12),
-  //             // _buildModernBiayaRow(
-  //             //   icon: Icons.inventory,
-  //             //   label: 'Biaya Suku Cadang',
-  //             //   value: servis.formattedBiayaSukuCadang,
-  //             // ),
-  //             const Padding(
-  //               padding: EdgeInsets.symmetric(vertical: 12),
-  //               child: Divider(),
-  //             ),
-  //             Row(
-  //               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-  //               children: [
-  //                 Row(
-  //                   children: [
-  //                     Container(
-  //                       padding: const EdgeInsets.all(8),
-  //                       decoration: BoxDecoration(
-  //                         color: Colors.green.withValues(alpha:0.1),
-  //                         borderRadius: BorderRadius.circular(12),
-  //                       ),
-  //                       child: const Icon(
-  //                         Icons.payments,
-  //                         color: Colors.green,
-  //                         size: 20,
-  //                       ),
-  //                     ),
-  //                     const SizedBox(width: 12),
-  //                     const Text(
-  //                       'Total Biaya',
-  //                       style: TextStyle(
-  //                         fontSize: 16,
-  //                         fontWeight: FontWeight.w600,
-  //                       ),
-  //                     ),
-  //                   ],
-  //                 ),
-  //                 Container(
-  //                   padding: const EdgeInsets.symmetric(
-  //                     horizontal: 16,
-  //                     vertical: 8,
-  //                   ),
-  //                   decoration: BoxDecoration(
-  //                     color: Colors.green.withValues(alpha:0.1),
-  //                     borderRadius: BorderRadius.circular(30),
-  //                   ),
-  //                   child: Text(
-  //                     servis.formattedTotalBiaya,
-  //                     style: const TextStyle(
-  //                       fontSize: 18,
-  //                       fontWeight: FontWeight.bold,
-  //                       color: Colors.green,
-  //                     ),
-  //                   ),
-  //                 ),
-  //               ],
-  //             ),
-  //           ],
-  //         ),
-  //       ),
-  //     ],
-  //   );
-  // }
-
   Widget _buildModernBiayaSection(BuildContext context) {
-    // Hanya tampilkan section biaya jika status SELESAI
     if (servis.status != ServisStatus.selesai) {
       return const SizedBox.shrink();
     }
@@ -1130,14 +1039,8 @@ class ServisDetailPage extends StatelessWidget {
                 _buildModernBiayaRow(
                   icon: Icons.build,
                   label: 'Biaya Servis',
-                  value: servis.formattedBiayaServis,
+                  value: _formatRupiah(servis.biayaServis),
                 ),
-                // const SizedBox(height: 12),
-                // _buildModernBiayaRow(
-                //   icon: Icons.inventory,
-                //   label: 'Biaya Suku Cadang',
-                //   value: servis.formattedBiayaSukuCadang,
-                // ),
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 12),
                   child: Divider(),
@@ -1179,7 +1082,7 @@ class ServisDetailPage extends StatelessWidget {
                         borderRadius: BorderRadius.circular(30),
                       ),
                       child: Text(
-                        servis.formattedTotalBiaya,
+                        _formatRupiah(servis.totalBiaya),
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -1190,7 +1093,6 @@ class ServisDetailPage extends StatelessWidget {
                   ],
                 ),
               ] else ...[
-                // Tampilkan pesan jika biaya belum diatur
                 Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
@@ -1237,8 +1139,6 @@ class ServisDetailPage extends StatelessWidget {
                   ),
                 ),
               ],
-
-              // ========== SECTION QRIS PEMBAYARAN ==========
               const SizedBox(height: 24),
               Container(
                 padding: const EdgeInsets.all(10),
@@ -1258,7 +1158,6 @@ class ServisDetailPage extends StatelessWidget {
                 ),
                 child: Column(
                   children: [
-                    // Header QRIS
                     Row(
                       children: [
                         Container(
@@ -1297,41 +1196,9 @@ class ServisDetailPage extends StatelessWidget {
                             ],
                           ),
                         ),
-                        // Container(
-                        //   padding: const EdgeInsets.symmetric(
-                        //     horizontal: 12,
-                        //     vertical: 6,
-                        //   ),
-                        //   decoration: BoxDecoration(
-                        //     color: Colors.green,
-                        //     borderRadius: BorderRadius.circular(20),
-                        //   ),
-                        //   child: const Row(
-                        //     mainAxisSize: MainAxisSize.min,
-                        //     children: [
-                        //       Icon(
-                        //         Icons.verified,
-                        //         size: 10,
-                        //         color: Colors.white,
-                        //       ),
-                        //       SizedBox(width: 4),
-                        //       Text(
-                        //         'Resmi',
-                        //         style: TextStyle(
-                        //           fontSize: 10,
-                        //           fontWeight: FontWeight.bold,
-                        //           color: Colors.white,
-                        //         ),
-                        //       ),
-                        //     ],
-                        //   ),
-                        // ),
                       ],
                     ),
-
                     const SizedBox(height: 20),
-
-                    // Gambar QRIS
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
@@ -1347,11 +1214,10 @@ class ServisDetailPage extends StatelessWidget {
                       ),
                       child: Column(
                         children: [
-                          // QRIS Image
                           ClipRRect(
                             borderRadius: BorderRadius.circular(12),
                             child: Image.asset(
-                              'assets/qris_cvrt.jpeg', // Sesuaikan dengan path gambar QRIS Anda
+                              'assets/qris_cvrt.jpeg',
                               height: 200,
                               width: 200,
                               fit: BoxFit.contain,
@@ -1385,10 +1251,7 @@ class ServisDetailPage extends StatelessWidget {
                               },
                             ),
                           ),
-
                           const SizedBox(height: 16),
-
-                          // Informasi Pembayaran
                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
@@ -1448,7 +1311,7 @@ class ServisDetailPage extends StatelessWidget {
                                           ),
                                         ),
                                         Text(
-                                          servis.formattedTotalBiaya,
+                                          _formatRupiah(servis.totalBiaya),
                                           style: const TextStyle(
                                             fontSize: 15,
                                             fontWeight: FontWeight.bold,
@@ -1462,20 +1325,17 @@ class ServisDetailPage extends StatelessWidget {
                               ],
                             ),
                           ),
-
                           const SizedBox(height: 16),
-
-                          // Tombol Aksi
                           Row(
                             children: [
                               Expanded(
                                 child: OutlinedButton.icon(
-                                  onPressed: () {
-                                    // Simpan gambar QRIS
-                                    _saveQrisImage(context);
-                                  },
+                                  onPressed: () => _saveQrisImage(context),
                                   icon: const Icon(Icons.download, size: 16),
-                                  label: const Text('Simpan QRIS', style: TextStyle(fontSize: 12),),
+                                  label: const Text(
+                                    'Simpan QRIS',
+                                    style: TextStyle(fontSize: 12),
+                                  ),
                                   style: OutlinedButton.styleFrom(
                                     foregroundColor: const Color(0xFF0066B3),
                                     side: const BorderSide(
@@ -1483,7 +1343,7 @@ class ServisDetailPage extends StatelessWidget {
                                     ),
                                     padding: const EdgeInsets.symmetric(
                                       vertical: 12,
-                                      horizontal: 4
+                                      horizontal: 4,
                                     ),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(30),
@@ -1494,9 +1354,7 @@ class ServisDetailPage extends StatelessWidget {
                               const SizedBox(width: 12),
                               Expanded(
                                 child: ElevatedButton.icon(
-                                  onPressed: () {
-                                    _sharePaymentInfo(context);
-                                  },
+                                  onPressed: () => _sharePaymentInfo(context),
                                   icon: const Icon(Icons.share, size: 18),
                                   label: const Text('Bagikan'),
                                   style: ElevatedButton.styleFrom(
@@ -1526,19 +1384,26 @@ class ServisDetailPage extends StatelessWidget {
     );
   }
 
-// Method untuk menyimpan QRIS
   Future<void> _saveQrisImage(BuildContext context) async {
     try {
       final byteData = await rootBundle.load('assets/qris_cvrt.jpeg');
       final Uint8List bytes = byteData.buffer.asUint8List();
 
-      final result = await ImageGallerySaverPlus.saveImage(bytes, quality: 100, name: "qris_....");
+      final result = await ImageGallerySaverPlus.saveImage(
+        bytes,
+        quality: 100,
+        name: 'qris_ridho_teknik',
+      );
 
       final isSuccess = (result['isSuccess'] == true);
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(isSuccess ? 'QRIS berhasil disimpan ke galeri' : 'Gagal menyimpan QRIS'),
+          content: Text(
+            isSuccess
+                ? 'QRIS berhasil disimpan ke galeri'
+                : 'Gagal menyimpan QRIS',
+          ),
           backgroundColor: isSuccess ? Colors.green : Colors.red,
         ),
       );
@@ -1552,22 +1417,18 @@ class ServisDetailPage extends StatelessWidget {
     }
   }
 
-
-// Method untuk membagikan informasi pembayaran
   Future<void> _sharePaymentInfo(BuildContext context) async {
     try {
-      // ambil bytes asset
       final byteData = await rootBundle.load('assets/qris_cvrt.jpeg');
       final bytes = byteData.buffer.asUint8List();
 
-      // tulis ke file temp supaya bisa dishare
       final dir = await getTemporaryDirectory();
       final file = File('${dir.path}/qris_ridho_teknik.jpeg');
       await file.writeAsBytes(bytes, flush: true);
 
       final text = (servis.totalBiaya == 0)
           ? 'QRIS Ridho Teknik (biaya belum diatur). Silakan scan QRIS untuk pembayaran.'
-          : 'Pembayaran Ridho Teknik\nTotal: ${servis.formattedTotalBiaya}\nSilakan scan QRIS.';
+          : 'Pembayaran Ridho Teknik\nTotal: ${_formatRupiah(servis.totalBiaya)}\nSilakan scan QRIS.';
 
       await Share.shareXFiles(
         [XFile(file.path)],
@@ -1583,7 +1444,6 @@ class ServisDetailPage extends StatelessWidget {
       );
     }
   }
-
 
   Widget _buildModernBiayaRow({
     required IconData icon,
@@ -1642,7 +1502,7 @@ class ServisDetailPage extends StatelessWidget {
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha:0.03),
+                color: Colors.black.withValues(alpha: 0.03),
                 blurRadius: 20,
                 offset: const Offset(0, 10),
               ),
@@ -1690,7 +1550,7 @@ class ServisDetailPage extends StatelessWidget {
                 vertical: 4,
               ),
               decoration: BoxDecoration(
-                color: kPrimaryColor.withValues(alpha:0.1),
+                color: kPrimaryColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
@@ -1704,9 +1564,7 @@ class ServisDetailPage extends StatelessWidget {
             ),
             const Spacer(),
             TextButton(
-              onPressed: () {
-                // Lihat semua foto
-              },
+              onPressed: () {},
               child: const Text('Lihat Semua'),
             ),
           ],
@@ -1735,15 +1593,13 @@ class ServisDetailPage extends StatelessWidget {
 
   Widget _buildModernFotoGridItem(String url, BuildContext context) {
     return GestureDetector(
-      onTap: () {
-        _showPhotoDialog(url, context);
-      },
+      onTap: () => _showPhotoDialog(url, context),
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha:0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -1808,7 +1664,7 @@ class ServisDetailPage extends StatelessWidget {
                       begin: Alignment.bottomCenter,
                       end: Alignment.topCenter,
                       colors: [
-                        Colors.black.withValues(alpha:0.3),
+                        Colors.black.withValues(alpha: 0.3),
                         Colors.transparent,
                       ],
                     ),
@@ -1883,7 +1739,7 @@ class ServisDetailPage extends StatelessWidget {
               top: 10,
               right: 10,
               child: CircleAvatar(
-                backgroundColor: Colors.black.withValues(alpha:0.5),
+                backgroundColor: Colors.black.withValues(alpha: 0.5),
                 child: IconButton(
                   icon: const Icon(Icons.close, color: Colors.white),
                   onPressed: () => Navigator.pop(context),
@@ -1906,7 +1762,7 @@ class ServisDetailPage extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: color.withValues(alpha:0.1),
+            color: color.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Icon(
@@ -1937,10 +1793,9 @@ class ServisDetailPage extends StatelessWidget {
     );
   }
 
-  // Helper methods
   IconData _getStatusIcon(ServisStatus status) {
     switch (status) {
-      case ServisStatus.menunggu_konfirmasi:
+      case ServisStatus.menungguKonfirmasi:
         return Icons.access_time;
       case ServisStatus.ditugaskan:
         return Icons.person_outline;
@@ -1950,14 +1805,13 @@ class ServisDetailPage extends StatelessWidget {
         return Icons.check_circle;
       case ServisStatus.batal:
         return Icons.cancel;
-      default:
-        return Icons.info_outline;
     }
   }
 
   String _getItemStatusDisplay(String status) {
     switch (status.toLowerCase()) {
       case 'menunggu_konfirmasi':
+      case 'menunggukonfirmasi':
         return 'Menunggu';
       case 'ditugaskan':
         return 'Ditugaskan';
@@ -1975,6 +1829,7 @@ class ServisDetailPage extends StatelessWidget {
   Color _itemStatusColor(String status) {
     switch (status.toLowerCase()) {
       case 'menunggu_konfirmasi':
+      case 'menunggukonfirmasi':
         return Colors.orange;
       case 'ditugaskan':
         return Colors.blue;
@@ -1989,44 +1844,182 @@ class ServisDetailPage extends StatelessWidget {
     }
   }
 
-  String _getTindakanText(TindakanServis tindakan) {
-    switch (tindakan) {
-      case TindakanServis.pembersihan:
-        return 'Pembersihan';
-      case TindakanServis.isiFreon:
-        return 'Isi Freon';
-      case TindakanServis.gantiFilter:
-        return 'Ganti Filter';
-      case TindakanServis.perbaikanKompressor:
-        return 'Perbaikan Kompressor';
-      case TindakanServis.perbaikanPCB:
-        return 'Perbaikan PCB';
-      case TindakanServis.gantiKapasitor:
-        return 'Ganti Kapasitor';
-      case TindakanServis.gantiFanMotor:
-        return 'Ganti Fan Motor';
-      case TindakanServis.tuneUp:
-        return 'Tune Up';
-      case TindakanServis.lainnya:
-        return 'Lainnya';
-    }
+  String _getTindakanText(String tindakan) {
+    return tindakan;
   }
 
-  String _formatDate(DateTime date) {
+  String _formatDate(DateTime? date) {
+    if (date == null) return '-';
+
     final monthNames = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
-      'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'Mei',
+      'Jun',
+      'Jul',
+      'Ags',
+      'Sep',
+      'Okt',
+      'Nov',
+      'Des',
     ];
     return '${date.day} ${monthNames[date.month - 1]} ${date.year}';
   }
 
-  String _formatDateTime(DateTime date) {
+  String _formatDateTime(DateTime? date) {
+    if (date == null) return '-';
     return '${_formatDate(date)} • ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
   }
 
-  String _getDayName(DateTime date) {
-    final dayNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+  String _getDayName(DateTime? date) {
+    if (date == null) return '-';
+    final dayNames = [
+      'Minggu',
+      'Senin',
+      'Selasa',
+      'Rabu',
+      'Kamis',
+      'Jumat',
+      'Sabtu',
+    ];
     return dayNames[date.weekday % 7];
+  }
+
+  String _formatRupiah(double value) {
+    return 'Rp ${value.toStringAsFixed(0).replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+          (m) => '${m[1]}.',
+    )}';
+  }
+
+  String get _lokasiAlamat {
+    return (servis.lokasiData?['address'] ?? '-').toString();
+  }
+
+  List<String> get _acNames {
+    final names = <String>[];
+
+    if (servis.acData != null) {
+      final name = (servis.acData!['name'] ?? '').toString().trim();
+      if (name.isNotEmpty) {
+        names.add(name);
+      }
+    }
+
+    for (final item in servis.itemsData) {
+      final ac = item['ac_unit'];
+      if (ac is Map) {
+        final name = (ac['name'] ?? '').toString().trim();
+        if (name.isNotEmpty && !names.contains(name)) {
+          names.add(name);
+        }
+      }
+    }
+
+    return names;
+  }
+
+  List<String> get _acNamesFromItemsOnly {
+    final names = <String>[];
+
+    for (final item in servis.itemsData) {
+      final ac = item['ac_unit'];
+      if (ac is Map) {
+        final name = (ac['name'] ?? '').toString().trim();
+        if (name.isNotEmpty && !names.contains(name)) {
+          names.add(name);
+        }
+      }
+    }
+
+    return names;
+  }
+
+  String get _acDisplay {
+    if (servis.jenis == JenisPenanganan.instalasi) {
+      if (servis.jumlahAc > 0) return 'Instalasi ${servis.jumlahAc} unit';
+      return 'Instalasi';
+    }
+
+    final names = _acNames;
+    if (names.isEmpty) return '-';
+    if (names.length <= 2) return names.join(', ');
+    return '${names.first} +${names.length - 1}';
+  }
+
+  List<String> get _teknisiList {
+    final names = <String>[];
+
+    for (final t in servis.techniciansData) {
+      final name = (t['name'] ?? '').toString().trim();
+      if (name.isNotEmpty && !names.contains(name)) {
+        names.add(name);
+      }
+    }
+
+    final fallback = (servis.teknisiData?['name'] ?? '').toString().trim();
+    if (fallback.isNotEmpty && !names.contains(fallback)) {
+      names.add(fallback);
+    }
+
+    return names;
+  }
+
+  String get _teknisiDisplay {
+    final names = _teknisiList;
+    if (names.isEmpty) return 'Belum ditugaskan';
+    if (names.length == 1) return names.first;
+    return '${names.first} +${names.length - 1}';
+  }
+
+  List<String> get _tindakanList {
+    final raw = (servis.tindakanSummary ?? '').trim();
+    if (raw.isEmpty) return [];
+    return raw
+        .split(',')
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+  }
+
+  bool get _isInProgress {
+    return servis.status == ServisStatus.ditugaskan ||
+        servis.status == ServisStatus.dikerjakan;
+  }
+
+  String? get _durationDisplay {
+    if (servis.tanggalMulai == null) return null;
+
+    final end = servis.tanggalSelesai ?? DateTime.now();
+    final diff = end.difference(servis.tanggalMulai!);
+
+    if (diff.inMinutes < 1) return 'Baru dimulai';
+    if (diff.inHours < 1) return '${diff.inMinutes} menit';
+
+    if (diff.inDays < 1) {
+      final jam = diff.inHours;
+      final menit = diff.inMinutes % 60;
+      if (menit == 0) return '$jam jam';
+      return '$jam jam $menit menit';
+    }
+
+    final hari = diff.inDays;
+    final jam = diff.inHours % 24;
+    if (jam == 0) return '$hari hari';
+    return '$hari hari $jam jam';
+  }
+
+  IconData _getJenisIcon(JenisPenanganan jenis) {
+    switch (jenis) {
+      case JenisPenanganan.cuci:
+        return Icons.clean_hands;
+      case JenisPenanganan.perbaikan:
+        return Icons.build;
+      case JenisPenanganan.instalasi:
+        return Icons.install_desktop;
+    }
   }
 }
 

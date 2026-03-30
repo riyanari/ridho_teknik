@@ -32,7 +32,6 @@ class _OwnerServiceDetailPageState extends State<OwnerServiceDetailPage> {
       await prov.fetchTechnicians();
 
       _prefillFromItems();
-      _prefillFromServiceGlobalIfNeeded();
 
       if (mounted) setState(() {});
     });
@@ -88,63 +87,28 @@ class _OwnerServiceDetailPageState extends State<OwnerServiceDetailPage> {
   }
 
 
-  void _prefillFromServiceGlobalIfNeeded() {
-    // cuma untuk mode ganti teknisi
-    if (!widget.isReassign) return;
-
-    // kalau itemsData sudah ada, skip (lebih valid)
-    if (_groups.isNotEmpty) return;
-
-    final techIds = widget.service.technicianIds ?? [];
-    if (techIds.isEmpty) return;
-
-    final acList = _getAcList();
-    if (acList.isEmpty) return;
-
-    final firstTechId = techIds.first;
-    final acIds = acList
-        .map((e) => int.tryParse((e['id'] ?? '').toString()) ?? 0)
-        .where((id) => id > 0)
-        .toSet();
-
-    _groups[firstTechId] = acIds; // ✅ anggap semua AC berada di teknisi ini
-    _selectedTechnicianId = firstTechId; // biar dropdown langsung ke teknisi sekarang
-  }
-
-
   List<Map<String, dynamic>> _getAcList() {
-    // PRIORITAS: itemsData -> ambil ac_unit
     final items = widget.service.itemsData;
+
     final fromItems = items
         .map((it) => it['ac_unit'])
         .where((u) => u is Map)
         .map((u) => Map<String, dynamic>.from(u as Map))
         .toList();
 
-    if (fromItems.isNotEmpty) {
-      // uniq by id
-      final seen = <int>{};
-      final uniq = <Map<String, dynamic>>[];
-      for (final u in fromItems) {
-        final id = int.tryParse((u['id'] ?? '').toString()) ?? 0;
-        if (id > 0 && !seen.contains(id)) {
-          seen.add(id);
-          uniq.add(u);
-        }
+    // uniq by id
+    final seen = <int>{};
+    final uniq = <Map<String, dynamic>>[];
+
+    for (final u in fromItems) {
+      final id = int.tryParse((u['id'] ?? '').toString()) ?? 0;
+      if (id > 0 && !seen.contains(id)) {
+        seen.add(id);
+        uniq.add(u);
       }
-      return uniq;
     }
 
-    // fallback: ac_units_detail kalau ada
-    final detail = widget.service.acUnitsDetail;
-    if (detail.isNotEmpty) return detail;
-
-    // fallback terakhir: single acData (kalau perbaikan)
-    if (widget.service.acData != null && widget.service.acData!.isNotEmpty) {
-      return [widget.service.acData!];
-    }
-
-    return [];
+    return uniq;
   }
 
   void _toggleSelectAll(List<Map<String, dynamic>> acList) {
@@ -200,7 +164,7 @@ class _OwnerServiceDetailPageState extends State<OwnerServiceDetailPage> {
   Future<void> _submit() async {
     final prov = context.read<OwnerMasterProvider>();
 
-    final serviceId = int.tryParse(widget.service.id) ?? 0;
+    final serviceId = widget.service.id;
     if (serviceId <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Service ID tidak valid'), backgroundColor: Colors.red),

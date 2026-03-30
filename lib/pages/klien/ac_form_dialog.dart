@@ -1,4 +1,3 @@
-// lib/pages/klien/ac_form_dialog.dart
 import 'package:flutter/material.dart';
 import '../../models/ac_model.dart';
 import '../../theme/theme.dart';
@@ -6,7 +5,12 @@ import '../../theme/theme.dart';
 class AcFormDialog extends StatefulWidget {
   final AcModel? initial;
   final String lokasiId;
-  const AcFormDialog({super.key, this.initial, required this.lokasiId});
+
+  const AcFormDialog({
+    super.key,
+    this.initial,
+    required this.lokasiId,
+  });
 
   @override
   State<AcFormDialog> createState() => _AcFormDialogState();
@@ -17,6 +21,8 @@ class _AcFormDialogState extends State<AcFormDialog> {
   late final TextEditingController _merkController;
   late final TextEditingController _typeController;
   late final TextEditingController _kapasitasController;
+  late final TextEditingController _lantaiController;
+  late final TextEditingController _roomIdController;
 
   final List<String> _merkOptions = [
     'Daikin',
@@ -29,7 +35,7 @@ class _AcFormDialogState extends State<AcFormDialog> {
     'Polytron',
     'Gree',
     'Aqua',
-    'Lainnya'
+    'Lainnya',
   ];
 
   final List<String> _typeOptions = [
@@ -40,7 +46,7 @@ class _AcFormDialogState extends State<AcFormDialog> {
     'Ducted',
     'Portable',
     'Central',
-    'Lainnya'
+    'Lainnya',
   ];
 
   final List<String> _kapasitasOptions = [
@@ -53,7 +59,7 @@ class _AcFormDialogState extends State<AcFormDialog> {
     '3 PK',
     '4 PK',
     '5 PK',
-    'Lainnya'
+    'Lainnya',
   ];
 
   String? _selectedMerk;
@@ -63,12 +69,19 @@ class _AcFormDialogState extends State<AcFormDialog> {
   @override
   void initState() {
     super.initState();
+
     _namaController = TextEditingController(text: widget.initial?.nama ?? '');
     _merkController = TextEditingController(text: widget.initial?.merk ?? '');
     _typeController = TextEditingController(text: widget.initial?.type ?? '');
-    _kapasitasController = TextEditingController(text: widget.initial?.kapasitas ?? '');
+    _kapasitasController =
+        TextEditingController(text: widget.initial?.kapasitas ?? '');
+    _lantaiController = TextEditingController(
+      text: widget.initial?.lantai.toString() ?? '0',
+    );
+    _roomIdController = TextEditingController(
+      text: widget.initial?.roomId.toString() ?? '0',
+    );
 
-    // Set nilai awal untuk dropdown
     _selectedMerk = widget.initial?.merk;
     _selectedType = widget.initial?.type;
     _selectedKapasitas = widget.initial?.kapasitas;
@@ -80,7 +93,13 @@ class _AcFormDialogState extends State<AcFormDialog> {
     _merkController.dispose();
     _typeController.dispose();
     _kapasitasController.dispose();
+    _lantaiController.dispose();
+    _roomIdController.dispose();
     super.dispose();
+  }
+
+  int _parseInt(String value, {int fallback = 0}) {
+    return int.tryParse(value.trim()) ?? fallback;
   }
 
   void _submitForm() {
@@ -108,14 +127,23 @@ class _AcFormDialogState extends State<AcFormDialog> {
       return;
     }
 
+    final locationId = _parseInt(widget.lokasiId);
+    final lantai = _parseInt(_lantaiController.text);
+    final roomId = _parseInt(_roomIdController.text);
+
     final ac = AcModel(
-      id: widget.initial?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
-      lokasiId: widget.lokasiId,
+      id: widget.initial?.id ?? DateTime.now().millisecondsSinceEpoch,
+      roomId: widget.initial?.roomId ?? roomId,
+      locationId: widget.initial?.locationId ?? locationId,
       nama: _namaController.text.trim(),
       merk: merk,
       type: type,
       kapasitas: kapasitas,
+      lantai: widget.initial?.lantai ?? lantai,
       terakhirService: widget.initial?.terakhirService ?? DateTime.now(),
+      createdAt: widget.initial?.createdAt,
+      updatedAt: DateTime.now(),
+      room: widget.initial?.room,
     );
 
     Navigator.pop(context, ac);
@@ -139,7 +167,7 @@ class _AcFormDialogState extends State<AcFormDialog> {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha:0.15),
+            color: Colors.black.withValues(alpha: 0.15),
             blurRadius: 30,
             offset: const Offset(0, -10),
           ),
@@ -156,17 +184,13 @@ class _AcFormDialogState extends State<AcFormDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
             _buildHeader(),
             const SizedBox(height: 24),
-
-            // Form Content
             Expanded(
               child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Nama AC
                     _buildTextField(
                       controller: _namaController,
                       label: 'Nama AC*',
@@ -174,24 +198,30 @@ class _AcFormDialogState extends State<AcFormDialog> {
                       prefixIcon: Icons.description_rounded,
                     ),
                     const SizedBox(height: 20),
-
-                    // Merk AC (Dropdown atau Input)
                     _buildMerkSection(),
                     const SizedBox(height: 20),
-
-                    // Type AC (Dropdown atau Input)
                     _buildTypeSection(),
                     const SizedBox(height: 20),
-
-                    // Kapasitas AC (Dropdown atau Input)
                     _buildKapasitasSection(),
+                    const SizedBox(height: 20),
+                    _buildTextField(
+                      controller: _lantaiController,
+                      label: 'Lantai',
+                      hintText: 'Contoh: 1',
+                      prefixIcon: Icons.layers_rounded,
+                    ),
+                    const SizedBox(height: 20),
+                    _buildTextField(
+                      controller: _roomIdController,
+                      label: 'Room ID',
+                      hintText: 'Contoh: 10',
+                      prefixIcon: Icons.meeting_room_rounded,
+                    ),
                     const SizedBox(height: 32),
                   ],
                 ),
               ),
             ),
-
-            // Action Buttons
             _buildActionButtons(),
             const SizedBox(height: 20),
           ],
@@ -207,7 +237,10 @@ class _AcFormDialogState extends State<AcFormDialog> {
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [kSecondaryColor.withValues(alpha:0.1), kSecondaryColor.withValues(alpha:0.2)],
+              colors: [
+                kSecondaryColor.withValues(alpha: 0.1),
+                kSecondaryColor.withValues(alpha: 0.2),
+              ],
             ),
             shape: BoxShape.circle,
           ),
@@ -259,17 +292,20 @@ class _AcFormDialogState extends State<AcFormDialog> {
         TextField(
           controller: controller,
           maxLines: maxLines,
+          keyboardType: label == 'Lantai' || label == 'Room ID'
+              ? TextInputType.number
+              : TextInputType.text,
           decoration: InputDecoration(
             hintText: hintText,
             hintStyle: greyTextStyle,
             prefixIcon: Icon(prefixIcon, color: kPrimaryColor),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: kGreyColor.withValues(alpha:0.5)),
+              borderSide: BorderSide(color: kGreyColor.withValues(alpha: 0.5)),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: kGreyColor.withValues(alpha:0.5)),
+              borderSide: BorderSide(color: kGreyColor.withValues(alpha: 0.5)),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
@@ -299,13 +335,11 @@ class _AcFormDialogState extends State<AcFormDialog> {
           ),
         ),
         const SizedBox(height: 8),
-
-        // Dropdown Merk
         Container(
           decoration: BoxDecoration(
             color: kBackgroundColor,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: kGreyColor.withValues(alpha:0.5)),
+            border: Border.all(color: kGreyColor.withValues(alpha: 0.5)),
           ),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
@@ -330,7 +364,8 @@ class _AcFormDialogState extends State<AcFormDialog> {
                   value: 'custom',
                   child: Padding(
                     padding: EdgeInsets.only(left: 16),
-                    child: Text('Lainnya...', style: TextStyle(color: Colors.grey)),
+                    child:
+                    Text('Lainnya...', style: TextStyle(color: Colors.grey)),
                   ),
                 ),
               ],
@@ -349,9 +384,7 @@ class _AcFormDialogState extends State<AcFormDialog> {
             ),
           ),
         ),
-
-        // Input custom jika memilih "Lainnya"
-        if (_selectedMerk == null && (_merkController.text.isNotEmpty || _merkController.text.isEmpty))
+        if (_selectedMerk == null)
           Padding(
             padding: const EdgeInsets.only(top: 12),
             child: _buildTextField(
@@ -377,13 +410,11 @@ class _AcFormDialogState extends State<AcFormDialog> {
           ),
         ),
         const SizedBox(height: 8),
-
-        // Dropdown Type
         Container(
           decoration: BoxDecoration(
             color: kBackgroundColor,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: kGreyColor.withValues(alpha:0.5)),
+            border: Border.all(color: kGreyColor.withValues(alpha: 0.5)),
           ),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
@@ -408,7 +439,8 @@ class _AcFormDialogState extends State<AcFormDialog> {
                   value: 'custom',
                   child: Padding(
                     padding: EdgeInsets.only(left: 16),
-                    child: Text('Lainnya...', style: TextStyle(color: Colors.grey)),
+                    child:
+                    Text('Lainnya...', style: TextStyle(color: Colors.grey)),
                   ),
                 ),
               ],
@@ -427,9 +459,7 @@ class _AcFormDialogState extends State<AcFormDialog> {
             ),
           ),
         ),
-
-        // Input custom jika memilih "Lainnya"
-        if (_selectedType == null && (_typeController.text.isNotEmpty || _typeController.text.isEmpty))
+        if (_selectedType == null)
           Padding(
             padding: const EdgeInsets.only(top: 12),
             child: _buildTextField(
@@ -455,13 +485,11 @@ class _AcFormDialogState extends State<AcFormDialog> {
           ),
         ),
         const SizedBox(height: 8),
-
-        // Dropdown Kapasitas
         Container(
           decoration: BoxDecoration(
             color: kBackgroundColor,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: kGreyColor.withValues(alpha:0.5)),
+            border: Border.all(color: kGreyColor.withValues(alpha: 0.5)),
           ),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
@@ -486,7 +514,8 @@ class _AcFormDialogState extends State<AcFormDialog> {
                   value: 'custom',
                   child: Padding(
                     padding: EdgeInsets.only(left: 16),
-                    child: Text('Lainnya...', style: TextStyle(color: Colors.grey)),
+                    child:
+                    Text('Lainnya...', style: TextStyle(color: Colors.grey)),
                   ),
                 ),
               ],
@@ -505,9 +534,7 @@ class _AcFormDialogState extends State<AcFormDialog> {
             ),
           ),
         ),
-
-        // Input custom jika memilih "Lainnya"
-        if (_selectedKapasitas == null && (_kapasitasController.text.isNotEmpty || _kapasitasController.text.isEmpty))
+        if (_selectedKapasitas == null)
           Padding(
             padding: const EdgeInsets.only(top: 12),
             child: _buildTextField(
@@ -532,7 +559,7 @@ class _AcFormDialogState extends State<AcFormDialog> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
-              side: BorderSide(color: kGreyColor.withValues(alpha:0.5)),
+              side: BorderSide(color: kGreyColor.withValues(alpha: 0.5)),
             ),
             child: Text(
               'Batal',

@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:intl/intl.dart';
@@ -28,10 +27,8 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
   String? _token;
 
   final ScrollController _scrollController = ScrollController();
-
   bool _showAllDetails = false;
 
-  // Animasi
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
@@ -64,7 +61,7 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
       duration: const Duration(milliseconds: 800),
     );
 
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+    _fadeAnimation = Tween<double>(begin: 0, end: 1).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeIn),
     );
 
@@ -85,9 +82,6 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
     super.dispose();
   }
 
-  // =========================
-  // REFRESH DATA
-  // =========================
   Future<void> _refreshFromProvider() async {
     final prov = context.read<TeknisiProvider>();
     await prov.fetchTasks();
@@ -98,7 +92,6 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
     }
   }
 
-  // ===== status service dari item =====
   String _statusKey() {
     final items = _servis.itemsData;
     if (items.isEmpty) return _servis.status.name.toLowerCase();
@@ -110,19 +103,24 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
 
     if (statuses.isEmpty) return _servis.status.name.toLowerCase();
     if (statuses.every((x) => x == 'selesai')) return 'selesai';
-    final anyDitugaskan = statuses.any((x) => x == 'ditugaskan');
-    if (anyDitugaskan) return 'ditugaskan';
-    return 'dikerjakan';
+    if (statuses.any((x) => x == 'dikerjakan')) return 'dikerjakan';
+    if (statuses.any((x) => x == 'ditugaskan')) return 'ditugaskan';
+    return _servis.status.name.toLowerCase();
   }
 
   Color _statusColor(String status) {
     switch (status) {
+      case 'menunggukonfirmasi':
+      case 'menunggu_konfirmasi':
+        return Colors.orange;
       case 'ditugaskan':
         return const Color(0xFF2196F3);
       case 'dikerjakan':
         return const Color(0xFF9C27B0);
       case 'selesai':
         return const Color(0xFF4CAF50);
+      case 'batal':
+        return Colors.red;
       default:
         return Colors.grey;
     }
@@ -130,12 +128,17 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
 
   String _statusLabel(String status) {
     switch (status) {
+      case 'menunggukonfirmasi':
+      case 'menunggu_konfirmasi':
+        return 'Menunggu Konfirmasi';
       case 'ditugaskan':
         return 'Ditugaskan';
       case 'dikerjakan':
         return 'Dikerjakan';
       case 'selesai':
         return 'Selesai';
+      case 'batal':
+        return 'Batal';
       default:
         return status;
     }
@@ -143,12 +146,17 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
 
   IconData _statusIcon(String status) {
     switch (status) {
+      case 'menunggukonfirmasi':
+      case 'menunggu_konfirmasi':
+        return Iconsax.timer;
       case 'ditugaskan':
         return Iconsax.task_square;
       case 'dikerjakan':
-        return Iconsax.timer;
+        return Iconsax.timer_1;
       case 'selesai':
         return Iconsax.tick_circle;
+      case 'batal':
+        return Iconsax.close_circle;
       default:
         return Iconsax.activity;
     }
@@ -189,9 +197,59 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
 
   String _jumlahAcDisplay(ServisModel s) {
     if (s.itemsData.isNotEmpty) return '${s.itemsData.length}';
-    if (s.jumlahAc != null && s.jumlahAc! > 0) return '${s.jumlahAc}';
-    if (s.acUnitsNames.isNotEmpty) return '${s.acUnitsNames.length}';
+    if (s.jumlahAc > 0) return '${s.jumlahAc}';
+    if (s.acUnits.isNotEmpty) return '${s.acUnits.length}';
+    if (s.acUnitId != null) return '1';
     return '-';
+  }
+
+  List<String> _technicianNames(ServisModel s) {
+    final names = <String>[];
+
+    for (final tech in s.techniciansData) {
+      final name = (tech['name'] ?? '').toString().trim();
+      if (name.isNotEmpty && !names.contains(name)) {
+        names.add(name);
+      }
+    }
+
+    final fallback = (s.teknisiData?['name'] ?? '').toString().trim();
+    if (fallback.isNotEmpty && !names.contains(fallback)) {
+      names.add(fallback);
+    }
+
+    if (names.isEmpty && s.technicianId != null) {
+      names.add('Teknisi #${s.technicianId}');
+    }
+
+    return names;
+  }
+
+  String _lokasiAlamat(ServisModel s) {
+    return (s.lokasiData?['address'] ?? '-').toString();
+  }
+
+  String? _durationDisplay(ServisModel s) {
+    final start = s.tanggalMulai;
+    final end = s.tanggalSelesai;
+
+    if (start == null) return null;
+
+    final effectiveEnd = end ?? DateTime.now();
+    final diff = effectiveEnd.difference(start);
+
+    if (diff.inMinutes < 1) return 'Baru dimulai';
+    if (diff.inHours < 1) return '${diff.inMinutes} menit';
+    if (diff.inDays < 1) {
+      final hours = diff.inHours;
+      final minutes = diff.inMinutes % 60;
+      if (minutes == 0) return '$hours jam';
+      return '$hours jam $minutes menit';
+    }
+    final days = diff.inDays;
+    final hours = diff.inHours % 24;
+    if (hours == 0) return '$days hari';
+    return '$days hari $hours jam';
   }
 
   int _calculateProgress(List<Map<String, dynamic>> items) {
@@ -208,6 +266,7 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
     final status = _statusKey();
     final statusColor = _statusColor(status);
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final technicianNames = _technicianNames(_servis);
 
     return Scaffold(
       backgroundColor: isDark ? Colors.grey[900] : Colors.grey[50],
@@ -218,7 +277,7 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
         leading: Padding(
           padding: const EdgeInsets.only(left: 18, top: 4),
           child: CircleAvatar(
-            backgroundColor: Colors.white.withValues(alpha:0.9),
+            backgroundColor: Colors.white.withValues(alpha: 0.9),
             child: IconButton(
               icon: Icon(Iconsax.arrow_left_2, color: Colors.grey[800]),
               onPressed: () => Navigator.pop(context),
@@ -229,7 +288,7 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
           Padding(
             padding: const EdgeInsets.only(right: 18, top: 4),
             child: CircleAvatar(
-              backgroundColor: Colors.white.withValues(alpha:0.9),
+              backgroundColor: Colors.white.withValues(alpha: 0.9),
               child: IconButton(
                 icon: Icon(Iconsax.more, color: Colors.grey[800]),
                 onPressed: () => _showOptionsMenu(context),
@@ -254,11 +313,6 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
                     child: _buildStatsCard(context),
                   ),
                   const SizedBox(height: 20),
-                  // SlideTransition(
-                  //   position: _slideAnimation,
-                  //   child: _buildTimelineCard(status),
-                  // ),
-                  const SizedBox(height: 20),
                   SlideTransition(
                     position: _slideAnimation,
                     child: _buildAcListSection(context),
@@ -269,10 +323,10 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
                     child: _buildDetailsSection(),
                   ),
                   const SizedBox(height: 20),
-                  if (_servis.technicianNames.isNotEmpty) ...[
+                  if (technicianNames.isNotEmpty) ...[
                     SlideTransition(
                       position: _slideAnimation,
-                      child: _buildTechniciansCard(),
+                      child: _buildTechniciansCard(technicianNames),
                     ),
                     const SizedBox(height: 20),
                   ],
@@ -286,7 +340,6 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
     );
   }
 
-  // ==================== HEADER ====================
   Widget _buildHeaderSliver(String status, Color statusColor) {
     return SliverAppBar(
       automaticallyImplyLeading: false,
@@ -300,8 +353,8 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
               end: Alignment.bottomCenter,
               colors: [
                 statusColor,
-                statusColor.withValues(alpha:0.8),
-                statusColor.withValues(alpha:0.6),
+                statusColor.withValues(alpha: 0.8),
+                statusColor.withValues(alpha: 0.6),
               ],
             ),
             borderRadius: const BorderRadius.only(
@@ -319,7 +372,7 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
                   height: 200,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Colors.white.withValues(alpha:0.1),
+                    color: Colors.white.withValues(alpha: 0.1),
                   ),
                 ),
               ),
@@ -331,7 +384,7 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
                   height: 150,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Colors.white.withValues(alpha:0.1),
+                    color: Colors.white.withValues(alpha: 0.1),
                   ),
                 ),
               ),
@@ -344,11 +397,15 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
                     const SizedBox(height: 80),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha:0.2),
+                        color: Colors.white.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.white.withValues(alpha:0.3)),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.3),
+                        ),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -380,15 +437,18 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        Icon(Iconsax.location,
-                            size: 14, color: Colors.white.withValues(alpha:0.8)),
+                        Icon(
+                          Iconsax.location,
+                          size: 14,
+                          color: Colors.white.withValues(alpha: 0.8),
+                        ),
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text(
-                            _servis.lokasiAlamat,
+                            _lokasiAlamat(_servis),
                             style: TextStyle(
                               fontSize: 13,
-                              color: Colors.white.withValues(alpha:0.9),
+                              color: Colors.white.withValues(alpha: 0.9),
                             ),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
@@ -399,9 +459,11 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
                     const SizedBox(height: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6),
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha:0.2),
+                        color: Colors.white.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
@@ -423,22 +485,20 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
     );
   }
 
-  // ==================== STATS CARD ====================
   Widget _buildStatsCard(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final technicianNames = _technicianNames(_servis);
 
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDark ? Colors.grey[800] : Colors.white,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
-          if (!isDark)
-            BoxShadow(
-              color: Colors.black.withValues(alpha:0.05),
-              blurRadius: 25,
-              offset: const Offset(0, 10),
-            ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 25,
+            offset: const Offset(0, 10),
+          ),
         ],
       ),
       child: Row(
@@ -459,9 +519,7 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
           const SizedBox(width: 20),
           _buildStatItem(
             icon: Iconsax.profile_2user,
-            value: _servis.technicianNames.isNotEmpty
-                ? '${_servis.technicianNames.length}'
-                : '1',
+            value: technicianNames.isNotEmpty ? '${technicianNames.length}' : '0',
             label: 'Teknisi',
             color: const Color(0xFF9C27B0),
           ),
@@ -484,7 +542,7 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
             height: 50,
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [color.withValues(alpha:0.15), color.withValues(alpha:0.05)],
+                colors: [color.withValues(alpha: 0.15), color.withValues(alpha: 0.05)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -515,218 +573,6 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
     );
   }
 
-  // ==================== TIMELINE CARD ====================
-  Widget _buildTimelineCard(String status) {
-    final steps = [
-      _TimelineStep(
-        icon: Iconsax.task_square,
-        title: 'Ditugaskan',
-        time: _servis.tanggalDitugaskan,
-        isActive: true,
-        isCompleted: true,
-      ),
-      _TimelineStep(
-        icon: Iconsax.play_circle,
-        title: 'Dikerjakan',
-        time: _servis.tanggalMulai,
-        isActive: status == 'dikerjakan' ,
-        isCompleted: _servis.tanggalMulai != null,
-      ),
-      _TimelineStep(
-        icon: Iconsax.tick_circle,
-        title: 'Selesai',
-        time: _servis.tanggalSelesai,
-        isActive: status == 'selesai',
-        isCompleted: _servis.tanggalSelesai != null,
-      ),
-    ];
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withValues(alpha:0.05),
-              blurRadius: 25,
-              offset: const Offset(0, 10)),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      kPrimaryColor.withValues(alpha:0.2),
-                      kPrimaryColor.withValues(alpha:0.1)
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(Iconsax.timer_1, color: kPrimaryColor, size: 20),
-              ),
-              const SizedBox(width: 12),
-              const Text(
-                'Timeline Pengerjaan',
-                style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.black87),
-              ),
-              const Spacer(),
-              if (_servis.durationDisplay != null)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: kPrimaryColor.withValues(alpha:0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Iconsax.clock,
-                          size: 14, color: kPrimaryColor),
-                      const SizedBox(width: 4),
-                      Text(
-                        _servis.durationDisplay!,
-                        style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: kPrimaryColor),
-                      ),
-                    ],
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          ...steps.asMap().entries.map((entry) {
-            final index = entry.key;
-            final step = entry.value;
-            final isLast = index == steps.length - 1;
-
-            return Padding(
-              padding: EdgeInsets.only(bottom: isLast ? 0 : 20),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Column(
-                    children: [
-                      Container(
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: step.isCompleted ? kPrimaryColor : Colors.white,
-                          border: Border.all(
-                            color: step.isCompleted
-                                ? kPrimaryColor
-                                : step.isActive
-                                ? kPrimaryColor.withValues(alpha:0.3)
-                                : Colors.grey[300]!,
-                            width: 2,
-                          ),
-                          boxShadow: step.isCompleted
-                              ? [
-                            BoxShadow(
-                              color: kPrimaryColor.withValues(alpha:0.3),
-                              blurRadius: 8,
-                              offset: const Offset(0, 3),
-                            )
-                          ]
-                              : null,
-                        ),
-                        child: step.isCompleted
-                            ? const Icon(Icons.check,
-                            size: 16, color: Colors.white)
-                            : step.isActive
-                            ? Center(
-                          child: Container(
-                            width: 12,
-                            height: 12,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: kPrimaryColor.withValues(alpha:0.6),
-                            ),
-                          ),
-                        )
-                            : null,
-                      ),
-                      if (!isLast)
-                        Container(
-                          width: 2,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [
-                                step.isCompleted
-                                    ? kPrimaryColor
-                                    : Colors.grey[300]!,
-                                steps[index + 1].isCompleted
-                                    ? kPrimaryColor
-                                    : Colors.grey[300]!,
-                              ],
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 4),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            step.title,
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              color: step.isCompleted
-                                  ? Colors.black87
-                                  : (step.isActive
-                                  ? Colors.black87
-                                  : Colors.grey[600]),
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            step.time != null
-                                ? _fmtDateTime(step.time!)
-                                : 'Menunggu...',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: step.time != null
-                                  ? Colors.grey[600]
-                                  : Colors.grey[400],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }),
-        ],
-      ),
-    );
-  }
-
-  // ==================== LIST AC SECTION ====================
   Widget _buildAcListSection(BuildContext context) {
     final items = _servis.itemsData;
     final hasItems = items.isNotEmpty;
@@ -738,9 +584,10 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withValues(alpha:0.05),
-              blurRadius: 25,
-              offset: const Offset(0, 10)),
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 25,
+            offset: const Offset(0, 10),
+          ),
         ],
       ),
       child: Column(
@@ -759,16 +606,15 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
-                            kPrimaryColor.withValues(alpha:0.2),
-                            kPrimaryColor.withValues(alpha:0.1)
+                            kPrimaryColor.withValues(alpha: 0.2),
+                            kPrimaryColor.withValues(alpha: 0.1),
                           ],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Icon(Iconsax.cpu,
-                          color: kPrimaryColor, size: 20),
+                      child: Icon(Iconsax.cpu, color: kPrimaryColor, size: 20),
                     ),
                     const SizedBox(width: 4),
                     Column(
@@ -777,25 +623,28 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
                         const Text(
                           'Daftar Unit AC',
                           style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.black87,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.black87,
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 1),
+                            horizontal: 10,
+                            vertical: 1,
+                          ),
                           decoration: BoxDecoration(
-                            color: kPrimaryColor.withValues(alpha:0.1),
+                            color: kPrimaryColor.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
                             '${_jumlahAcDisplay(_servis)} Unit',
                             style: TextStyle(
-                                fontSize: 12,
-                                color: kPrimaryColor,
-                                fontWeight: FontWeight.w600),
+                              fontSize: 12,
+                              color: kPrimaryColor,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                       ],
@@ -807,17 +656,20 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
                     const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6),
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
-                        color: Colors.green.withValues(alpha:0.1),
+                        color: Colors.green.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
                         '$progress% Selesai',
-                        style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.green,
-                            fontWeight: FontWeight.w600),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.green,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ],
@@ -863,24 +715,27 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('Progress Pengerjaan',
-                style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                    fontWeight: FontWeight.w500)),
+            Text(
+              'Progress Pengerjaan',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[600],
+                fontWeight: FontWeight.w500,
+              ),
+            ),
             Container(
-              padding:
-              const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
-                color: kPrimaryColor.withValues(alpha:0.1),
+                color: kPrimaryColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
                 '$progress%',
                 style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: kPrimaryColor),
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: kPrimaryColor,
+                ),
               ),
             ),
           ],
@@ -904,7 +759,7 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
                   width: maxWidth * (progress / 100),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [kPrimaryColor, kPrimaryColor.withValues(alpha:0.7)],
+                      colors: [kPrimaryColor, kPrimaryColor.withValues(alpha: 0.7)],
                     ),
                     borderRadius: BorderRadius.circular(4),
                   ),
@@ -913,43 +768,19 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
             );
           },
         ),
-        const SizedBox(height: 4),
-        if (progress == 100)
-          Align(
-            alignment: Alignment.centerRight,
-            child: Container(
-              padding:
-              const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.green.withValues(alpha:0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: const [
-                  Icon(Icons.check_circle, color: Colors.green, size: 12),
-                  SizedBox(width: 4),
-                  Text(
-                    'Semua item selesai',
-                    style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.green,
-                        fontWeight: FontWeight.w600),
-                  ),
-                ],
-              ),
-            ),
-          ),
       ],
     );
   }
 
-  // ==================== LIST ITEM AC (CARD) ====================
   Widget _buildAcListItem(
-      BuildContext context, Map<String, dynamic> item, int itemId) {
-    final ac = (item['ac_unit'] is Map)
-        ? Map<String, dynamic>.from(item['ac_unit'] as Map)
-        : <String, dynamic>{};
+      BuildContext context,
+      Map<String, dynamic> item,
+      int itemId,
+      ) {
+    final acRaw = item['ac_unit'];
+    final ac = acRaw is Map<String, dynamic>
+        ? acRaw
+        : (acRaw is Map ? Map<String, dynamic>.from(acRaw) : <String, dynamic>{});
 
     final itemStatus = (item['status'] ?? '').toString().toLowerCase().trim();
     final statusColor = _statusColor(itemStatus);
@@ -963,7 +794,6 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
 
     return GestureDetector(
       onTap: () {
-        // Navigasi ke halaman detail AC
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -984,15 +814,15 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: itemStatus == 'selesai'
-                ? Colors.green.withValues(alpha:0.3)
+                ? Colors.green.withValues(alpha: 0.3)
                 : itemStatus == 'dikerjakan'
-                ? Colors.blue.withValues(alpha:0.3)
-                : Colors.grey.withValues(alpha:0.2),
+                ? Colors.blue.withValues(alpha: 0.3)
+                : Colors.grey.withValues(alpha: 0.2),
             width: 1,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha:0.02),
+              color: Colors.black.withValues(alpha: 0.02),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -1000,7 +830,6 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
         ),
         child: Row(
           children: [
-            // Icon & Status
             Stack(
               children: [
                 Container(
@@ -1009,19 +838,15 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        statusColor.withValues(alpha:0.2),
-                        statusColor.withValues(alpha:0.05),
+                        statusColor.withValues(alpha: 0.2),
+                        statusColor.withValues(alpha: 0.05),
                       ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                     borderRadius: BorderRadius.circular(14),
                   ),
-                  child: Icon(
-                    Iconsax.airdrop,
-                    color: statusColor,
-                    size: 20,
-                  ),
+                  child: Icon(Iconsax.airdrop, color: statusColor, size: 20),
                 ),
                 if (itemStatus == 'selesai')
                   Positioned(
@@ -1033,8 +858,8 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
                         color: Colors.green,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.check,
-                          color: Colors.white, size: 12),
+                      child:
+                      const Icon(Icons.check, color: Colors.white, size: 12),
                     ),
                   ),
                 if (itemStatus == 'dikerjakan')
@@ -1047,21 +872,18 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
                         color: Colors.blue,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Iconsax.timer,
-                          color: Colors.white, size: 10),
+                      child:
+                      const Icon(Iconsax.timer, color: Colors.white, size: 10),
                     ),
                   ),
               ],
             ),
             const SizedBox(width: 16),
-
-            // Info AC
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Expanded(
                         child: Text(
@@ -1075,12 +897,15 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
                       ),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 4),
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
-                          color: statusColor.withValues(alpha:0.1),
+                          color: statusColor.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                              color: statusColor.withValues(alpha:0.2)),
+                            color: statusColor.withValues(alpha: 0.2),
+                          ),
                         ),
                         child: Text(
                           _statusLabel(itemStatus),
@@ -1095,7 +920,7 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
                   ),
                   const SizedBox(height: 4),
                   Padding(
-                    padding: const EdgeInsets.only(right: 8.0),
+                    padding: const EdgeInsets.only(right: 8),
                     child: Text(
                       '$brand • $type • $capacity',
                       style: TextStyle(
@@ -1106,23 +931,9 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
                     ),
                   ),
                   const SizedBox(height: 8),
-
-                  // Status completion badges
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // _buildCompletionBadge(
-                      //   label: 'Diagnosa',
-                      //   isCompleted: hasDiagnosa,
-                      //   color: Colors.orange,
-                      // ),
-                      // const SizedBox(width: 8),
-                      // _buildCompletionBadge(
-                      //   label: 'Tindakan',
-                      //   isCompleted: hasTindakan,
-                      //   color: Colors.blue,
-                      // ),
-                      // const SizedBox(width: 8),
                       _buildCompletionBadge(
                         label: 'Foto',
                         isCompleted: hasFoto,
@@ -1146,9 +957,6 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
                 ],
               ),
             ),
-
-            // Arrow
-
           ],
         ),
       ),
@@ -1163,7 +971,7 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: isCompleted ? color.withValues(alpha:0.1) : Colors.grey[100],
+        color: isCompleted ? color.withValues(alpha: 0.1) : Colors.grey[100],
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -1193,12 +1001,12 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
     final pengerjaan = item['foto_pengerjaan'];
     final sesudah = item['foto_sesudah'];
 
-    if (sebelum is List) if (sebelum.isNotEmpty) return true;
-    if (sebelum is String) if (sebelum.trim().isNotEmpty) return true;
-    if (pengerjaan is List) if (pengerjaan.isNotEmpty) return true;
-    if (pengerjaan is String) if (pengerjaan.trim().isNotEmpty) return true;
-    if (sesudah is List) if (sesudah.isNotEmpty) return true;
-    if (sesudah is String) if (sesudah.trim().isNotEmpty) return true;
+    if (sebelum is List && sebelum.isNotEmpty) return true;
+    if (sebelum is String && sebelum.trim().isNotEmpty) return true;
+    if (pengerjaan is List && pengerjaan.isNotEmpty) return true;
+    if (pengerjaan is String && pengerjaan.trim().isNotEmpty) return true;
+    if (sesudah is List && sesudah.isNotEmpty) return true;
+    if (sesudah is String && sesudah.trim().isNotEmpty) return true;
 
     return false;
   }
@@ -1210,19 +1018,23 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: kPrimaryColor.withValues(alpha:0.05),
+              color: kPrimaryColor.withValues(alpha: 0.05),
               shape: BoxShape.circle,
             ),
-            child: Icon(Iconsax.cpu,
-                color: kPrimaryColor.withValues(alpha:0.3), size: 48),
+            child: Icon(
+              Iconsax.cpu,
+              color: kPrimaryColor.withValues(alpha: 0.3),
+              size: 48,
+            ),
           ),
           const SizedBox(height: 16),
           Text(
             'Tidak ada data unit AC',
             style: TextStyle(
-                color: Colors.grey[600],
-                fontSize: 15,
-                fontWeight: FontWeight.w500),
+              color: Colors.grey[600],
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
@@ -1234,8 +1046,11 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
     );
   }
 
-  // ==================== DETAIL SECTION ====================
   Widget _buildDetailsSection() {
+    final catatan = (_servis.catatan ?? '').trim();
+    final tindakan = (_servis.tindakanSummary ?? '').trim();
+    final diagnosa = (_servis.diagnosa ?? '').trim();
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -1243,9 +1058,10 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withValues(alpha:0.05),
-              blurRadius: 25,
-              offset: const Offset(0, 10))
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 25,
+            offset: const Offset(0, 10),
+          ),
         ],
       ),
       child: Column(
@@ -1259,60 +1075,64 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      kPrimaryColor.withValues(alpha:0.2),
-                      kPrimaryColor.withValues(alpha:0.1)
+                      kPrimaryColor.withValues(alpha: 0.2),
+                      kPrimaryColor.withValues(alpha: 0.1),
                     ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child:
-                Icon(Iconsax.document_text, color: kPrimaryColor, size: 22),
+                child: Icon(Iconsax.document_text, color: kPrimaryColor, size: 22),
               ),
               const SizedBox(width: 12),
               const Text(
                 'Detail Servis',
                 style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.black87),
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.black87,
+                ),
               ),
               const Spacer(),
               IconButton(
-                onPressed: () =>
-                    setState(() => _showAllDetails = !_showAllDetails),
-                icon: Icon(_showAllDetails
-                    ? Iconsax.arrow_up_2
-                    : Iconsax.arrow_down_1),
+                onPressed: () => setState(() => _showAllDetails = !_showAllDetails),
+                icon: Icon(
+                  _showAllDetails ? Iconsax.arrow_up_2 : Iconsax.arrow_down_1,
+                ),
               ),
             ],
           ),
           const SizedBox(height: 20),
           _buildDetailCard(
             icon: Iconsax.message_text,
-            title: 'Keluhan',
-            content: _servis.catatan.isNotEmpty
-                ? _servis.catatan
-                : 'Tidak ada keluhan',
+            title: 'Keluhan / Catatan',
+            content: catatan.isNotEmpty ? catatan : 'Tidak ada keluhan',
             color: const Color(0xFF2196F3),
           ),
           const SizedBox(height: 12),
           _buildDetailCard(
             icon: Iconsax.key,
             title: 'Tindakan',
-            content: _servis.tindakan.isEmpty
-                ? 'Belum ada tindakan'
-                : _servis.tindakan.map((e) => e.name).join(', '),
+            content: tindakan.isNotEmpty ? tindakan : 'Belum ada tindakan',
             color: const Color(0xFF4CAF50),
           ),
-          if (_servis.diagnosa.trim().isNotEmpty) ...[
+          if (diagnosa.isNotEmpty) ...[
             const SizedBox(height: 12),
             _buildDetailCard(
               icon: Iconsax.clipboard_text,
               title: 'Diagnosa',
-              content: _servis.diagnosa,
+              content: diagnosa,
               color: const Color(0xFF9C27B0),
+            ),
+          ],
+          if (_showAllDetails) ...[
+            const SizedBox(height: 12),
+            _buildDetailCard(
+              icon: Iconsax.receipt_text,
+              title: 'Durasi',
+              content: _durationDisplay(_servis) ?? 'Belum tersedia',
+              color: const Color(0xFFFF9800),
             ),
           ],
         ],
@@ -1329,9 +1149,9 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.withValues(alpha:0.05),
+        color: color.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withValues(alpha:0.1)),
+        border: Border.all(color: color.withValues(alpha: 0.1)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1340,8 +1160,9 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-                color: color.withValues(alpha:0.1),
-                borderRadius: BorderRadius.circular(10)),
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
             child: Icon(icon, size: 20, color: color),
           ),
           const SizedBox(width: 12),
@@ -1349,17 +1170,23 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title,
-                    style: TextStyle(
-                        fontSize: 12,
-                        color: color,
-                        fontWeight: FontWeight.w600)),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: color,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 const SizedBox(height: 6),
-                Text(content,
-                    style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[800],
-                        height: 1.4)),
+                Text(
+                  content,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[800],
+                    height: 1.4,
+                  ),
+                ),
               ],
             ),
           ),
@@ -1368,8 +1195,7 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
     );
   }
 
-  // ==================== TECHNICIANS CARD ====================
-  Widget _buildTechniciansCard() {
+  Widget _buildTechniciansCard(List<String> technicianNames) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -1377,9 +1203,10 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withValues(alpha:0.05),
-              blurRadius: 25,
-              offset: const Offset(0, 10))
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 25,
+            offset: const Offset(0, 10),
+          ),
         ],
       ),
       child: Column(
@@ -1393,38 +1220,42 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      kPrimaryColor.withValues(alpha:0.2),
-                      kPrimaryColor.withValues(alpha:0.1)
+                      kPrimaryColor.withValues(alpha: 0.2),
+                      kPrimaryColor.withValues(alpha: 0.1),
                     ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(Iconsax.profile_2user,
-                    color: kPrimaryColor, size: 22),
+                child: Icon(Iconsax.profile_2user, color: kPrimaryColor, size: 22),
               ),
               const SizedBox(width: 12),
               const Text(
                 'Tim Teknisi',
                 style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.black87),
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.black87,
+                ),
               ),
               const Spacer(),
               Container(
-                padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
-                    color: kPrimaryColor.withValues(alpha:0.1),
-                    borderRadius: BorderRadius.circular(12)),
+                  color: kPrimaryColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 child: Text(
-                  '${_servis.technicianNames.length} teknisi',
+                  '${technicianNames.length} teknisi',
                   style: TextStyle(
-                      fontSize: 12,
-                      color: kPrimaryColor,
-                      fontWeight: FontWeight.w600),
+                    fontSize: 12,
+                    color: kPrimaryColor,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ],
@@ -1433,7 +1264,7 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
           Wrap(
             spacing: 12,
             runSpacing: 12,
-            children: _servis.technicianNames.asMap().entries.map((entry) {
+            children: technicianNames.asMap().entries.map((entry) {
               final index = entry.key;
               final name = entry.value;
               final colors = [
@@ -1447,15 +1278,17 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
 
               return Container(
                 padding: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 12),
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [color.withValues(alpha:0.08), color.withValues(alpha:0.02)],
+                    colors: [color.withValues(alpha: 0.08), color.withValues(alpha: 0.02)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: color.withValues(alpha:0.1)),
+                  border: Border.all(color: color.withValues(alpha: 0.1)),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -1465,7 +1298,7 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
                       height: 32,
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: [color, color.withValues(alpha:0.7)],
+                          colors: [color, color.withValues(alpha: 0.7)],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
@@ -1475,9 +1308,10 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
                         child: Text(
                           name.isNotEmpty ? name[0].toUpperCase() : 'T',
                           style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white),
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                     ),
@@ -1485,9 +1319,10 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
                     Text(
                       name,
                       style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
                     ),
                   ],
                 ),
@@ -1507,8 +1342,7 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
         color: const Color(0xFF2196F3),
         onTap: () {
           Navigator.pop(context);
-          _showSnackBar(context, 'Fitur bagikan akan segera hadir',
-              Colors.blue);
+          _showSnackBar(context, 'Fitur bagikan akan segera hadir', Colors.blue);
         },
       ),
       _OptionItem(
@@ -1517,8 +1351,7 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
         color: const Color(0xFF4CAF50),
         onTap: () {
           Navigator.pop(context);
-          _showSnackBar(
-              context, 'Fitur cetak akan segera hadir', Colors.green);
+          _showSnackBar(context, 'Fitur cetak akan segera hadir', Colors.green);
         },
       ),
       _OptionItem(
@@ -1527,8 +1360,11 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
         color: const Color(0xFF9C27B0),
         onTap: () {
           Navigator.pop(context);
-          _showSnackBar(context, 'Fitur hubungi client akan segera hadir',
-              Colors.purple);
+          _showSnackBar(
+            context,
+            'Fitur hubungi client akan segera hadir',
+            Colors.purple,
+          );
         },
       ),
       _OptionItem(
@@ -1556,12 +1392,15 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(32), topRight: Radius.circular(32)),
+              topLeft: Radius.circular(32),
+              topRight: Radius.circular(32),
+            ),
             boxShadow: [
               BoxShadow(
-                  color: Colors.black.withValues(alpha:0.2),
-                  blurRadius: 30,
-                  offset: const Offset(0, -10)),
+                color: Colors.black.withValues(alpha: 0.2),
+                blurRadius: 30,
+                offset: const Offset(0, -10),
+              ),
             ],
           ),
           child: SafeArea(
@@ -1574,25 +1413,30 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
                     width: 40,
                     height: 4,
                     decoration: BoxDecoration(
-                        color: Colors.grey[300],
-                        borderRadius: BorderRadius.circular(2)),
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 24),
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 24),
-                  child: Text('Opsi Tugas',
-                      style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87)),
+                  child: Text(
+                    'Opsi Tugas',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Text('Pilih aksi yang ingin dilakukan',
-                      style:
-                      TextStyle(fontSize: 14, color: Colors.grey[600])),
+                  child: Text(
+                    'Pilih aksi yang ingin dilakukan',
+                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                  ),
                 ),
                 const SizedBox(height: 24),
                 ...options.map((option) => _buildOptionTile(context, option)),
@@ -1605,13 +1449,18 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
                       foregroundColor: Colors.grey[600],
                       side: BorderSide(color: Colors.grey[300]!),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16)),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       minimumSize: const Size(double.infinity, 0),
                     ),
-                    child: const Text('Tutup',
-                        style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w600)),
+                    child: const Text(
+                      'Tutup',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -1630,41 +1479,31 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
         width: 48,
         height: 48,
         decoration: BoxDecoration(
-            color: option.color.withValues(alpha:0.1),
-            borderRadius: BorderRadius.circular(14)),
+          color: option.color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(14),
+        ),
         child: Icon(option.icon, color: option.color, size: 24),
       ),
-      title: Text(option.label,
-          style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87)),
+      title: Text(
+        option.label,
+        style: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          color: Colors.black87,
+        ),
+      ),
       trailing: Container(
         width: 32,
         height: 32,
-        decoration:
-        BoxDecoration(color: Colors.grey[100], shape: BoxShape.circle),
+        decoration: BoxDecoration(
+          color: Colors.grey[100],
+          shape: BoxShape.circle,
+        ),
         child: Icon(Iconsax.arrow_right_3, color: Colors.grey[500], size: 18),
       ),
       onTap: option.onTap,
     );
   }
-}
-
-class _TimelineStep {
-  final IconData icon;
-  final String title;
-  final DateTime? time;
-  final bool isActive;
-  final bool isCompleted;
-
-  _TimelineStep({
-    required this.icon,
-    required this.title,
-    required this.time,
-    required this.isActive,
-    required this.isCompleted,
-  });
 }
 
 class _OptionItem {

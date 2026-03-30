@@ -118,6 +118,9 @@ class _KlienPageState extends State<KlienPage> {
     // Access the list of locations from the provider
     final lokasiList = context.watch<ClientMasterProvider>().lokasi;
 
+    final now = DateTime.now();
+    final limit = now.subtract(const Duration(days: 30));
+
     // Return an empty state or something else if lokasiList is empty
     if (lokasiList.isEmpty) {
       return Container(
@@ -346,9 +349,10 @@ class _KlienPageState extends State<KlienPage> {
               Expanded(
                 child: _buildStatCard(
                   title: 'Aktif',
-                  value: lokasiList.where((l) =>
-                      l.lastService.isAfter(DateTime.now().subtract(const Duration(days: 30)))
-                  ).length.toString(),
+                  value: lokasiList.where((l) {
+                    final last = l.lastService;
+                    return last != null && last.isAfter(limit);
+                  }).length.toString(),
                   icon: Icons.check_circle_rounded,
                   color: Colors.white,
                   bgColor: Colors.white.withValues(alpha: 0.2),
