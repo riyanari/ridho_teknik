@@ -20,6 +20,7 @@ class _OwnerServiceDetailPageState extends State<OwnerServiceDetailPage> {
   final Set<int> _selectedAcIds = {};
   int? _selectedTechnicianId;
   DateTime _tanggalDitugaskan = DateTime.now();
+  int? _selectedFloorNumber;
 
   /// groups: technician_id -> set(ac_unit_ids)
   final Map<int, Set<int>> _groups = {};
@@ -96,7 +97,6 @@ class _OwnerServiceDetailPageState extends State<OwnerServiceDetailPage> {
         .map((u) => Map<String, dynamic>.from(u as Map))
         .toList();
 
-    // uniq by id
     final seen = <int>{};
     final uniq = <Map<String, dynamic>>[];
 
@@ -107,6 +107,16 @@ class _OwnerServiceDetailPageState extends State<OwnerServiceDetailPage> {
         uniq.add(u);
       }
     }
+
+    uniq.sort((a, b) {
+      final floorA = _getFloorNumberFromAc(a);
+      final floorB = _getFloorNumberFromAc(b);
+      if (floorA != floorB) return floorA.compareTo(floorB);
+
+      final nameA = (a['name'] ?? '').toString().toLowerCase();
+      final nameB = (b['name'] ?? '').toString().toLowerCase();
+      return nameA.compareTo(nameB);
+    });
 
     return uniq;
   }
@@ -287,11 +297,69 @@ class _OwnerServiceDetailPageState extends State<OwnerServiceDetailPage> {
     );
   }
 
+  Widget _floorFilterCard(List<int> floors) {
+    if (floors.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          )
+        ],
+      ),
+      child: Row(
+        children: [
+          const Icon(Iconsax.building_4, color: kPrimaryColor),
+          const SizedBox(width: 10),
+          Expanded(
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<int?>(
+                value: _selectedFloorNumber,
+                isExpanded: true,
+                hint: const Text('Semua lantai'),
+                items: [
+                  const DropdownMenuItem<int?>(
+                    value: null,
+                    child: Text('Semua lantai'),
+                  ),
+                  ...floors.map(
+                        (floor) => DropdownMenuItem<int?>(
+                      value: floor,
+                      child: Text('Lantai $floor'),
+                    ),
+                  ),
+                ],
+                onChanged: (value) {
+                  setState(() {
+                    _selectedFloorNumber = value;
+                  });
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
 
   @override
   Widget build(BuildContext context) {
     final prov = context.watch<OwnerMasterProvider>();
     final acList = _getAcList();
+    final floorOptions = _extractFloorOptions(acList);
+
+    final filteredAcList = _selectedFloorNumber == null
+        ? acList
+        : acList
+        .where((ac) => _getFloorNumberFromAc(ac) == _selectedFloorNumber)
+        .toList();
 
     return Scaffold(
       backgroundColor: kBackgroundColor,
@@ -319,7 +387,10 @@ class _OwnerServiceDetailPageState extends State<OwnerServiceDetailPage> {
           _assignControlsCard(prov),
           const SizedBox(height: 12),
 
-          _acListCard(prov, acList),
+          _floorFilterCard(floorOptions),
+          const SizedBox(height: 12),
+
+          _acListCard(prov, filteredAcList),
           const SizedBox(height: 12),
 
           _groupPreviewCard(prov),
@@ -583,6 +654,8 @@ class _OwnerServiceDetailPageState extends State<OwnerServiceDetailPage> {
 
             final canMove = isLocked && _selectedTechnicianId != null && _selectedTechnicianId != assignedTechId;
 
+            final floorLabel = _getFloorLabelFromAc(ac);
+
             return Opacity(
               opacity: isLocked ? 0.75 : 1,
               child: Container(
@@ -620,19 +693,43 @@ class _OwnerServiceDetailPageState extends State<OwnerServiceDetailPage> {
                       });
                     },
                     activeColor: kPrimaryColor,
-                    title: Text(
-                      name,
-                      style: primaryTextStyle.copyWith(fontWeight: semiBold),
+                    title: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            name,
+                            style: primaryTextStyle.copyWith(fontWeight: semiBold),
+                          ),
+                        ),
+                        if (floorLabel != '-')
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.purple.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              floorLabel,
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.purple,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                     subtitle: Text(
                       [
+                        if (floorLabel != '-') floorLabel,
                         [brand, type, cap].where((e) => e.trim().isNotEmpty).join(' • '),
                         if (isLocked)
                           'Sudah di-assign ke ${_techNameById(prov, assignedTechId)}'
                         else
                           'Belum di-assign',
                         if (canMove) 'Tap untuk pindahkan ke teknisi terpilih',
-                        if (isLocked && _selectedTechnicianId == null) 'Pilih teknisi tujuan dulu untuk pindah',
+                        if (isLocked && _selectedTechnicianId == null)
+                          'Pilih teknisi tujuan dulu untuk pindah',
                       ].where((e) => e.trim().isNotEmpty).join('\n'),
                       style: greyTextStyle.copyWith(fontSize: 12),
                     ),
@@ -722,5 +819,45 @@ class _OwnerServiceDetailPageState extends State<OwnerServiceDetailPage> {
         ],
       ),
     );
+  }
+
+  int _getFloorNumberFromAc(Map<String, dynamic> ac) {
+    final room = ac['room'];
+    if (room is Map) {
+      final floor = room['floor'];
+      if (floor is Map) {
+        return int.tryParse((floor['number'] ?? 0).toString()) ?? 0;
+      }
+    }
+
+    return int.tryParse((ac['lantai'] ?? 0).toString()) ?? 0;
+  }
+
+  String _getFloorLabelFromAc(Map<String, dynamic> ac) {
+    final room = ac['room'];
+    if (room is Map) {
+      final floor = room['floor'];
+      if (floor is Map) {
+        final name = (floor['name'] ?? '').toString().trim();
+        final number = int.tryParse((floor['number'] ?? 0).toString()) ?? 0;
+
+        if (name.isNotEmpty) return name;
+        if (number > 0) return 'Lantai $number';
+      }
+    }
+
+    final lantai = int.tryParse((ac['lantai'] ?? 0).toString()) ?? 0;
+    return lantai > 0 ? 'Lantai $lantai' : '-';
+  }
+
+  List<int> _extractFloorOptions(List<Map<String, dynamic>> acList) {
+    final floors = acList
+        .map(_getFloorNumberFromAc)
+        .where((e) => e > 0)
+        .toSet()
+        .toList()
+      ..sort();
+
+    return floors;
   }
 }

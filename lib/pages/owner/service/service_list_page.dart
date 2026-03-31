@@ -10,8 +10,8 @@ import 'package:ridho_teknik/models/servis_model.dart';
 import 'package:ridho_teknik/providers/owner_master_provider.dart';
 import 'package:ridho_teknik/theme/theme.dart';
 
-import 'owner_service_detail_page.dart';
-import 'owner_service_monitoring_page.dart';
+import '../owner_service_detail_page.dart';
+import '../owner_service_monitoring_page.dart';
 
 class ServiceListPage extends StatefulWidget {
   const ServiceListPage({super.key});
