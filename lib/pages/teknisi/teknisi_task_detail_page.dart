@@ -25,6 +25,7 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
     with SingleTickerProviderStateMixin {
   late ServisModel _servis;
   String? _token;
+  int? _selectedFloor;
 
   final ScrollController _scrollController = ScrollController();
   bool _showAllDetails = false;
@@ -73,6 +74,56 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
     );
 
     _animationController.forward();
+  }
+
+  int _getFloorNumberFromItem(Map<String, dynamic> item) {
+    final acRaw = item['ac_unit'];
+    final ac = acRaw is Map<String, dynamic>
+        ? acRaw
+        : (acRaw is Map ? Map<String, dynamic>.from(acRaw) : <String, dynamic>{});
+
+    final room = ac['room'];
+    if (room is Map) {
+      final floor = room['floor'];
+      if (floor is Map) {
+        return int.tryParse((floor['number'] ?? 0).toString()) ?? 0;
+      }
+    }
+
+    return int.tryParse((ac['lantai'] ?? 0).toString()) ?? 0;
+  }
+
+  String _getFloorLabelFromItem(Map<String, dynamic> item) {
+    final acRaw = item['ac_unit'];
+    final ac = acRaw is Map<String, dynamic>
+        ? acRaw
+        : (acRaw is Map ? Map<String, dynamic>.from(acRaw) : <String, dynamic>{});
+
+    final room = ac['room'];
+    if (room is Map) {
+      final floor = room['floor'];
+      if (floor is Map) {
+        final name = (floor['name'] ?? '').toString().trim();
+        final number = int.tryParse((floor['number'] ?? 0).toString()) ?? 0;
+
+        if (name.isNotEmpty) return name;
+        if (number > 0) return 'Lantai $number';
+      }
+    }
+
+    final lantai = int.tryParse((ac['lantai'] ?? 0).toString()) ?? 0;
+    return lantai > 0 ? 'Lantai $lantai' : '-';
+  }
+
+  List<int> _extractFloorOptions(List<Map<String, dynamic>> items) {
+    final floors = items
+        .map(_getFloorNumberFromItem)
+        .where((e) => e > 0)
+        .toSet()
+        .toList()
+      ..sort();
+
+    return floors;
   }
 
   @override
@@ -160,11 +211,6 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
       default:
         return Iconsax.activity;
     }
-  }
-
-  String _fmtDateTime(DateTime? dt) {
-    if (dt == null) return '-';
-    return DateFormat('dd MMM y • HH:mm', 'id_ID').format(dt);
   }
 
   String _fmtDate(DateTime? dt) {
@@ -578,6 +624,11 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
     final hasItems = items.isNotEmpty;
     final progress = _calculateProgress(items);
 
+    final floorOptions = _extractFloorOptions(items);
+    final filteredItems = _selectedFloor == null
+        ? items
+        : items.where((item) => _getFloorNumberFromItem(item) == _selectedFloor).toList();
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -598,109 +649,186 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            kPrimaryColor.withValues(alpha: 0.2),
-                            kPrimaryColor.withValues(alpha: 0.1),
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
+                Expanded(
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              kPrimaryColor.withValues(alpha: 0.2),
+                              kPrimaryColor.withValues(alpha: 0.1),
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        borderRadius: BorderRadius.circular(12),
+                        child: Icon(Iconsax.cpu, color: kPrimaryColor, size: 20),
                       ),
-                      child: Icon(Iconsax.cpu, color: kPrimaryColor, size: 20),
-                    ),
-                    const SizedBox(width: 4),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Daftar Unit AC',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.black87,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 1,
-                          ),
-                          decoration: BoxDecoration(
-                            color: kPrimaryColor.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            '${_jumlahAcDisplay(_servis)} Unit',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: kPrimaryColor,
-                              fontWeight: FontWeight.w600,
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Daftar Unit AC',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.black87,
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
-                          ),
+                            const SizedBox(height: 4),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: kPrimaryColor.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                '${filteredItems.length} Unit',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: kPrimaryColor,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                  ],
+                      ),
+                    ],
+                  ),
                 ),
-                Row(
-                  children: [
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.green.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        '$progress% Selesai',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.green,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                const SizedBox(width: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '$progress% Selesai',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Colors.green,
+                      fontWeight: FontWeight.w600,
                     ),
-                  ],
+                  ),
                 ),
               ],
             ),
           ),
+
           if (hasItems)
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
               child: _buildProgressBar(progress),
             ),
+
+          if (floorOptions.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Filter Lantai',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey[600],
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: Colors.grey[300]!),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<int?>(
+                        value: _selectedFloor,
+                        isExpanded: true,
+                        icon: Icon(
+                          Icons.keyboard_arrow_down,
+                          color: Colors.grey[600],
+                        ),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.black87,
+                        ),
+                        hint: const Text('Semua lantai'),
+                        items: [
+                          const DropdownMenuItem<int?>(
+                            value: null,
+                            child: Text('Semua lantai'),
+                          ),
+                          ...floorOptions.map(
+                                (floor) => DropdownMenuItem<int?>(
+                              value: floor,
+                              child: Text('Lantai $floor'),
+                            ),
+                          ),
+                        ],
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedFloor = value;
+                          });
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
           Padding(
             padding: const EdgeInsets.all(20),
             child: hasItems
-                ? Column(
-              children: items.asMap().entries.map((entry) {
+                ? (filteredItems.isEmpty
+                ? Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: Text(
+                  'Tidak ada AC pada lantai ini',
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            )
+                : Column(
+              children: filteredItems.asMap().entries.map((entry) {
                 final index = entry.key;
                 final item = entry.value;
                 final itemId =
                     int.tryParse((item['id'] ?? '').toString()) ?? 0;
-                final isLast = index == items.length - 1;
+                final isLast = index == filteredItems.length - 1;
 
                 return Column(
                   children: [
                     _buildAcListItem(context, item, itemId),
-                    if (!isLast) const SizedBox(height: 12),
+                    if (!isLast) const SizedBox(height: 14),
                   ],
                 );
               }).toList(),
-            )
+            ))
                 : _buildFallbackAcList(),
           ),
         ],
@@ -782,6 +910,8 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
         ? acRaw
         : (acRaw is Map ? Map<String, dynamic>.from(acRaw) : <String, dynamic>{});
 
+    final floorLabel = _getFloorLabelFromItem(item);
+
     final itemStatus = (item['status'] ?? '').toString().toLowerCase().trim();
     final statusColor = _statusColor(itemStatus);
 
@@ -811,74 +941,82 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(18),
           border: Border.all(
             color: itemStatus == 'selesai'
-                ? Colors.green.withValues(alpha: 0.3)
+                ? Colors.green.withValues(alpha: 0.25)
                 : itemStatus == 'dikerjakan'
-                ? Colors.blue.withValues(alpha: 0.3)
-                : Colors.grey.withValues(alpha: 0.2),
+                ? Colors.blue.withValues(alpha: 0.25)
+                : Colors.grey.withValues(alpha: 0.18),
             width: 1,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.02),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
             ),
           ],
         ),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Container(
+              width: 6,
+              height: 86,
+              decoration: BoxDecoration(
+                color: statusColor,
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            const SizedBox(width: 14),
             Stack(
               children: [
                 Container(
-                  width: 40,
-                  height: 40,
+                  width: 48,
+                  height: 48,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        statusColor.withValues(alpha: 0.2),
-                        statusColor.withValues(alpha: 0.05),
+                        statusColor.withValues(alpha: 0.18),
+                        statusColor.withValues(alpha: 0.06),
                       ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(16),
                   ),
-                  child: Icon(Iconsax.airdrop, color: statusColor, size: 20),
+                  child: Icon(Iconsax.airdrop, color: statusColor, size: 22),
                 ),
                 if (itemStatus == 'selesai')
                   Positioned(
-                    bottom: 0,
-                    right: 0,
+                    right: -1,
+                    bottom: -1,
                     child: Container(
-                      padding: const EdgeInsets.all(2),
+                      padding: const EdgeInsets.all(3),
                       decoration: const BoxDecoration(
                         color: Colors.green,
                         shape: BoxShape.circle,
                       ),
-                      child:
-                      const Icon(Icons.check, color: Colors.white, size: 12),
+                      child: const Icon(Icons.check, color: Colors.white, size: 11),
                     ),
                   ),
                 if (itemStatus == 'dikerjakan')
                   Positioned(
-                    bottom: 0,
-                    right: 0,
+                    right: -1,
+                    bottom: -1,
                     child: Container(
-                      padding: const EdgeInsets.all(6),
+                      padding: const EdgeInsets.all(4),
                       decoration: const BoxDecoration(
                         color: Colors.blue,
                         shape: BoxShape.circle,
                       ),
-                      child:
-                      const Icon(Iconsax.timer, color: Colors.white, size: 10),
+                      child: const Icon(Iconsax.timer, color: Colors.white, size: 9),
                     ),
                   ),
               ],
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -889,22 +1027,24 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
                         child: Text(
                           name,
                           style: const TextStyle(
-                            fontSize: 12,
+                            fontSize: 14,
                             fontWeight: FontWeight.w700,
                             color: Colors.black87,
+                            height: 1.2,
                           ),
                         ),
                       ),
+                      const SizedBox(width: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 10,
-                          vertical: 4,
+                          vertical: 5,
                         ),
                         decoration: BoxDecoration(
                           color: statusColor.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                            color: statusColor.withValues(alpha: 0.2),
+                            color: statusColor.withValues(alpha: 0.18),
                           ),
                         ),
                         child: Text(
@@ -918,45 +1058,93 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
                       ),
                     ],
                   ),
-                  const SizedBox(height: 4),
-                  Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: Text(
-                      '$brand • $type • $capacity',
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: Colors.grey[600],
-                        fontWeight: FontWeight.w500,
-                      ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '$brand • $type',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey[700],
+                      fontWeight: FontWeight.w500,
+                      height: 1.3,
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  const SizedBox(height: 4),
+                  Wrap(
+                    spacing: 14,
+                    runSpacing: 8,
                     children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: kPrimaryColor.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          capacity,
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: kPrimaryColor,
+                          ),
+                        ),
+                      ),
+                      if (floorLabel != '-')
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.purple.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Iconsax.building_3,
+                                size: 11,
+                                color: Colors.purple,
+                              ),
+                              const SizedBox(width: 5),
+                              Text(
+                                floorLabel,
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  color: Colors.purple,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       _buildCompletionBadge(
                         label: 'Foto',
                         isCompleted: hasFoto,
                         color: Colors.green,
-                      ),
-                      Container(
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          color: Colors.grey[100],
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Iconsax.arrow_right_3,
-                          color: Colors.grey[600],
-                          size: 16,
-                        ),
                       ),
                     ],
                   ),
                 ],
               ),
             ),
+            // const SizedBox(width: 10),
+            // Container(
+            //   width: 34,
+            //   height: 34,
+            //   decoration: BoxDecoration(
+            //     color: Colors.grey[100],
+            //     shape: BoxShape.circle,
+            //   ),
+            //   child: Icon(
+            //     Iconsax.arrow_right_3,
+            //     color: Colors.grey[600],
+            //     size: 16,
+            //   ),
+            // ),
           ],
         ),
       ),
