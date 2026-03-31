@@ -2,6 +2,7 @@ import 'floor_simple_model.dart';
 
 class RoomModel {
   final int id;
+  final int locationId;
   final int floorId;
   final String name;
   final String? code;
@@ -12,6 +13,7 @@ class RoomModel {
 
   RoomModel({
     required this.id,
+    required this.locationId,
     required this.floorId,
     required this.name,
     this.code,
@@ -30,13 +32,14 @@ class RoomModel {
 
     DateTime? parseDate(dynamic value) {
       if (value == null) return null;
-      final text = value.toString();
+      final text = value.toString().trim();
       if (text.isEmpty) return null;
       return DateTime.tryParse(text);
     }
 
     return RoomModel(
       id: parseInt(json['id']),
+      locationId: parseInt(json['location_id']),
       floorId: parseInt(json['floor_id']),
       name: (json['name'] ?? '').toString(),
       code: json['code']?.toString(),
@@ -52,6 +55,7 @@ class RoomModel {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
+      'location_id': locationId,
       'floor_id': floorId,
       'name': name,
       'code': code,

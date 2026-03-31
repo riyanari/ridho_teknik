@@ -16,8 +16,6 @@ class LokasiModel {
   final DateTime? updatedAt;
 
   final int totalAcUnits;
-
-  // optional, dipakai kalau endpoint lain memang mengirim users
   final List<UserModel> users;
 
   LokasiModel({
@@ -36,6 +34,8 @@ class LokasiModel {
     this.users = const [],
   });
 
+  int get totalAc => totalAcUnits > 0 ? totalAcUnits : jumlahAC;
+
   factory LokasiModel.fromJson(Map<String, dynamic> json) {
     int parseInt(dynamic value) {
       if (value == null) return 0;
@@ -45,21 +45,18 @@ class LokasiModel {
 
     DateTime? parseDate(dynamic value) {
       if (value == null) return null;
-      final text = value.toString();
+      final text = value.toString().trim();
       if (text.isEmpty) return null;
       return DateTime.tryParse(text);
     }
 
     return LokasiModel(
-      id: json['id'],
+      id: parseInt(json['id']),
       nama: (json['name'] ?? '').toString(),
       alamat: (json['address'] ?? '').toString(),
-
-      // prioritas: jumlah_ac -> total_ac_units -> ac_count
       jumlahAC: parseInt(
         json['jumlah_ac'] ?? json['total_ac_units'] ?? json['ac_count'],
       ),
-
       lastService: parseDate(json['last_service']),
       latitude: json['latitude']?.toString(),
       longitude: json['longitude']?.toString(),
@@ -67,8 +64,9 @@ class LokasiModel {
       gmapsUrl: json['gmaps_url']?.toString(),
       createdAt: parseDate(json['created_at']),
       updatedAt: parseDate(json['updated_at']),
-      totalAcUnits: parseInt(json['total_ac_units'] ?? json['ac_count']),
-
+      totalAcUnits: parseInt(
+        json['total_ac_units'] ?? json['ac_count'] ?? json['jumlah_ac'],
+      ),
       users: json['users'] is List
           ? (json['users'] as List)
           .map((e) => UserModel.fromJson(e as Map<String, dynamic>))

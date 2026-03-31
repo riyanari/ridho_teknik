@@ -9,7 +9,7 @@ import 'pages/login_page.dart';
 import 'pages/owner/home_page.dart';
 import 'pages/klien/klien_page.dart';
 import 'pages/teknisi/teknisi_dashboard_page.dart';
-import 'pages/owner/client_list_page.dart';
+import 'pages/owner/client/client_list_page.dart';
 import 'pages/owner/technician_list_page.dart';
 
 import 'providers/auth_provider.dart';

@@ -8,7 +8,7 @@ import 'package:ridho_teknik/theme/theme.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:badges/badges.dart' as badges;
 
-import '../../models/client_model.dart';
+import '../../../models/client_model.dart';
 import 'client_locations_page.dart';
 
 class ClientListPage extends StatefulWidget {
@@ -21,8 +21,7 @@ class ClientListPage extends StatefulWidget {
 class _ClientListPageState extends State<ClientListPage> {
   final TextEditingController _searchController = TextEditingController();
   bool _isSearching = false;
-  String _selectedFilter = 'Semua';
-  final List<String> _filterOptions = ['Semua', 'Aktif', 'Baru', 'Premium'];
+  final String _selectedFilter = 'Semua';
 
   @override
   void initState() {
@@ -220,49 +219,6 @@ class _ClientListPageState extends State<ClientListPage> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildFilterChips() {
-    return SizedBox(
-      height: 60,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: _filterOptions.length,
-        itemBuilder: (context, index) {
-          final option = _filterOptions[index];
-          final isSelected = _selectedFilter == option;
-
-          return Padding(
-            padding: const EdgeInsets.only(right: 8, top: 12),
-            child: ChoiceChip(
-              label: Text(option),
-              selected: isSelected,
-              onSelected: (selected) {
-                setState(() {
-                  _selectedFilter = option;
-                });
-              },
-              selectedColor: kPrimaryColor,
-              backgroundColor: Colors.white,
-              labelStyle: TextStyle(
-                color: isSelected ? Colors.white : Colors.black87, // Ubah dari kTextColor
-                fontWeight: FontWeight.w500,
-              ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-                side: BorderSide(
-                  color: isSelected ? kPrimaryColor : Colors.grey[300]!,
-                  width: 1,
-                ),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              elevation: isSelected ? 2 : 0,
-            ),
-          );
-        },
       ),
     );
   }
@@ -833,102 +789,6 @@ class _ClientListPageState extends State<ClientListPage> {
         ),
       ),
     );
-  }
-
-  void _showFilterBottomSheet() {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(24),
-        ),
-      ),
-      builder: (context) {
-        return Container(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Filter Client',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-              const SizedBox(height: 24),
-              ..._filterOptions.map((option) {
-                return ListTile(
-                  leading: Icon(
-                    _getFilterIcon(option),
-                    color: kPrimaryColor,
-                  ),
-                  title: Text(option),
-                  trailing: _selectedFilter == option
-                      ? Icon(Iconsax.tick_circle, color: kPrimaryColor)
-                      : null,
-                  onTap: () {
-                    setState(() {
-                      _selectedFilter = option;
-                    });
-                    Navigator.pop(context);
-                  },
-                );
-              }).toList(),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                  onPressed: () {
-                    setState(() {
-                      _selectedFilter = 'Semua';
-                    });
-                    Navigator.pop(context);
-                  },
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    side: BorderSide(color: Colors.grey[300]!),
-                  ),
-                  child: Text(
-                    'Reset Filter',
-                    style: TextStyle(color: Colors.black87),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  IconData _getFilterIcon(String filter) {
-    switch (filter) {
-      case 'Aktif':
-        return Iconsax.activity;
-      case 'Baru':
-        return Iconsax.user_add;
-      case 'Premium':
-        return Iconsax.crown;
-      default:
-        return Iconsax.filter;
-    }
   }
 
   void _showAddClientDialog() {

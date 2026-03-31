@@ -30,16 +30,11 @@ class LocationProvider with ChangeNotifier {
   }
 
   List<LokasiModel> getLocationsByClient(int clientId) {
-    if (_locations.isEmpty) return <LokasiModel>[];
-
-    return _locations.where((location) {
-      return location.users.any((user) => user.id == clientId);
-    }).toList();
+    return _locations;
   }
 
   int getClientTotalAc(int clientId) {
-    return getLocationsByClient(clientId)
-        .fold<int>(0, (sum, loc) => sum + loc.jumlahAC);
+    return _locations.fold<int>(0, (sum, loc) => sum + loc.jumlahAC);
   }
 
   Future<void> fetchLocations({int? userId}) async {

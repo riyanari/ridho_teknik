@@ -109,7 +109,7 @@ class OwnerMasterProvider with ChangeNotifier {
   }
 
   List<RoomModel> getRoomsByLocation(int locationId) {
-    return _rooms.where((room) => room.floor?.locationId == locationId).toList();
+    return _rooms.where((room) => room.locationId == locationId).toList();
   }
 
   List<ServisModel> getServicesByStatus(String status) {
@@ -383,13 +383,10 @@ class OwnerMasterProvider with ChangeNotifier {
     try {
       final updatedLocation = await service.updateLocation(id, data);
 
-      final index = _locations.indexWhere((l) => l.id == id.toString());
-      if (index != -1) {
-        _locations[index] = updatedLocation;
-      }
+      _locations.removeWhere((l) => l.id == id);
 
-      if (_selectedLocation?.id == id.toString()) {
-        _selectedLocation = updatedLocation;
+      if (_selectedLocation?.id == id) {
+        _selectedLocation = null;
       }
 
       return updatedLocation;
@@ -440,12 +437,77 @@ class OwnerMasterProvider with ChangeNotifier {
     }
   }
 
-  Future<void> fetchRoomsByFloor(int floorId) async {
+  Future<RoomModel?> createRoom(
+      int locationId,
+      Map<String, dynamic> data,
+      ) async {
+    _startSubmitting();
+    try {
+      final newRoom = await service.createRoom(locationId, data);
+      _rooms.insert(0, newRoom);
+      _selectedRoom = newRoom;
+      return newRoom;
+    } catch (e) {
+      _submitError = 'Gagal membuat room: $e';
+      return null;
+    } finally {
+      _stopSubmitting();
+    }
+  }
+
+  Future<RoomModel?> updateRoom(int roomId, Map<String, dynamic> data) async {
+    _startSubmitting();
+    try {
+      final updatedRoom = await service.updateRoom(roomId, data);
+
+      final index = _rooms.indexWhere((r) => r.id == roomId);
+      if (index != -1) {
+        _rooms[index] = updatedRoom;
+      }
+
+      if (_selectedRoom?.id == roomId) {
+        _selectedRoom = updatedRoom;
+      }
+
+      return updatedRoom;
+    } catch (e) {
+      _submitError = 'Gagal mengupdate room: $e';
+      return null;
+    } finally {
+      _stopSubmitting();
+    }
+  }
+
+  Future<bool> deleteRoom(int roomId) async {
+    _startSubmitting();
+    try {
+      final success = await service.deleteRoom(roomId);
+
+      if (success) {
+        _rooms.removeWhere((r) => r.id == roomId);
+        if (_selectedRoom?.id == roomId) {
+          _selectedRoom = null;
+        }
+      }
+
+      return success;
+    } catch (e) {
+      _submitError = 'Gagal menghapus room: $e';
+      return false;
+    } finally {
+      _stopSubmitting();
+    }
+  }
+
+  //floor
+
+  Future<List<Map<String, dynamic>>> fetchFloors() async {
     _startLoading();
     try {
-      _rooms = await service.getRoomsByFloor(floorId);
+      return await service.getFloors();
     } catch (e) {
-      _error = 'Gagal mengambil data room per lantai: $e';
+      _error = 'Gagal mengambil data lantai: $e';
+      return [];
     } finally {
       _stopLoading();
     }

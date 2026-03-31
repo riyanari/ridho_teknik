@@ -33,6 +33,8 @@ class AcModel {
     this.room,
   });
 
+  String get lantaiLabel => lantai > 0 ? 'Lantai $lantai' : '-';
+
   factory AcModel.fromJson(Map<String, dynamic> json) {
     int parseInt(dynamic v) {
       if (v == null) return 0;
@@ -42,8 +44,13 @@ class AcModel {
 
     DateTime? parseDate(dynamic v) {
       if (v == null) return null;
-      return DateTime.tryParse(v.toString());
+      final text = v.toString().trim();
+      if (text.isEmpty) return null;
+      return DateTime.tryParse(text);
     }
+
+    final roomJson = json['room'] as Map<String, dynamic>?;
+    final floorJson = roomJson?['floor'] as Map<String, dynamic>?;
 
     return AcModel(
       id: parseInt(json['id']),
@@ -53,13 +60,11 @@ class AcModel {
       merk: (json['brand'] ?? 'Unknown').toString(),
       type: (json['type'] ?? '-').toString(),
       kapasitas: (json['capacity'] ?? '-').toString(),
-      lantai: parseInt(json['lantai']),
+      lantai: parseInt(json['lantai'] ?? floorJson?['number']),
       terakhirService: parseDate(json['last_service']),
       createdAt: parseDate(json['created_at']),
       updatedAt: parseDate(json['updated_at']),
-      room: json['room'] is Map<String, dynamic>
-          ? RoomModel.fromJson(json['room'])
-          : null,
+      room: roomJson != null ? RoomModel.fromJson(roomJson) : null,
     );
   }
 

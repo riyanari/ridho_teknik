@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
-import 'package:ridho_teknik/pages/owner/client_list_page.dart';
+import 'package:ridho_teknik/pages/owner/client/client_list_page.dart';
 import 'package:ridho_teknik/pages/owner/service_list_page.dart';
 import 'package:ridho_teknik/pages/owner/technician_list_page.dart';
 import 'package:ridho_teknik/theme/theme.dart';

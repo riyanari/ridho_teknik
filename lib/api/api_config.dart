@@ -39,11 +39,9 @@ class ApiConfig {
   static String ownerLocationUpdate(int id) => "$baseUrl/owner/locations/$id";
   static String ownerLocationDestroy(int id) => "$baseUrl/owner/locations/$id";
 
-  // OWNER - FLOORS
-  static String ownerFloorsByLocation(int locationId) =>
-      "$baseUrl/owner/locations/$locationId/floors";
-  static String ownerFloorStore(int locationId) =>
-      "$baseUrl/owner/locations/$locationId/floors";
+  // OWNER - FLOORS (MASTER UMUM)
+  static String get ownerFloors => "$baseUrl/owner/floors";
+  static String get ownerFloorStore => "$baseUrl/owner/floors";
   static String ownerFloorDetail(int floorId) =>
       "$baseUrl/owner/floors/$floorId";
   static String ownerFloorUpdate(int floorId) =>
@@ -54,10 +52,8 @@ class ApiConfig {
   // OWNER - ROOMS
   static String ownerRoomsByLocation(int locationId) =>
       "$baseUrl/owner/locations/$locationId/rooms";
-  static String ownerRoomsByFloor(int floorId) =>
-      "$baseUrl/owner/floors/$floorId/rooms";
-  static String ownerRoomStore(int floorId) =>
-      "$baseUrl/owner/floors/$floorId/rooms";
+  static String ownerRoomStore(int locationId) =>
+      "$baseUrl/owner/locations/$locationId/rooms";
   static String ownerRoomDetail(int roomId) => "$baseUrl/owner/rooms/$roomId";
   static String ownerRoomUpdate(int roomId) => "$baseUrl/owner/rooms/$roomId";
   static String ownerRoomDestroy(int roomId) => "$baseUrl/owner/rooms/$roomId";
@@ -92,7 +88,8 @@ class ApiConfig {
 
   // OWNER - DASHBOARD
   static String get ownerDashboardStats => "$baseUrl/owner/servis/dashboard";
-  static String get ownerFilterOptions => "$baseUrl/owner/servis/filter-options";
+  static String get ownerFilterOptions =>
+      "$baseUrl/owner/servis/filter-options";
   static String get ownerExport => "$baseUrl/owner/servis/export";
 
   // CLIENT

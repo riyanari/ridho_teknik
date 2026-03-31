@@ -198,13 +198,49 @@ class OwnerMasterService {
   }
 
   // =========================
+  // FLOOR
+  // =========================
+
+  Future<List<Map<String, dynamic>>> getFloors() async {
+    _log('🏢 getFloors');
+    final response = await api.get(ApiConfig.ownerFloors);
+    final data = (response['data'] as List?) ?? [];
+
+    return data.whereType<Map<String, dynamic>>().toList();
+  }
+
+  Future<Map<String, dynamic>> createFloor(Map<String, dynamic> data) async {
+    _log('➕ createFloor');
+    final response = await api.post(ApiConfig.ownerFloorStore, body: data);
+    return (response['data'] as Map<String, dynamic>?) ?? <String, dynamic>{};
+  }
+
+  Future<Map<String, dynamic>> updateFloor(
+      int floorId,
+      Map<String, dynamic> data,
+      ) async {
+    _log('✏️ updateFloor($floorId)');
+    final response = await api.put(
+      ApiConfig.ownerFloorUpdate(floorId),
+      body: data,
+    );
+    return (response['data'] as Map<String, dynamic>?) ?? <String, dynamic>{};
+  }
+
+  Future<bool> deleteFloor(int floorId) async {
+    _log('🗑️ deleteFloor($floorId)');
+    await api.delete(ApiConfig.ownerFloorDestroy(floorId));
+    return true;
+  }
+
+  // =========================
   // ROOM
   // =========================
 
   Future<List<RoomModel>> getRoomsByLocation(
-    int locationId, {
-    int? floorId,
-  }) async {
+      int locationId, {
+        int? floorId,
+      }) async {
     final query = _cleanQuery({'floor_id': floorId});
 
     _log('🚪 getRoomsByLocation($locationId) query=$query');
@@ -217,11 +253,28 @@ class OwnerMasterService {
     return _parseList(response['data'], RoomModel.fromJson);
   }
 
-  Future<List<RoomModel>> getRoomsByFloor(int floorId) async {
-    _log('🚪 getRoomsByFloor($floorId)');
+  Future<RoomModel> createRoom(int locationId, Map<String, dynamic> data) async {
+    _log('➕ createRoom(locationId: $locationId)');
+    final response = await api.post(
+      ApiConfig.ownerRoomStore(locationId),
+      body: data,
+    );
+    return _parseSingle(response['data'], RoomModel.fromJson);
+  }
 
-    final response = await api.get(ApiConfig.ownerRoomsByFloor(floorId));
-    return _parseList(response['data'], RoomModel.fromJson);
+  Future<RoomModel> updateRoom(int roomId, Map<String, dynamic> data) async {
+    _log('✏️ updateRoom($roomId)');
+    final response = await api.put(
+      ApiConfig.ownerRoomUpdate(roomId),
+      body: data,
+    );
+    return _parseSingle(response['data'], RoomModel.fromJson);
+  }
+
+  Future<bool> deleteRoom(int roomId) async {
+    _log('🗑️ deleteRoom($roomId)');
+    await api.delete(ApiConfig.ownerRoomDestroy(roomId));
+    return true;
   }
 
   // =========================

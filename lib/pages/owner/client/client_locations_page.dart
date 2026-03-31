@@ -9,8 +9,8 @@ import 'package:ridho_teknik/theme/theme.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:badges/badges.dart' as badges;
 
-import 'add_location_dialog.dart';
-import 'location_ac_page.dart';
+import '../add_location_dialog.dart';
+import 'location_rooms_page.dart';
 
 class ClientLocationsPage extends StatefulWidget {
   final Client client;
@@ -315,232 +315,8 @@ class _ClientLocationsPageState extends State<ClientLocationsPage> {
     );
   }
 
-  Widget _buildViewToggleAndStats(
-      LocationProvider provider,
-      List<LokasiModel> locations,
-      int totalAc
-      ) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        children: [
-          // View toggle
-          Container(
-            padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(
-              color: Colors.grey[100],
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () {
-                      if (_showMapView) {
-                        setState(() {
-                          _showMapView = false;
-                        });
-                      }
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      decoration: BoxDecoration(
-                        color: !_showMapView ? Colors.white : Colors.transparent,
-                        borderRadius: BorderRadius.circular(8),
-                        boxShadow: !_showMapView ? [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha:0.1),
-                            blurRadius: 5,
-                            offset: const Offset(0, 2),
-                          ),
-                        ] : null,
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Iconsax.location,
-                            size: 16,
-                            color: !_showMapView ? kPrimaryColor : Colors.grey,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Daftar Lokasi',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: !_showMapView ? FontWeight.w600 : FontWeight.normal,
-                              color: !_showMapView ? kPrimaryColor : Colors.grey,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () {
-                      if (!_showMapView) {
-                        setState(() {
-                          _showMapView = true;
-                        });
-                      }
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      decoration: BoxDecoration(
-                        color: _showMapView ? Colors.white : Colors.transparent,
-                        borderRadius: BorderRadius.circular(8),
-                        boxShadow: _showMapView ? [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha:0.1),
-                            blurRadius: 5,
-                            offset: const Offset(0, 2),
-                          ),
-                        ] : null,
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Iconsax.map_1,
-                            size: 16,
-                            color: _showMapView ? kPrimaryColor : Colors.grey,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Peta',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: _showMapView ? FontWeight.w600 : FontWeight.normal,
-                              color: _showMapView ? kPrimaryColor : Colors.grey,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 16),
-
-          // Stats cards
-          Row(
-            children: [
-              _buildStatCard(
-                icon: Iconsax.location,
-                value: locations.length.toString(),
-                label: 'Lokasi',
-                color: kPrimaryColor,
-                trend: locations.length > 0 ? '+${locations.length}' : null,
-              ),
-              const SizedBox(width: 12),
-              _buildStatCard(
-                icon: Iconsax.cpu,
-                value: totalAc.toString(),
-                label: 'Total AC',
-                color: Colors.blue,
-                trend: totalAc > 0 ? '+${totalAc}' : null,
-              ),
-              const SizedBox(width: 12),
-              _buildStatCard(
-                icon: Iconsax.star1,
-                value: widget.client.rating.toStringAsFixed(1),
-                label: 'Rating',
-                color: Colors.amber,
-                trend: widget.client.rating >= 4.5 ? 'Premium' : null,
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatCard({
-    required IconData icon,
-    required String value,
-    required String label,
-    required Color color,
-    String? trend,
-  }) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha:0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha:0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(icon, color: color, size: 18),
-                ),
-                if (trend != null)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: color.withValues(alpha:0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      trend,
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: color,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
-            ),
-            Text(
-              label,
-              style: TextStyle(
-                color: Colors.grey[600],
-                fontSize: 12,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildLocationsList(LocationProvider provider, List<LokasiModel> locations) {
-    print("Client ID: ${widget.client.id}");
-
-    // Print the size of the locations list to ensure it's populated
-    print("Locations list size: ${locations.length}");    return RefreshIndicator.adaptive(
+    return RefreshIndicator.adaptive(
       onRefresh: () => provider.fetchLocations(userId: widget.client.id),
       backgroundColor: Colors.white,
       color: kPrimaryColor,
@@ -601,7 +377,7 @@ class _ClientLocationsPageState extends State<ClientLocationsPage> {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => LocationAcPage(location: location),
+                builder: (_) => LocationRoomsPage(location: location),
               ),
             );
           },
