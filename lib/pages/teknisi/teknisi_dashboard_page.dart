@@ -368,6 +368,7 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
                   icon: Iconsax.task_square,
                   value: '$ditugaskan',
                   label: 'Ditugaskan',
+                  statusValue: 'ditugaskan',
                 ),
               ),
               const SizedBox(width: 10),
@@ -376,6 +377,7 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
                   icon: Iconsax.timer_start,
                   value: '$dikerjakan',
                   label: 'Dikerjakan',
+                  statusValue: 'dikerjakan',
                 ),
               ),
               const SizedBox(width: 10),
@@ -384,6 +386,7 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
                   icon: Iconsax.tick_circle,
                   value: '$selesai',
                   label: 'Selesai',
+                  statusValue: 'selesai',
                 ),
               ),
             ],
@@ -397,36 +400,62 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
     required IconData icon,
     required String value,
     required String label,
+    required String statusValue,
   }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.14),
+    final isActive = _selectedStatus == statusValue;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
-      ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+        onTap: () {
+          setState(() {
+            _selectedStatus = statusValue;
+          });
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: isActive
+                ? Colors.white.withValues(alpha: 0.24)
+                : Colors.white.withValues(alpha: 0.14),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: isActive
+                  ? Colors.white.withValues(alpha: 0.35)
+                  : Colors.white.withValues(alpha: 0.12),
+              width: isActive ? 1.5 : 1,
+            ),
+          ),
+          child: Column(
             children: [
-              Icon(icon, color: Colors.white, size: 16),
-              const SizedBox(width: 6),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(icon, color: Colors.white, size: 16),
+                  const SizedBox(width: 6),
+                  Text(
+                    value,
+                    style: whiteTextStyle.copyWith(
+                      fontSize: 18,
+                      fontWeight: bold,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
               Text(
-                value,
-                style: whiteTextStyle.copyWith(fontSize: 18, fontWeight: bold),
+                label,
+                style: whiteTextStyle.copyWith(
+                  fontSize: 11,
+                  fontWeight: isActive ? bold : medium,
+                  color: Colors.white.withValues(alpha: 0.90),
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: whiteTextStyle.copyWith(
-              fontSize: 11,
-              color: Colors.white.withValues(alpha: 0.85),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -546,7 +575,7 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
 
     final jumlahText = s.itemsData.isNotEmpty
         ? '${s.itemsData.length}'
-        : (s.jumlahAc.toString() ?? '0');
+        : (s.jumlahAc.toString());
 
     final lokasiText = (s.lokasiData?['address'] ?? '-').toString();
     final assignedAt = _fmtDateTime(s.tanggalDitugaskan);
