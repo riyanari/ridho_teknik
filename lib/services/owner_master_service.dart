@@ -477,6 +477,31 @@ class OwnerMasterService {
   }
 
   // =========================
+// SERVICE EXTRA
+// =========================
+
+  Future<List<ServisModel>> getUpcomingVisits() async {
+    _log('📅 getUpcomingVisits');
+
+    final response = await api.get(ApiConfig.upcomingVisits);
+    return _parseList(response['data'], ServisModel.fromMap);
+  }
+
+  Future<List<AcModel>> getReminderAc3Bulan() async {
+    _log('⏰ getReminderAc3Bulan');
+
+    final response = await api.get(ApiConfig.reminderAc3Bulan);
+    return _parseList(response['data'], AcModel.fromJson);
+  }
+
+  Future<List<AcModel>> getReminderAc6Bulan() async {
+    _log('⏰ getReminderAc6Bulan');
+
+    final response = await api.get(ApiConfig.reminderAc6Bulan);
+    return _parseList(response['data'], AcModel.fromJson);
+  }
+
+  // =========================
   // DASHBOARD / FILTER / EXPORT
   // =========================
 

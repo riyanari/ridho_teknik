@@ -71,6 +71,9 @@ class ApiConfig {
   static String get ownerServices => "$baseUrl/owner/servis";
   static String ownerServiceDetail(int id) => "$baseUrl/owner/servis/$id";
   static String ownerServiceUpdate(int id) => "$baseUrl/owner/servis/$id";
+  static String get upcomingVisits => "$baseUrl/owner/servis/upcoming-visits";
+  static String get reminderAc3Bulan => "$baseUrl/owner/servis/reminder-ac-3-bulan";
+  static String get reminderAc6Bulan => "$baseUrl/owner/servis/reminder-ac-6-bulan";
   static String ownerServiceByStatus(String status) =>
       "$baseUrl/owner/servis/status/$status";
   static String ownerServiceConfirmRequest(int id) =>

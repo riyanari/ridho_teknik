@@ -11,8 +11,8 @@ import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
+import '../../models/ac_model.dart';
 import '../../models/servis_model.dart';
-import '../../models/user_model.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -50,7 +50,6 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-
   Future<void> _loadInitialData() async {
     print('🚀 HomePage._loadInitialData() - Memulai');
 
@@ -64,10 +63,11 @@ class _HomePageState extends State<HomePage> {
       print('⏳ Memulai loading data awal...');
 
       await Future.wait([
-        provider.fetchClients(),
-        provider.fetchTechnicians(),
         provider.fetchServices(),
         provider.fetchDashboardStats(),
+        provider.fetchUpcomingVisits(),
+        provider.fetchReminderAc3Bulan(),
+        provider.fetchReminderAc6Bulan(),
       ]);
 
       print('✅ Data berhasil diload:');
@@ -263,27 +263,24 @@ class _HomePageState extends State<HomePage> {
                         ),
                       ),
 
-                      // Jadwal Service Hari Ini
                       SliverToBoxAdapter(
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
-                          child: _buildTodaySchedule(provider),
+                          child: _buildUpcomingVisits(provider),
                         ),
                       ),
 
-                      // Client Terbaru
                       SliverToBoxAdapter(
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 18),
-                          child: _buildRecentClients(provider),
+                          child: _buildReminderAc3Bulan(provider),
                         ),
                       ),
 
-                      // Teknisi Aktif
                       SliverToBoxAdapter(
                         child: Padding(
                           padding: const EdgeInsets.fromLTRB(18, 20, 18, 30),
-                          child: _buildActiveTechnicians(provider),
+                          child: _buildReminderAc6Bulan(provider),
                         ),
                       ),
                     ],
@@ -323,22 +320,19 @@ class _HomePageState extends State<HomePage> {
   Widget _buildBusinessHeader(BuildContext context, OwnerMasterProvider provider) {
     final now = DateTime.now();
     final formattedDate = _formatDate(now);
+    final upcomingCount = provider.upcomingVisits.length;
 
-    // Hitung statistik
-    final todayServices = provider.services.where((service) {
-      final visitDate = service.tanggalBerkunjung;
-      if (visitDate == null) return false;
-      return visitDate.year == now.year &&
-          visitDate.month == now.month &&
-          visitDate.day == now.day;
-    }).length;
+    // // Hitung statistik
+    // final todayServices = provider.services.where((service) {
+    //   final visitDate = service.tanggalBerkunjung;
+    //   if (visitDate == null) return false;
+    //   return visitDate.year == now.year &&
+    //       visitDate.month == now.month &&
+    //       visitDate.day == now.day;
+    // }).length;
 
     final pendingServices = provider.getServicesByStatus('menunggu_konfirmasi').length;
 
-    print('📊 Statistik Header:');
-    print('   - Today services: $todayServices');
-    print('   - Pending services: $pendingServices');
-    print('   - Total services: ${provider.services.length}');
 
     return Container(
       width: double.infinity,
@@ -432,8 +426,8 @@ class _HomePageState extends State<HomePage> {
               Expanded(
                 child: _buildHeaderStat(
                   icon: Iconsax.calendar_1,
-                  value: '$todayServices',
-                  label: 'Service Hari Ini',
+                  value: '$upcomingCount',
+                  label: '7 Hari Ke Depan',
                 ),
               ),
               const SizedBox(width: 8),
@@ -492,16 +486,9 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildQuickStats(OwnerMasterProvider provider) {
-    final totalClients = provider.clients.length;
-    final totalTechnicians = provider.technicians.length;
     final totalServices = provider.services.length;
-    final completedServices = provider.getServicesByStatus('selesai').length;
-
-    print('📈 Quick Stats:');
-    print('   - Total Clients: $totalClients');
-    print('   - Total Technicians: $totalTechnicians');
-    print('   - Total Services: $totalServices');
-    print('   - Completed Services: $completedServices');
+    final totalUpcoming = provider.upcomingVisits.length;
+    final totalReminder3 = provider.reminder3Bulan.length;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -510,7 +497,7 @@ class _HomePageState extends State<HomePage> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withValues(alpha:0.1),
+            color: Colors.grey.withValues(alpha: 0.1),
             blurRadius: 20,
             offset: const Offset(0, 5),
           ),
@@ -519,27 +506,27 @@ class _HomePageState extends State<HomePage> {
       child: Row(
         children: [
           _buildStatItem(
-            title: 'Client',
-            value: totalClients,
-            icon: Iconsax.people,
-            color: kBoxMenuGreenColor,
-            subtitle: 'Total',
-          ),
-          const SizedBox(width: 12),
-          _buildStatItem(
-            title: 'Teknisi',
-            value: totalTechnicians,
-            icon: Iconsax.profile_2user,
-            color: kSecondaryColor,
-            subtitle: 'Aktif',
-          ),
-          const SizedBox(width: 12),
-          _buildStatItem(
             title: 'Service',
             value: totalServices,
             icon: Iconsax.activity,
             color: kPrimaryColor,
-            subtitle: 'selesai',
+            subtitle: 'Total',
+          ),
+          const SizedBox(width: 12),
+          _buildStatItem(
+            title: '7 Hari',
+            value: totalUpcoming,
+            icon: Iconsax.calendar_1,
+            color: kBoxMenuGreenColor,
+            subtitle: 'Kunjungan',
+          ),
+          const SizedBox(width: 12),
+          _buildStatItem(
+            title: 'Reminder',
+            value: totalReminder3,
+            icon: Iconsax.warning_2,
+            color: kSecondaryColor,
+            subtitle: '3 Bulan',
           ),
         ],
       ),
@@ -773,43 +760,6 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildTodaySchedule(OwnerMasterProvider provider) {
-    final todayServices = provider.services.where((service) {
-      final visitDate = service.tanggalBerkunjung;
-      if (visitDate == null) return false;
-      final now = DateTime.now();
-      return visitDate.year == now.year &&
-          visitDate.month == now.month &&
-          visitDate.day == now.day;
-    }).toList();
-
-    print('📅 Today Schedule: ${todayServices.length} service hari ini');
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildSectionHeader(
-          icon: Iconsax.calendar_1,
-          title: 'Jadwal Service Hari Ini',
-          count: todayServices.length,
-          color: kPrimaryColor,
-        ),
-        const SizedBox(height: 12),
-        todayServices.isEmpty
-            ? _buildEmptyState(
-          icon: Iconsax.calendar_remove,
-          message: 'Tidak ada jadwal service hari ini',
-        )
-            : Column(
-          children: todayServices
-              .take(3)
-              .map((service) => _buildServiceItem(service))
-              .toList(),
-        ),
-      ],
-    );
-  }
-
   Widget _buildServiceItem(ServisModel service) {
     final time = service.tanggalBerkunjung != null
         ? DateFormat('HH:mm').format(service.tanggalBerkunjung!)
@@ -900,39 +850,93 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildRecentClients(OwnerMasterProvider provider) {
-    final recentClients = provider.clients.take(3).toList();
-
-    print('👥 Recent Clients: ${recentClients.length} dari total ${provider.clients.length}');
+  Widget _buildUpcomingVisits(OwnerMasterProvider provider) {
+    final visits = provider.upcomingVisits;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildSectionHeader(
-          icon: Iconsax.people,
-          title: 'Client Terbaru',
-          count: provider.clients.length,
-          color: kBoxMenuGreenColor,
+          icon: Iconsax.calendar_1,
+          title: 'Jadwal 7 Hari Ke Depan',
+          count: visits.length,
+          color: kPrimaryColor,
         ),
         const SizedBox(height: 12),
-        recentClients.isEmpty
+        visits.isEmpty
             ? _buildEmptyState(
-          icon: Iconsax.people,
-          message: 'Belum ada data client',
+          icon: Iconsax.calendar_remove,
+          message: 'Tidak ada jadwal kunjungan 7 hari ke depan',
         )
             : Column(
-          children: recentClients
-              .map((client) {
-            print('   Client: ${client.name} (${client.email})');
-            return _buildClientItem(client);
-          })
+          children: visits
+              .take(5)
+              .map((service) => _buildServiceItem(service))
               .toList(),
         ),
       ],
     );
   }
 
-  Widget _buildClientItem(UserModel client) {
+  Widget _buildReminderAc3Bulan(OwnerMasterProvider provider) {
+    final list = provider.reminder3Bulan;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader(
+          icon: Iconsax.warning_2,
+          title: 'Reminder AC 3 Bulan',
+          count: list.length,
+          color: Colors.orange,
+        ),
+        const SizedBox(height: 12),
+        list.isEmpty
+            ? _buildEmptyState(
+          icon: Iconsax.cpu,
+          message: 'Tidak ada AC yang melewati 3 bulan',
+        )
+            : Column(
+          children: list.take(5).map((ac) => _buildReminderAcItem(ac)).toList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildReminderAc6Bulan(OwnerMasterProvider provider) {
+    final list = provider.reminder6Bulan;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader(
+          icon: Iconsax.danger,
+          title: 'Reminder AC 6 Bulan',
+          count: list.length,
+          color: Colors.red,
+        ),
+        const SizedBox(height: 12),
+        list.isEmpty
+            ? _buildEmptyState(
+          icon: Iconsax.cpu,
+          message: 'Tidak ada AC yang melewati 6 bulan',
+        )
+            : Column(
+          children: list.take(5).map((ac) => _buildReminderAcItem(ac)).toList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildReminderAcItem(AcModel ac) {
+    final lastService = ac.terakhirService;
+    final days = lastService == null
+        ? null
+        : DateTime.now().difference(lastService).inDays;
+
+    final isUrgent = days != null && days >= 180;
+    final color = isUrgent ? Colors.red : Colors.orange;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(16),
@@ -941,7 +945,7 @@ class _HomePageState extends State<HomePage> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withValues(alpha:0.1),
+            color: Colors.grey.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(0, 3),
           ),
@@ -953,10 +957,10 @@ class _HomePageState extends State<HomePage> {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: kBoxMenuGreenColor.withValues(alpha:0.1),
+              color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(Iconsax.profile_circle, color: kBoxMenuGreenColor, size: 24),
+            child: Icon(Iconsax.cpu, color: color, size: 24),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -964,134 +968,50 @@ class _HomePageState extends State<HomePage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  client.name ?? 'Nama tidak tersedia',
+                  ac.nama,
                   style: primaryTextStyle.copyWith(
                     fontSize: 14,
                     fontWeight: semiBold,
                   ),
                 ),
                 const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Icon(Iconsax.sms, size: 14, color: kBoxMenuGreenColor),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        client.email ?? 'Email tidak tersedia',
-                        style: greyTextStyle.copyWith(fontSize: 12),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActiveTechnicians(OwnerMasterProvider provider) {
-    final activeTechnicians = provider.technicians.take(3).toList();
-
-    print('🔧 Active Technicians: ${activeTechnicians.length} dari total ${provider.technicians.length}');
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildSectionHeader(
-          icon: Iconsax.profile_2user,
-          title: 'Teknisi Aktif',
-          count: provider.technicians.length,
-          color: kSecondaryColor,
-        ),
-        const SizedBox(height: 12),
-        activeTechnicians.isEmpty
-            ? _buildEmptyState(
-          icon: Iconsax.profile_2user,
-          message: 'Belum ada data teknisi',
-        )
-            : Column(
-          children: activeTechnicians
-              .map((technician) {
-            print('   Technician: ${technician.name} (${technician.email}) - ${technician.role}');
-            return _buildTechnicianItem(technician);
-          })
-              .toList(),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTechnicianItem(UserModel technician) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withValues(alpha:0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: kSecondaryColor.withValues(alpha:0.1),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(Iconsax.profile_circle, color: kSecondaryColor, size: 24),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
                 Text(
-                  technician.name ?? 'Nama tidak tersedia',
+                  '${ac.merk} • ${ac.type} • ${ac.kapasitas}',
+                  style: greyTextStyle.copyWith(fontSize: 12),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Lantai ${ac.lantai}',
                   style: primaryTextStyle.copyWith(
-                    fontSize: 14,
-                    fontWeight: semiBold,
+                    fontSize: 12,
+                    fontWeight: medium,
+                    color: Colors.purple,
                   ),
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Icon(Iconsax.sms, size: 14, color: kSecondaryColor),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        technician.email ?? 'Email tidak tersedia',
-                        style: greyTextStyle.copyWith(fontSize: 12),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Icon(Iconsax.crown1, size: 14, color: kSecondaryColor),
-                    const SizedBox(width: 4),
-                    Text(
-                      technician.role?.toUpperCase() ?? 'TEKNISI',
-                      style: greyTextStyle.copyWith(
-                        fontSize: 12,
-                        fontWeight: medium,
-                      ),
-                    ),
-                  ],
                 ),
               ],
             ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  days == null ? 'Belum service' : '$days hari',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: bold,
+                    color: color,
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),

@@ -25,6 +25,13 @@ class OwnerMasterProvider with ChangeNotifier {
   List<RoomModel> _rooms = [];
   List<AcModel> _acUnits = [];
   List<ServisModel> _services = [];
+  List<ServisModel> _upcomingVisits = [];
+  List<AcModel> _reminder3Bulan = [];
+  List<AcModel> _reminder6Bulan = [];
+
+  List<ServisModel> get upcomingVisits => _upcomingVisits;
+  List<AcModel> get reminder3Bulan => _reminder3Bulan;
+  List<AcModel> get reminder6Bulan => _reminder6Bulan;
 
   UserModel? _selectedClient;
   UserModel? _selectedTechnician;
@@ -877,6 +884,39 @@ class OwnerMasterProvider with ChangeNotifier {
       return false;
     } finally {
       _stopSubmitting();
+    }
+  }
+
+  Future<void> fetchUpcomingVisits() async {
+    _startLoading();
+    try {
+      _upcomingVisits = await service.getUpcomingVisits();
+    } catch (e) {
+      _error = 'Gagal mengambil upcoming visits: $e';
+    } finally {
+      _stopLoading();
+    }
+  }
+
+  Future<void> fetchReminderAc3Bulan() async {
+    _startLoading();
+    try {
+      _reminder3Bulan = await service.getReminderAc3Bulan();
+    } catch (e) {
+      _error = 'Gagal mengambil reminder 3 bulan: $e';
+    } finally {
+      _stopLoading();
+    }
+  }
+
+  Future<void> fetchReminderAc6Bulan() async {
+    _startLoading();
+    try {
+      _reminder6Bulan = await service.getReminderAc6Bulan();
+    } catch (e) {
+      _error = 'Gagal mengambil reminder 6 bulan: $e';
+    } finally {
+      _stopLoading();
     }
   }
 
