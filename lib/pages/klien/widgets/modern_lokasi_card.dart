@@ -27,17 +27,15 @@ class ModernLokasiCard extends StatelessWidget {
     final daysSinceService = _daysSinceService;
 
     if (daysSinceService == null) return kBoxMenuRedColor;
-    if (daysSinceService <= 30) return kBoxMenuGreenColor;
-    if (daysSinceService <= 60) return kSecondaryColor;
+    if (daysSinceService < 90) return kBoxMenuGreenColor;
     return kBoxMenuRedColor;
   }
 
   String _getStatusText() {
     final daysSinceService = _daysSinceService;
 
-    if (daysSinceService == null) return 'Belum Service';
-    if (daysSinceService <= 30) return 'Aktif';
-    if (daysSinceService <= 60) return 'Perlu Cek';
+    if (daysSinceService == null) return 'Perlu Service';
+    if (daysSinceService < 90) return 'Aman';
     return 'Perlu Service';
   }
 
@@ -50,7 +48,7 @@ class ModernLokasiCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        gradient: safeDays <= 30
+        gradient: safeDays < 90
             ? LinearGradient(
           colors: [statusColor.withValues(alpha: 0.9), statusColor],
         )
@@ -61,10 +59,10 @@ class ModernLokasiCard extends StatelessWidget {
           ],
         ),
         borderRadius: BorderRadius.circular(20),
-        border: safeDays > 30
+        border: safeDays > 90
             ? Border.all(color: statusColor.withValues(alpha: 0.3))
             : null,
-        boxShadow: safeDays <= 30
+        boxShadow: safeDays < 90
             ? [
           BoxShadow(
             color: statusColor.withValues(alpha: 0.3),
@@ -80,7 +78,7 @@ class ModernLokasiCard extends StatelessWidget {
           Icon(
             _getStatusIcon(safeDays),
             size: 14,
-            color: safeDays <= 30 ? Colors.white : statusColor,
+            color: safeDays < 90 ? Colors.white : statusColor,
           ),
           const SizedBox(width: 6),
           Text(
@@ -88,7 +86,7 @@ class ModernLokasiCard extends StatelessWidget {
             style: primaryTextStyle.copyWith(
               fontSize: 10,
               fontWeight: medium,
-              color: safeDays <= 30 ? Colors.white : statusColor,
+              color: safeDays < 90 ? Colors.white : statusColor,
             ),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
@@ -99,8 +97,7 @@ class ModernLokasiCard extends StatelessWidget {
   }
 
   IconData _getStatusIcon(int days) {
-    if (days <= 30) return Icons.check_circle_rounded;
-    if (days <= 60) return Icons.info_rounded;
+    if (days < 90) return Icons.check_circle_rounded;
     return Icons.warning_amber_rounded;
   }
 

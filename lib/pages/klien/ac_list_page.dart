@@ -22,6 +22,26 @@ class AcListPage extends StatefulWidget {
 class _AcListPageState extends State<AcListPage> {
   final TextEditingController _searchController = TextEditingController();
   List<AcModel> _filteredAC = [];
+  int? _selectedFloor;
+
+  void _applyFilters() {
+    final query = _searchController.text.toLowerCase().trim();
+    final list = context.read<ClientAcProvider>().ac;
+
+    setState(() {
+      _filteredAC = list.where((ac) {
+        final matchesSearch =
+            ac.nama.toLowerCase().contains(query) ||
+                ac.merk.toLowerCase().contains(query) ||
+                ac.type.toLowerCase().contains(query);
+
+        final matchesFloor =
+            _selectedFloor == null || ac.lantai == _selectedFloor;
+
+        return matchesSearch && matchesFloor;
+      }).toList();
+    });
+  }
 
   @override
   void initState() {
@@ -41,16 +61,17 @@ class _AcListPageState extends State<AcListPage> {
   }
 
   void _onSearchChanged() {
-    final query = _searchController.text.toLowerCase();
-    final list = context.read<ClientAcProvider>().ac;
+    _applyFilters();
+  }
 
-    setState(() {
-      _filteredAC = list.where((ac) {
-        return (ac.nama.toLowerCase().contains(query) ||
-            ac.merk.toLowerCase().contains(query) ||
-            ac.type.toLowerCase().contains(query));
-      }).toList();
-    });
+  List<int> _extractFloorOptions(List<AcModel> list) {
+    final floors = list
+        .map((e) => e.lantai)
+        .where((e) => e > 0)
+        .toSet()
+        .toList()
+      ..sort();
+    return floors;
   }
 
   void _openCuciAcPage() {
@@ -76,6 +97,54 @@ class _AcListPageState extends State<AcListPage> {
           acList: listToShow,
         ),
       ),
+    );
+  }
+
+  Widget _buildFloorFilter(List<AcModel> sourceList) {
+    final floorOptions = _extractFloorOptions(sourceList);
+
+    if (floorOptions.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 6),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: Colors.grey.shade300),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<int?>(
+              value: _selectedFloor,
+              isExpanded: true,
+              icon: Icon(
+                Icons.keyboard_arrow_down_rounded,
+                color: Colors.grey[600],
+              ),
+              hint: const Text('Semua lantai'),
+              items: [
+                const DropdownMenuItem<int?>(
+                  value: null,
+                  child: Text('Semua lantai'),
+                ),
+                ...floorOptions.map(
+                      (floor) => DropdownMenuItem<int?>(
+                    value: floor,
+                    child: Text('Lantai $floor'),
+                  ),
+                ),
+              ],
+              onChanged: (value) {
+                _selectedFloor = value;
+                _applyFilters();
+              },
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -321,8 +390,9 @@ class _AcListPageState extends State<AcListPage> {
               );
             }
 
-            final listToShow =
-            _searchController.text.isEmpty ? prov.ac : _filteredAC;
+            final listToShow = _searchController.text.isEmpty && _selectedFloor == null
+                ? prov.ac
+                : _filteredAC;
 
             return Column(
               children: [
@@ -384,10 +454,12 @@ class _AcListPageState extends State<AcListPage> {
                     iconColor: kPrimaryColor,
                   )
                       : Padding(
-                    padding: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        _buildFloorFilter(prov.ac),
+                        const SizedBox(height: 16),
                         Row(
                           mainAxisAlignment:
                           MainAxisAlignment.spaceBetween,

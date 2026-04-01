@@ -6,56 +6,64 @@ import '../../../theme/theme.dart';
 class ModernAcCard extends StatelessWidget {
   final AcModel ac;
   final VoidCallback onTap;
-  // final VoidCallback onEdit;
-  // final VoidCallback onDelete;
 
   const ModernAcCard({
+    super.key,
     required this.ac,
     required this.onTap,
-    // required this.onEdit,
-    // required this.onDelete,
   });
 
+  int? get _daysSinceService {
+    final last = ac.terakhirService;
+    if (last == null) return null;
+    return DateTime.now().difference(last).inDays;
+  }
+
+  bool get _isNeedService {
+    final days = _daysSinceService;
+    if (days == null) return true;
+    return days >= 90;
+  }
+
   Color _getStatusColor() {
-    final last = ac.terakhirService ?? DateTime.now();
-    final daysSinceService = DateTime.now().difference(last).inDays;
-    if (daysSinceService <= 30) return kBoxMenuGreenColor;
-    if (daysSinceService <= 60) return kSecondaryColor;
-    return kBoxMenuRedColor;
+    return _isNeedService ? kBoxMenuRedColor : kBoxMenuGreenColor;
   }
 
   String _getStatusText() {
-    final last = ac.terakhirService ?? DateTime.now();
-    final daysSinceService = DateTime.now().difference(last).inDays;
-    if (daysSinceService <= 30) return 'Normal';
-    if (daysSinceService <= 60) return 'Perlu Cek';
-    return 'Perlu Service';
+    return _isNeedService ? 'Perlu Service' : 'Aman';
+  }
+
+  IconData _getStatusIcon() {
+    return _isNeedService
+        ? Icons.warning_amber_rounded
+        : Icons.check_circle_rounded;
   }
 
   Widget _buildServiceIndicator() {
-    final last = ac.terakhirService ?? DateTime.now();
-    final days = DateTime.now().difference(last).inDays;
     final statusColor = _getStatusColor();
     final statusText = _getStatusText();
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        gradient: days <= 30
+        gradient: !_isNeedService
             ? LinearGradient(
-          colors: [statusColor.withValues(alpha:0.9), statusColor],
+          colors: [statusColor.withValues(alpha: 0.9), statusColor],
         )
             : LinearGradient(
-          colors: [statusColor.withValues(alpha:0.1), statusColor.withValues(alpha:0.2)],
+          colors: [
+            statusColor.withValues(alpha: 0.1),
+            statusColor.withValues(alpha: 0.2),
+          ],
         ),
         borderRadius: BorderRadius.circular(20),
-        border: days > 30
-            ? Border.all(color: statusColor.withValues(alpha:0.3))
+        border: _isNeedService
+            ? Border.all(color: statusColor.withValues(alpha: 0.3))
             : null,
-        boxShadow: days <= 30
+        boxShadow: !_isNeedService
             ? [
           BoxShadow(
-            color: statusColor.withValues(alpha:0.3),
+            color: statusColor.withValues(alpha: 0.3),
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),
@@ -66,9 +74,9 @@ class ModernAcCard extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            _getStatusIcon(days),
+            _getStatusIcon(),
             size: 14,
-            color: days <= 30 ? Colors.white : statusColor,
+            color: !_isNeedService ? Colors.white : statusColor,
           ),
           const SizedBox(width: 6),
           Text(
@@ -76,7 +84,7 @@ class ModernAcCard extends StatelessWidget {
             style: primaryTextStyle.copyWith(
               fontSize: 12,
               fontWeight: medium,
-              color: days <= 30 ? Colors.white : statusColor,
+              color: !_isNeedService ? Colors.white : statusColor,
             ),
           ),
         ],
@@ -84,16 +92,14 @@ class ModernAcCard extends StatelessWidget {
     );
   }
 
-  IconData _getStatusIcon(int days) {
-    if (days <= 30) return Icons.check_circle_rounded;
-    if (days <= 60) return Icons.info_rounded;
-    return Icons.warning_amber_rounded;
+  String _serviceInfoText() {
+    final days = _daysSinceService;
+    if (days == null) return 'Belum pernah service';
+    return '$days hari yang lalu';
   }
 
   @override
   Widget build(BuildContext context) {
-    final last = ac.terakhirService ?? DateTime.now();
-    final daysSinceService = DateTime.now().difference(last).inDays;
     final statusColor = _getStatusColor();
 
     return GestureDetector(
@@ -104,7 +110,7 @@ class ModernAcCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha:0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 15,
               offset: const Offset(0, 6),
             ),
@@ -116,104 +122,79 @@ class ModernAcCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Column(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        ac.nama,
-                        style: primaryTextStyle.copyWith(
-                          fontSize: 18,
-                          fontWeight: bold,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      Row(
-                        children: [
-                          Icon(Icons.branding_watermark_rounded, size: 14, color: kGreyColor),
-                          const SizedBox(width: 6),
-                          Text(
-                            ac.merk,
-                            style: greyTextStyle.copyWith(fontSize: 13),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          ac.nama,
+                          style: primaryTextStyle.copyWith(
+                            fontSize: 18,
+                            fontWeight: bold,
                           ),
-                        ],
-                      ),
-                    ],
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 6),
+                        Wrap(
+                          spacing: 10,
+                          runSpacing: 8,
+                          children: [
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.branding_watermark_rounded,
+                                  size: 14,
+                                  color: kGreyColor,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  ac.merk,
+                                  style: greyTextStyle.copyWith(fontSize: 13),
+                                ),
+                              ],
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 5,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.purple.withValues(alpha: 0.08),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.business_outlined,
+                                    size: 14,
+                                    color: Colors.purple,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'Lantai ${ac.lantai}',
+                                    style: primaryTextStyle.copyWith(
+                                      fontSize: 11,
+                                      fontWeight: medium,
+                                      color: Colors.purple,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                  // PopupMenuButton<String>(
-                  //   icon: Icon(
-                  //     Icons.more_vert_rounded,
-                  //     color: kGreyColor.withValues(alpha:0.7),
-                  //   ),
-                  //   shape: RoundedRectangleBorder(
-                  //     borderRadius: BorderRadius.circular(12),
-                  //   ),
-                  //   elevation: 3,
-                  //   onSelected: (value) {
-                  //     if (value == 'edit') onEdit();
-                  //     if (value == 'delete') onDelete();
-                  //   },
-                  //   itemBuilder: (_) => [
-                  //     PopupMenuItem(
-                  //       value: 'edit',
-                  //       child: Row(
-                  //         children: [
-                  //           Container(
-                  //             padding: const EdgeInsets.all(4),
-                  //             decoration: BoxDecoration(
-                  //               color: kBoxMenuDarkBlueColor.withValues(alpha:0.1),
-                  //               shape: BoxShape.circle,
-                  //             ),
-                  //             child: Icon(
-                  //               Icons.edit_rounded,
-                  //               size: 16,
-                  //               color: kBoxMenuDarkBlueColor,
-                  //             ),
-                  //           ),
-                  //           const SizedBox(width: 12),
-                  //           Text(
-                  //             'Edit AC',
-                  //             style: primaryTextStyle.copyWith(fontSize: 14),
-                  //           ),
-                  //         ],
-                  //       ),
-                  //     ),
-                  //     const PopupMenuDivider(),
-                  //     PopupMenuItem(
-                  //       value: 'delete',
-                  //       child: Row(
-                  //         children: [
-                  //           Container(
-                  //             padding: const EdgeInsets.all(4),
-                  //             decoration: BoxDecoration(
-                  //               color: kBoxMenuRedColor.withValues(alpha:0.1),
-                  //               shape: BoxShape.circle,
-                  //             ),
-                  //             child: Icon(
-                  //               Icons.delete_rounded,
-                  //               size: 16,
-                  //               color: kBoxMenuRedColor,
-                  //             ),
-                  //           ),
-                  //           const SizedBox(width: 12),
-                  //           Text(
-                  //             'Hapus AC',
-                  //             style: errorTextStyle.copyWith(fontSize: 14),
-                  //           ),
-                  //         ],
-                  //       ),
-                  //     ),
-                  //   ],
-                  // ),
                 ],
               ),
-
               const SizedBox(height: 16),
 
-              // AC Details Row
               Row(
                 children: [
                   _buildDetailItem(
@@ -233,20 +214,19 @@ class ModernAcCard extends StatelessWidget {
               ),
               const SizedBox(height: 16),
 
-              // Last Service Info
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: statusColor.withValues(alpha:0.05),
+                  color: statusColor.withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: statusColor.withValues(alpha:0.1)),
+                  border: Border.all(color: statusColor.withValues(alpha: 0.1)),
                 ),
                 child: Row(
                   children: [
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: statusColor.withValues(alpha:0.1),
+                        color: statusColor.withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
@@ -266,7 +246,7 @@ class ModernAcCard extends StatelessWidget {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            '${daysSinceService} hari yang lalu',
+                            _serviceInfoText(),
                             style: primaryTextStyle.copyWith(
                               fontSize: 14,
                               fontWeight: medium,
@@ -282,7 +262,6 @@ class ModernAcCard extends StatelessWidget {
               ),
               const SizedBox(height: 16),
 
-              // Single Action Button - Ajukan Keluhan
               ElevatedButton.icon(
                 onPressed: onTap,
                 style: ElevatedButton.styleFrom(
@@ -294,7 +273,7 @@ class ModernAcCard extends StatelessWidget {
                   ),
                   elevation: 2,
                 ),
-                icon: Icon(Icons.message_rounded, size: 20),
+                icon: const Icon(Icons.message_rounded, size: 20),
                 label: Text(
                   'Ajukan Keluhan',
                   style: whiteTextStyle.copyWith(
@@ -320,7 +299,7 @@ class ModernAcCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: color.withValues(alpha:0.05),
+          color: color.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
