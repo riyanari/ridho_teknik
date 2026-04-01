@@ -330,18 +330,18 @@ class _TeknisiTaskDetailPageState extends State<TeknisiTaskDetailPage>
             ),
           ),
         ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 18, top: 4),
-            child: CircleAvatar(
-              backgroundColor: Colors.white.withValues(alpha: 0.9),
-              child: IconButton(
-                icon: Icon(Iconsax.more, color: Colors.grey[800]),
-                onPressed: () => _showOptionsMenu(context),
-              ),
-            ),
-          ),
-        ],
+        // actions: [
+        //   Padding(
+        //     padding: const EdgeInsets.only(right: 18, top: 4),
+        //     child: CircleAvatar(
+        //       backgroundColor: Colors.white.withValues(alpha: 0.9),
+        //       child: IconButton(
+        //         icon: Icon(Iconsax.more, color: Colors.grey[800]),
+        //         onPressed: () => _showOptionsMenu(context),
+        //       ),
+        //     ),
+        //   ),
+        // ],
       ),
       body: FadeTransition(
         opacity: _fadeAnimation,
