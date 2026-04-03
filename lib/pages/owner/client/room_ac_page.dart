@@ -237,7 +237,7 @@ class _RoomAcPageState extends State<RoomAcPage> {
           final result = await showDialog<bool>(
             context: context,
             barrierDismissible: false,
-            builder: (_) => AddAcUnitDialog(locationId: widget.location.id),
+            builder: (_) => AddAcUnitDialog(roomId: widget.room.id),
           );
 
           if (result == true && context.mounted) {
@@ -264,7 +264,7 @@ class _RoomAcPageState extends State<RoomAcPage> {
                 final result = await showDialog<bool>(
                   context: context,
                   barrierDismissible: false,
-                  builder: (_) => AddAcUnitDialog(locationId: widget.location.id),
+                  builder: (_) => AddAcUnitDialog(roomId: widget.room.id),
                 );
 
                 if (result == true && context.mounted) {

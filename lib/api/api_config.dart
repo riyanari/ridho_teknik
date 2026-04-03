@@ -67,6 +67,13 @@ class ApiConfig {
   static String ownerAcUnitUpdate(int id) => "$baseUrl/owner/ac-units/$id";
   static String ownerAcUnitDestroy(int id) => "$baseUrl/owner/ac-units/$id";
 
+  // OWNER - AC MASTER
+  static String get ownerAcMasterBrands => "$baseUrl/owner/ac-master/brands";
+  static String get ownerAcMasterTypes => "$baseUrl/owner/ac-master/types";
+  static String get ownerAcMasterSeries => "$baseUrl/owner/ac-master/series";
+  static String get ownerAcMasterCapacities => "$baseUrl/owner/ac-master/capacities";
+  static String get ownerAcMasterFormOptions => "$baseUrl/owner/ac-master/form-options";
+
   // OWNER - SERVICES
   static String get ownerServices => "$baseUrl/owner/servis";
   static String ownerServiceDetail(int id) => "$baseUrl/owner/servis/$id";

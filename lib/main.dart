@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:ridho_teknik/providers/ac_master_provider.dart';
+import 'package:ridho_teknik/services/ac_master_service.dart';
 
 import 'api/api_client.dart';
 import 'pages/splash_page.dart';
@@ -89,6 +91,11 @@ void main() async {
               TechnicianTaskService(api: context.read<ApiClient>()),
         ),
 
+        Provider<AcMasterService>(
+          create: (context) =>
+              AcMasterService(api: context.read<ApiClient>()),
+        ),
+
         // AUTH PROVIDER
         ChangeNotifierProvider(
           create: (context) => AuthProvider(
@@ -133,6 +140,11 @@ void main() async {
         ChangeNotifierProvider(
           create: (context) =>
               TeknisiProvider(service: context.read<TechnicianTaskService>()),
+        ),
+
+        ChangeNotifierProvider(
+          create: (context) =>
+              AcMasterProvider(service: context.read<AcMasterService>()),
         ),
       ],
       child: const MyApp(),
