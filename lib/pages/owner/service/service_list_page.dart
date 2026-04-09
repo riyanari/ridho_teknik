@@ -596,7 +596,7 @@ class _ServiceListPageState extends State<ServiceListPage> {
   }
 
   Widget _buildModernServiceCard(ServisModel service) {
-    final statusKey = service.status.name;
+    final statusKey = _normalizeStatus(service.status.name);
     final statusColor = _getStatusColor(statusKey);
     final statusDisplay = _getStatusDisplay(statusKey);
 
@@ -849,7 +849,7 @@ class _ServiceListPageState extends State<ServiceListPage> {
                   ],
 
                   const SizedBox(height: 20),
-                  _buildModernActionButtons(service),
+                  _buildModernActionButtons(service, statusKey),
                 ],
               ),
             ),
@@ -934,8 +934,8 @@ class _ServiceListPageState extends State<ServiceListPage> {
     );
   }
 
-  Widget _buildModernActionButtons(ServisModel service) {
-    switch (service.status.name) {
+  Widget _buildModernActionButtons(ServisModel service, String statusKey) {
+    switch (statusKey) {
       case 'menunggu_konfirmasi':
         return Row(
           children: [
@@ -1265,6 +1265,17 @@ class _ServiceListPageState extends State<ServiceListPage> {
         return Iconsax.drop;
       default:
         return Iconsax.activity;
+    }
+  }
+
+  String _normalizeStatus(String status) {
+    switch (status) {
+      case 'menungguKonfirmasi':
+        return 'menunggu_konfirmasi';
+      case 'sedangDikerjakan':
+        return 'dikerjakan';
+      default:
+        return status;
     }
   }
 }
