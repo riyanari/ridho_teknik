@@ -7,11 +7,7 @@ class ModernAcCard extends StatelessWidget {
   final AcModel ac;
   final VoidCallback onTap;
 
-  const ModernAcCard({
-    super.key,
-    required this.ac,
-    required this.onTap,
-  });
+  const ModernAcCard({super.key, required this.ac, required this.onTap});
 
   int? get _daysSinceService {
     final last = ac.terakhirService;
@@ -33,6 +29,8 @@ class ModernAcCard extends StatelessWidget {
     return _isNeedService ? 'Perlu Service' : 'Aman';
   }
 
+  String get _roomName => ac.room?.name.trim() ?? '';
+
   IconData _getStatusIcon() {
     return _isNeedService
         ? Icons.warning_amber_rounded
@@ -48,26 +46,26 @@ class ModernAcCard extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: !_isNeedService
             ? LinearGradient(
-          colors: [statusColor.withValues(alpha: 0.9), statusColor],
-        )
+                colors: [statusColor.withValues(alpha: 0.9), statusColor],
+              )
             : LinearGradient(
-          colors: [
-            statusColor.withValues(alpha: 0.1),
-            statusColor.withValues(alpha: 0.2),
-          ],
-        ),
+                colors: [
+                  statusColor.withValues(alpha: 0.1),
+                  statusColor.withValues(alpha: 0.2),
+                ],
+              ),
         borderRadius: BorderRadius.circular(20),
         border: _isNeedService
             ? Border.all(color: statusColor.withValues(alpha: 0.3))
             : null,
         boxShadow: !_isNeedService
             ? [
-          BoxShadow(
-            color: statusColor.withValues(alpha: 0.3),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ]
+                BoxShadow(
+                  color: statusColor.withValues(alpha: 0.3),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ]
             : null,
       ),
       child: Row(
@@ -128,15 +126,33 @@ class ModernAcCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          ac.nama,
-                          style: primaryTextStyle.copyWith(
-                            fontSize: 18,
-                            fontWeight: bold,
+                        if (_roomName.isNotEmpty) ...[
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  _roomName,
+                                  style: primaryTextStyle.copyWith(
+                                    fontSize: 18,
+                                    fontWeight: bold,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              Text(
+                                ac.nama,
+                                style: primaryTextStyle.copyWith(
+                                  fontSize: 12,
+                                  fontWeight: bold,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
                           ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                        ],
                         const SizedBox(height: 6),
                         Wrap(
                           spacing: 10,
@@ -309,10 +325,7 @@ class ModernAcCard extends StatelessWidget {
               children: [
                 Icon(icon, size: 14, color: color),
                 const SizedBox(width: 6),
-                Text(
-                  title,
-                  style: greyTextStyle.copyWith(fontSize: 11),
-                ),
+                Text(title, style: greyTextStyle.copyWith(fontSize: 11)),
               ],
             ),
             const SizedBox(height: 4),
