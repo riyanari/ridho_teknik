@@ -790,7 +790,7 @@ class _ServiceListPageState extends State<ServiceListPage> {
                         _buildInfoChip(
                           icon: Iconsax.user,
                           label: service.clientNama,
-                          color: Colors.green
+                          color: kBoxMenuCoklatColor
                         ),
                       ],
                     ],
