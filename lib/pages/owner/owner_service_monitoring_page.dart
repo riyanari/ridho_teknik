@@ -45,25 +45,6 @@ class _OwnerServiceMonitoringPageState extends State<OwnerServiceMonitoringPage>
     if (_debugPhoto) debugPrint('[PHOTO_DEBUG] $msg');
   }
 
-  void _debugServiceActionData() {
-    debugPrint('=========== DEBUG OWNER SERVICE MONITORING ===========');
-    debugPrint('service id: ${_service.id}');
-    debugPrint('service tindakanSummary: ${_service.tindakanSummary}');
-    debugPrint('service diagnosa: ${_service.diagnosa}');
-    debugPrint('service catatan: ${_service.catatan}');
-    debugPrint('service itemsData length: ${_service.itemsData.length}');
-
-    for (int i = 0; i < _service.itemsData.length; i++) {
-      final item = _service.itemsData[i];
-      debugPrint('itemsData[$i]: $item');
-      debugPrint('itemsData[$i][tindakan]: ${item['tindakan']}');
-      debugPrint('itemsData[$i][diagnosa]: ${item['diagnosa']}');
-      debugPrint('itemsData[$i][catatan]: ${item['catatan']}');
-    }
-
-    debugPrint('=====================================================');
-  }
-
   Future<void> _loadToken() async {
     final store = context.read<TokenStore>();
     String? token;
@@ -391,8 +372,6 @@ class _OwnerServiceMonitoringPageState extends State<OwnerServiceMonitoringPage>
         .toList();
     final progress = _calculateProgress();
     final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    _debugServiceActionData();
 
     return Scaffold(
       backgroundColor: isDark ? Colors.grey[900] : kBackgroundColor,

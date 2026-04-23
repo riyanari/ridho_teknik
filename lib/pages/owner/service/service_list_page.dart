@@ -785,6 +785,14 @@ class _ServiceListPageState extends State<ServiceListPage> {
                           label: service.noInvoice!,
                           color: Colors.green,
                         ),
+                      if (service.clientNama.trim() != '-') ...[
+                        const SizedBox(height: 12),
+                        _buildInfoChip(
+                          icon: Iconsax.user,
+                          label: service.clientNama,
+                          color: Colors.green
+                        ),
+                      ],
                     ],
                   ),
 
