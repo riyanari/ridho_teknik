@@ -685,17 +685,31 @@ class _ServiceListPageState extends State<ServiceListPage> {
                         const SizedBox(height: 4),
                         Row(
                           children: [
-                            Icon(Iconsax.calendar_1,
-                                size: 12, color: Colors.grey[600]),
+                            Icon(Iconsax.calendar_1, size: 12, color: Colors.grey[600]),
                             const SizedBox(width: 6),
-                            Text(date,
-                                style: greyTextStyle.copyWith(fontSize: 10)),
-                            const SizedBox(width: 12),
-                            Icon(Iconsax.clock,
-                                size: 10, color: Colors.grey[600]),
-                            const SizedBox(width: 6),
-                            Text(time,
-                                style: greyTextStyle.copyWith(fontSize: 10)),
+                            Expanded(
+                              flex: 3,
+                              child: Text(
+                                date,
+                                style: greyTextStyle.copyWith(fontSize: 10),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 2,
+                              ),
+                            ),
+                            Expanded(
+                              flex: 2,
+                              child: Row(
+                                children: [
+                                  Icon(Iconsax.clock, size: 10, color: Colors.grey[600]),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    time,
+                                    style: greyTextStyle.copyWith(fontSize: 10),
+                                  ),
+                                ],
+                              ),
+                            ),
+
                           ],
                         ),
                       ],
