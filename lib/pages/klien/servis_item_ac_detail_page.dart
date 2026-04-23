@@ -35,6 +35,57 @@ class _ServisItemAcDetailPageState extends State<ServisItemAcDetailPage> {
     super.dispose();
   }
 
+  void _debugItemData({
+    required Map<String, dynamic> item,
+    required Map<String, dynamic> ac,
+    required Map<String, dynamic>? teknisi,
+    required String acName,
+    required String brand,
+    required String type,
+    required String capacity,
+    required String serialNumber,
+    required String itemStatus,
+    required String teknisiName,
+    required String diagnosa,
+    required String tindakanList,
+    required DateTime? tanggalMulai,
+    required DateTime? tanggalSelesai,
+  }) {
+    debugPrint('=========== DEBUG SERVIS ITEM AC DETAIL ===========');
+    debugPrint('servisId: ${widget.servisId}');
+    debugPrint('item raw: $item');
+    debugPrint('item id: ${item['id']}');
+    debugPrint('item status: $itemStatus');
+    debugPrint('item technician_id: ${item['technician_id']}');
+    debugPrint('item assigned_at: ${item['assigned_at']}');
+    debugPrint('item tanggal_berkunjung: ${item['tanggal_berkunjung']}');
+    debugPrint('item tanggal_mulai: ${item['tanggal_mulai']}');
+    debugPrint('item tanggal_selesai: ${item['tanggal_selesai']}');
+
+    debugPrint('ac raw: $ac');
+    debugPrint('acName: $acName');
+    debugPrint('brand: $brand');
+    debugPrint('type: $type');
+    debugPrint('capacity: $capacity');
+    debugPrint('serialNumber: $serialNumber');
+
+    debugPrint('teknisi raw: $teknisi');
+    debugPrint('teknisiName: $teknisiName');
+
+    debugPrint('diagnosa: $diagnosa');
+    debugPrint('tindakan raw: ${item['tindakan']}');
+    debugPrint('tindakanList: $tindakanList');
+
+    debugPrint('foto_sebelum raw: ${item['foto_sebelum']}');
+    debugPrint('foto_pengerjaan raw: ${item['foto_pengerjaan']}');
+    debugPrint('foto_sesudah raw: ${item['foto_sesudah']}');
+    debugPrint('foto_suku_cadang raw: ${item['foto_suku_cadang']}');
+
+    debugPrint('tanggalMulai parsed: $tanggalMulai');
+    debugPrint('tanggalSelesai parsed: $tanggalSelesai');
+    debugPrint('===================================================');
+  }
+
   Future<void> _loadToken() async {
     final store = context.read<TokenStore>();
     String? token;
@@ -73,9 +124,7 @@ class _ServisItemAcDetailPageState extends State<ServisItemAcDetailPage> {
 
     // Diagnosa & Tindakan
     final diagnosa = (item['diagnosa'] ?? '').toString();
-    final tindakanList = item['tindakan'] is List
-        ? List<String>.from(item['tindakan'] as List)
-        : <String>[];
+    final tindakan = (item['tindakan'] ?? '').toString().trim();
 
     // Tanggal Mulai & Selesai
     final tanggalMulai = item['tanggal_mulai'] != null
@@ -85,6 +134,23 @@ class _ServisItemAcDetailPageState extends State<ServisItemAcDetailPage> {
         ? DateTime.tryParse(item['tanggal_selesai'].toString())
         : null;
     final isCompleted = itemStatus.toLowerCase() == 'selesai';
+
+    _debugItemData(
+      item: item,
+      ac: ac,
+      teknisi: teknisi,
+      acName: acName,
+      brand: brand,
+      type: type,
+      capacity: capacity,
+      serialNumber: serialNumber,
+      itemStatus: itemStatus,
+      teknisiName: teknisiName,
+      diagnosa: diagnosa,
+      tindakanList: tindakan,
+      tanggalMulai: tanggalMulai,
+      tanggalSelesai: tanggalSelesai,
+    );
 
     if (_loadingToken) {
       return Scaffold(
@@ -181,7 +247,7 @@ class _ServisItemAcDetailPageState extends State<ServisItemAcDetailPage> {
                 const SizedBox(height: 8),
                 _buildDiagnosaSection(diagnosa),
                 const SizedBox(height: 16),
-                _buildTindakanSection(tindakanList),
+                _buildTindakanSection(tindakan),
                 if (allPhotos.isNotEmpty) ...[
                   const SizedBox(height: 16),
                   _buildModernPhotoGallery(allPhotos),
@@ -484,28 +550,8 @@ class _ServisItemAcDetailPageState extends State<ServisItemAcDetailPage> {
   // ============================================================
   // SECTION TINDAKAN
   // ============================================================
-  Widget _buildTindakanSection(List<String> tindakanList) {
-    final displayTindakan = tindakanList.map((t) {
-      switch (t.toLowerCase()) {
-        case 'pembersihan': return 'Pembersihan AC';
-        case 'isi_freon': return 'Isi Freon';
-        case 'ganti_filter': return 'Ganti Filter';
-        case 'perbaikan_kompressor': return 'Perbaikan Kompressor';
-        case 'perbaikan_pcb': return 'Perbaikan PCB';
-        case 'ganti_kapasitor': return 'Ganti Kapasitor';
-        case 'ganti_fan_motor': return 'Ganti Fan Motor';
-        case 'tune_up': return 'Tune Up';
-        case 'lainnya': return 'Lainnya';
-        default:
-          return t
-              .replaceAll('_', ' ')
-              .split(' ')
-              .map((word) => word.isNotEmpty ? '${word[0].toUpperCase()}${word.substring(1).toLowerCase()}' : '')
-              .join(' ');
-      }
-    }).toList();
-
-    final hasTindakan = displayTindakan.isNotEmpty;
+  Widget _buildTindakanSection(String tindakan) {
+    final hasTindakan = tindakan.isNotEmpty;
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -534,57 +580,50 @@ class _ServisItemAcDetailPageState extends State<ServisItemAcDetailPage> {
                 child: const Icon(Icons.handyman, color: Colors.blue, size: 20),
               ),
               const SizedBox(width: 12),
-              const Text('Tindakan', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-              if (hasTindakan) ...[
+              const Text(
+                'Tindakan',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              if (!hasTindakan) ...[
                 const SizedBox(width: 12),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.blue.withValues(alpha: 0.1),
+                    color: Colors.grey[200],
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    '${displayTindakan.length} tindakan',
-                    style: TextStyle(fontSize: 11, color: Colors.blue, fontWeight: FontWeight.w600),
+                    'Kosong',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey[600],
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                ),
-              ] else ...[
-                const SizedBox(width: 12),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(20)),
-                  child: Text('Kosong', style: TextStyle(fontSize: 11, color: Colors.grey[600], fontWeight: FontWeight.w500)),
                 ),
               ],
             ],
           ),
           const SizedBox(height: 16),
           if (hasTindakan)
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: displayTindakan.map((tindakan) {
-                return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [Colors.blue.withValues(alpha: 0.1), Colors.blue.withValues(alpha: 0.05)],
-                    ),
-                    borderRadius: BorderRadius.circular(30),
-                    border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(_getTindakanIcon(tindakan), size: 14, color: Colors.blue),
-                      const SizedBox(width: 6),
-                      Text(tindakan, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.blue[700])),
-                    ],
-                  ),
-                );
-              }).toList(),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.blue.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: Colors.blue.withValues(alpha: 0.2),
+                ),
+              ),
+              child: Text(
+                tindakan,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[800],
+                  height: 1.5,
+                ),
+              ),
             )
           else
             Container(
@@ -599,7 +638,10 @@ class _ServisItemAcDetailPageState extends State<ServisItemAcDetailPage> {
                   children: [
                     Icon(Icons.build_outlined, size: 32, color: Colors.grey[400]),
                     const SizedBox(height: 8),
-                    Text('Tidak ada tindakan', style: TextStyle(fontSize: 14, color: Colors.grey[600])),
+                    Text(
+                      'Tidak ada tindakan',
+                      style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                    ),
                     const SizedBox(height: 4),
                     Text(
                       'Teknisi tidak menjelaskan tindakan yang dilakukan',
@@ -629,13 +671,13 @@ class _ServisItemAcDetailPageState extends State<ServisItemAcDetailPage> {
         decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), shape: BoxShape.circle),
         child: IconButton(icon: const Icon(Icons.arrow_back, size: 20), onPressed: () => Navigator.pop(context)),
       ),
-      actions: [
-        Container(
-          margin: const EdgeInsets.all(8),
-          decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), shape: BoxShape.circle),
-          child: IconButton(icon: const Icon(Icons.share_outlined, size: 20), onPressed: () {}),
-        ),
-      ],
+      // actions: [
+      //   Container(
+      //     margin: const EdgeInsets.all(8),
+      //     decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), shape: BoxShape.circle),
+      //     child: IconButton(icon: const Icon(Icons.share_outlined, size: 20), onPressed: () {}),
+      //   ),
+      // ],
     );
   }
 
@@ -1141,18 +1183,6 @@ class _ServisItemAcDetailPageState extends State<ServisItemAcDetailPage> {
 
   String _formatTime(DateTime date) {
     return '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
-  }
-
-  IconData _getTindakanIcon(String tindakan) {
-    if (tindakan.contains('Pembersihan')) return Icons.cleaning_services;
-    if (tindakan.contains('Freon')) return Icons.ac_unit;
-    if (tindakan.contains('Filter')) return Icons.filter_alt;
-    if (tindakan.contains('Kompressor')) return Icons.compress;
-    if (tindakan.contains('PCB')) return Icons.memory;
-    if (tindakan.contains('Kapasitor')) return Icons.electrical_services;
-    if (tindakan.contains('Fan Motor')) return Icons.speed;
-    if (tindakan.contains('Tune Up')) return Icons.tune;
-    return Icons.build;
   }
 
   Color _getCategoryColor(String title) {

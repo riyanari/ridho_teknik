@@ -24,13 +24,6 @@ class _ServisHistoryPageState extends State<ServisHistoryPage> {
   JenisPenanganan? _selectedJenis;
   ServisStatus? _selectedTabStatus;
 
-  int? _asInt(dynamic v) {
-    if (v == null) return null;
-    if (v is int) return v;
-    if (v is String) return int.tryParse(v);
-    return int.tryParse(v.toString());
-  }
-
   int get _lokasiId => widget.lokasi.id;
 
   @override
@@ -897,15 +890,29 @@ class _ServisCard extends StatelessWidget {
     final names = <String>[];
 
     for (final t in servis.techniciansData) {
-      final name = (t['name'] ?? '').toString().trim();
+      final name = (t['name'] ?? t['nama'] ?? '').toString().trim();
       if (name.isNotEmpty && !names.contains(name)) {
         names.add(name);
       }
     }
 
-    final legacy = (servis.teknisiData?['name'] ?? '').toString().trim();
+    final legacy =
+    (servis.teknisiData?['name'] ?? servis.teknisiData?['nama'] ?? '')
+        .toString()
+        .trim();
     if (legacy.isNotEmpty && !names.contains(legacy)) {
       names.add(legacy);
+    }
+
+    for (final item in servis.itemsData) {
+      final tech = item['technician'];
+      if (tech is Map) {
+        final map = Map<String, dynamic>.from(tech);
+        final name = (map['name'] ?? map['nama'] ?? '').toString().trim();
+        if (name.isNotEmpty && !names.contains(name)) {
+          names.add(name);
+        }
+      }
     }
 
     return names;
@@ -913,9 +920,18 @@ class _ServisCard extends StatelessWidget {
 
   String _techniciansShortDisplay() {
     final names = _technicianNames();
-    if (names.isEmpty) return 'Belum ditugaskan';
-    if (names.length == 1) return names.first;
-    return '${names.first} +${names.length - 1}';
+
+    if (names.isNotEmpty) {
+      if (names.length == 1) return names.first;
+      return '${names.first} +${names.length - 1}';
+    }
+
+    final hasAssignedTech = servis.itemsData.any((item) {
+      final techId = item['technician_id'];
+      return techId != null && techId.toString().trim().isNotEmpty;
+    });
+
+    return hasAssignedTech ? 'Teknisi ditugaskan' : 'Belum ditugaskan';
   }
 
   List<String> _acUnitNames() {

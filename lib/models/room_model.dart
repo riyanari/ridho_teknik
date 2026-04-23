@@ -1,4 +1,5 @@
 import 'floor_simple_model.dart';
+import 'lokasi_model.dart';
 
 class RoomModel {
   final int id;
@@ -10,6 +11,7 @@ class RoomModel {
   final DateTime? updatedAt;
   final int acUnitsCount;
   final FloorSimpleModel? floor;
+  final LokasiModel? location;
 
   RoomModel({
     required this.id,
@@ -21,6 +23,7 @@ class RoomModel {
     this.updatedAt,
     this.acUnitsCount = 0,
     this.floor,
+    this.location,
   });
 
   factory RoomModel.fromJson(Map<String, dynamic> json) {
@@ -49,6 +52,9 @@ class RoomModel {
       floor: json['floor'] is Map<String, dynamic>
           ? FloorSimpleModel.fromJson(json['floor'] as Map<String, dynamic>)
           : null,
+      location: json['location'] is Map<String, dynamic>
+          ? LokasiModel.fromJson(json['location'] as Map<String, dynamic>)
+          : null,
     );
   }
 
@@ -63,6 +69,7 @@ class RoomModel {
       'updated_at': updatedAt?.toIso8601String(),
       'ac_units_count': acUnitsCount,
       'floor': floor?.toJson(),
+      'location': location?.toJson(),
     };
   }
 }
