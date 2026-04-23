@@ -216,40 +216,40 @@ class _AcListPageState extends State<AcListPage> {
                 ),
               ),
               // Action buttons
-              Row(
-                children: [
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => ServisHistoryPage(lokasi: widget.lokasi),
-                        ),
-                      );
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha:0.2),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.history_rounded, color: Colors.white, size: 20),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  GestureDetector(
-                    onTap: _openCuciAcPage,
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha:0.2),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.cleaning_services, color: Colors.white, size: 20),
-                    ),
-                  ),
-                ],
-              ),
+              // Row(
+              //   children: [
+              //     // GestureDetector(
+              //     //   onTap: () {
+              //     //     Navigator.push(
+              //     //       context,
+              //     //       MaterialPageRoute(
+              //     //         builder: (_) => ServisHistoryPage(lokasi: widget.lokasi),
+              //     //       ),
+              //     //     );
+              //     //   },
+              //     //   child: Container(
+              //     //     padding: const EdgeInsets.all(8),
+              //     //     decoration: BoxDecoration(
+              //     //       color: Colors.white.withValues(alpha:0.2),
+              //     //       shape: BoxShape.circle,
+              //     //     ),
+              //     //     child: const Icon(Icons.history_rounded, color: Colors.white, size: 20),
+              //     //   ),
+              //     // ),
+              //     // const SizedBox(width: 8),
+              //     GestureDetector(
+              //       onTap: _openCuciAcPage,
+              //       child: Container(
+              //         padding: const EdgeInsets.all(8),
+              //         decoration: BoxDecoration(
+              //           color: Colors.white.withValues(alpha:0.2),
+              //           shape: BoxShape.circle,
+              //         ),
+              //         child: const Icon(Icons.cleaning_services, color: Colors.white, size: 20),
+              //       ),
+              //     ),
+              //   ],
+              // ),
             ],
           ),
           const SizedBox(height: 16),
@@ -405,31 +405,71 @@ class _AcListPageState extends State<AcListPage> {
                       horizontal: 20,
                       vertical: 16,
                     ),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: _openCuciAcPage,
-                        icon: Icon(Icons.cleaning_services, size: 20),
-                        label: Text(
-                          'CUCI SEMUA AC DI LOKASI INI',
-                          style: whiteTextStyle.copyWith(
-                            fontSize: 13,
-                            fontWeight: bold,
+                    child: Row(
+                      children: [
+                        Expanded(
+                          flex: 3,
+                          child: SizedBox(
+                            height: 52,
+                            child: ElevatedButton.icon(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => ServisHistoryPage(lokasi: widget.lokasi),
+                                  ),
+                                );
+                              },
+                              icon: const Icon(Icons.history_rounded, size: 20),
+                              label: Text(
+                                'Riwayat Servis',
+                                style: whiteTextStyle.copyWith(
+                                  fontSize: 12,
+                                  fontWeight: bold,
+                                ),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: kSecondaryColor,
+                                foregroundColor: Colors.white,
+                                minimumSize: const Size.fromHeight(52),
+                                padding: const EdgeInsets.symmetric(horizontal: 12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                elevation: 2,
+                              ),
+                            ),
                           ),
                         ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: kPrimaryColor,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 14,
-                            horizontal: 20,
+                        const SizedBox(width: 8),
+                        Expanded(
+                          flex: 4,
+                          child: SizedBox(
+                            height: 52,
+                            child: ElevatedButton.icon(
+                              onPressed: _openCuciAcPage,
+                              icon: const Icon(Icons.cleaning_services, size: 20),
+                              label: Text(
+                                'CUCI SEMUA AC',
+                                style: whiteTextStyle.copyWith(
+                                  fontSize: 13,
+                                  fontWeight: bold,
+                                ),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: kPrimaryColor,
+                                foregroundColor: Colors.white,
+                                minimumSize: const Size.fromHeight(52),
+                                padding: const EdgeInsets.symmetric(horizontal: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                elevation: 3,
+                              ),
+                            ),
                           ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          elevation: 3,
                         ),
-                      ),
+                      ],
                     ),
                   ),
 
