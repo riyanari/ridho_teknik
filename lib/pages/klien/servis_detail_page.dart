@@ -9,6 +9,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../models/servis_model.dart';
+import '../../services/reports/service_report_pdf.dart';
 import '../../theme/theme.dart';
 import 'servis_item_ac_detail_page.dart';
 
@@ -160,6 +161,34 @@ class ServisDetailPage extends StatelessWidget {
           ),
         ),
       ),
+      actions: [
+        Padding(
+          padding: const EdgeInsets.only(
+            right: 8,
+          ),
+          child: Material(
+            color: Colors.white.withValues(
+              alpha: 0.16,
+            ),
+            shape: const CircleBorder(),
+            child: InkWell(
+              onTap: () {
+                _showReportMenu(context);
+              },
+              customBorder: const CircleBorder(),
+              child: const SizedBox(
+                width: 42,
+                height: 42,
+                child: Icon(
+                  Icons.description_outlined,
+                  size: 20,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
       flexibleSpace: FlexibleSpaceBar(
         collapseMode: CollapseMode.parallax,
         background: Container(
@@ -1048,32 +1077,58 @@ class ServisDetailPage extends StatelessWidget {
       ac['room_name'],
       ac['nama_room'],
       item['room_name'],
+      item['nama_room'],
     ]);
 
-    final rawFloor = _firstNonEmpty([
-      room['floor'],
-      room['lantai'],
-      ac['floor'],
-      ac['lantai'],
-      item['floor'],
-      item['lantai'],
-    ]);
+    dynamic floorRaw =
+        room['floor'] ??
+            room['lantai'] ??
+            ac['floor'] ??
+            ac['lantai'] ??
+            item['floor'] ??
+            item['lantai'];
 
-    String floor = '';
+    String floorName = '';
 
-    if (rawFloor.isNotEmpty) {
-      final lower = rawFloor.toLowerCase();
+    if (floorRaw is Map) {
+      final floorMap =
+      Map<String, dynamic>.from(
+        floorRaw,
+      );
 
-      if (lower.contains('lantai')) {
-        floor = rawFloor;
-      } else {
-        floor = 'Lantai $rawFloor';
+      floorName = _firstNonEmpty([
+        floorMap['name'],
+        floorMap['nama'],
+      ]);
+
+      if (floorName.isEmpty) {
+        final number =
+            floorMap['number'] ??
+                floorMap['nomor'];
+
+        if (number != null) {
+          floorName = 'Lantai $number';
+        }
+      }
+    } else if (floorRaw != null) {
+      final value =
+      floorRaw.toString().trim();
+
+      if (value.isNotEmpty &&
+          value.toLowerCase() != 'null' &&
+          value != '-') {
+        floorName =
+        value.toLowerCase().contains(
+          'lantai',
+        )
+            ? value
+            : 'Lantai $value';
       }
     }
 
     return _RoomInfo(
       name: roomName,
-      floor: floor,
+      floor: floorName,
     );
   }
 
@@ -1894,6 +1949,162 @@ class ServisDetailPage extends StatelessWidget {
   }
 
   // ============================================================
+// REPORT
+// ============================================================
+
+  void _showReportMenu(
+      BuildContext context,
+      ) {
+    final totalUnits = servis.itemsData.isNotEmpty
+        ? servis.itemsData.length
+        : servis.jumlahAc;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return Container(
+          padding: const EdgeInsets.fromLTRB(
+            20,
+            12,
+            20,
+            28,
+          ),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(
+              top: Radius.circular(26),
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 42,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+
+              const SizedBox(height: 18),
+
+              Text(
+                'Laporan Servis',
+                style: primaryTextStyle.copyWith(
+                  fontSize: 17,
+                  fontWeight: bold,
+                ),
+              ),
+
+              const SizedBox(height: 5),
+
+              Text(
+                'Buat laporan seluruh pekerjaan pada pengajuan ini.',
+                textAlign: TextAlign.center,
+                style: greyTextStyle.copyWith(
+                  fontSize: 10,
+                  height: 1.4,
+                ),
+              ),
+
+              const SizedBox(height: 18),
+
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(16),
+                  onTap: () async {
+                    Navigator.pop(sheetContext);
+
+                    try {
+                      await ServiceReportPdf.preview(
+                        servis: servis,
+                      );
+                    } catch (e) {
+                      if (!context.mounted) return;
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Gagal membuat laporan: $e',
+                          ),
+                          backgroundColor: Colors.red,
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    }
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: Colors.grey.shade200,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: Colors.red.withValues(
+                              alpha: 0.08,
+                            ),
+                            borderRadius: BorderRadius.circular(13),
+                          ),
+                          child: const Icon(
+                            Icons.picture_as_pdf_outlined,
+                            color: Colors.red,
+                            size: 22,
+                          ),
+                        ),
+
+                        const SizedBox(width: 12),
+
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment:
+                            CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Laporan PDF',
+                                style: primaryTextStyle.copyWith(
+                                  fontSize: 12,
+                                  fontWeight: bold,
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                '$totalUnits unit AC dalam pengajuan',
+                                style: greyTextStyle.copyWith(
+                                  fontSize: 9,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        Icon(
+                          Icons.arrow_forward_ios_rounded,
+                          size: 13,
+                          color: Colors.grey.shade400,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // ============================================================
   // STATUS
   // ============================================================
 
@@ -2253,7 +2464,9 @@ class ServisDetailPage extends StatelessWidget {
       List<dynamic> values,
       ) {
     for (final value in values) {
-      if (value == null) {
+      if (value == null) continue;
+
+      if (value is Map) {
         continue;
       }
 
