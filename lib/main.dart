@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:ridho_teknik/pages/klien/client_main_page.dart';
 import 'package:ridho_teknik/providers/ac_master_provider.dart';
 import 'package:ridho_teknik/services/ac_master_service.dart';
 
@@ -9,7 +10,6 @@ import 'api/api_client.dart';
 import 'pages/splash_page.dart';
 import 'pages/login_page.dart';
 import 'pages/owner/home_page.dart';
-import 'pages/klien/klien_page.dart';
 import 'pages/teknisi/teknisi_dashboard_page.dart';
 import 'pages/owner/client/client_list_page.dart';
 import 'pages/owner/technician_list_page.dart';
@@ -164,7 +164,7 @@ class MyApp extends StatelessWidget {
         '/': (_) => const SplashPage(),
         '/login': (_) => const LoginPage(),
         '/home': (_) => const HomePage(),
-        '/klien': (_) => const KlienPage(),
+        '/klien': (_) => const ClientMainPage(),
         '/teknisi': (_) => const TeknisiDashboardPage(),
         '/client-list': (_) => const ClientListPage(),
         '/technician-list': (_) => const TechnicianListPage(),

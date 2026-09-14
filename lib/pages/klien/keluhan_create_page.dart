@@ -1,10 +1,14 @@
 // lib/pages/klien/keluhan_create_page.dart
+
 import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:iconsax/iconsax.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import 'package:intl/date_symbol_data_local.dart'; // Import tambahan untuk initializeDateFormatting
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:provider/provider.dart';
+
 import '../../models/ac_model.dart';
 import '../../models/lokasi_model.dart';
 import '../../providers/client_servis_provider.dart';
@@ -13,233 +17,351 @@ import '../../theme/theme.dart';
 class KeluhanCreatePage extends StatefulWidget {
   final AcModel ac;
   final LokasiModel lokasi;
-  const KeluhanCreatePage({super.key, required this.ac, required this.lokasi});
+
+  const KeluhanCreatePage({
+    super.key,
+    required this.ac,
+    required this.lokasi,
+  });
 
   @override
-  State<KeluhanCreatePage> createState() => _KeluhanCreatePageState();
+  State<KeluhanCreatePage> createState() =>
+      _KeluhanCreatePageState();
 }
 
-class _KeluhanCreatePageState extends State<KeluhanCreatePage> {
-  final TextEditingController _keluhanController = TextEditingController();
-  final TextEditingController _catatanController = TextEditingController();
-  final TextEditingController _tanggalController = TextEditingController();
+class _KeluhanCreatePageState
+    extends State<KeluhanCreatePage> {
+  // ============================================================
+  // CONTROLLER
+  // ============================================================
+
+  final TextEditingController _keluhanController =
+  TextEditingController();
+
+  final PageController _pageController =
+  PageController();
+
+  final ImagePicker _picker =
+  ImagePicker();
+
+  // ============================================================
+  // STATE
+  // ============================================================
+
+  int _currentStep = 0;
 
   String _priority = 'sedang';
+
   final List<File> _fotoKeluhan = [];
-  final ImagePicker _picker = ImagePicker();
+
   DateTime? _selectedDate;
+
   bool _isDateFormattingInitialized = false;
 
-  // Priority options
-  final List<Map<String, dynamic>> priorityOptions = [
-    {'value': 'rendah', 'label': 'Rendah', 'color': Colors.green, 'icon': Icons.low_priority},
-    {'value': 'sedang', 'label': 'Sedang', 'color': Colors.orange, 'icon': Icons.priority_high},
-    {'value': 'tinggi', 'label': 'Tinggi', 'color': Colors.red, 'icon': Icons.warning},
+  // ============================================================
+  // PRIORITY
+  // ============================================================
+
+  final List<Map<String, dynamic>> _priorityOptions = [
+    {
+      'value': 'rendah',
+      'label': 'Rendah',
+      'description': 'AC masih dapat digunakan',
+      'color': Colors.green,
+      'icon': Iconsax.arrow_down_1,
+    },
+    {
+      'value': 'sedang',
+      'label': 'Sedang',
+      'description': 'Mengganggu kenyamanan',
+      'color': Colors.orange,
+      'icon': Iconsax.info_circle,
+    },
+    {
+      'value': 'tinggi',
+      'label': 'Tinggi',
+      'description': 'AC tidak dapat digunakan',
+      'color': Colors.red,
+      'icon': Iconsax.warning_2,
+    },
   ];
+
+  // ============================================================
+  // INIT
+  // ============================================================
 
   @override
   void initState() {
     super.initState();
-    // Inisialisasi date formatting
+
     _initializeDateFormatting();
   }
 
   Future<void> _initializeDateFormatting() async {
     try {
-      // Inisialisasi date formatting untuk locale Indonesia
-      await initializeDateFormatting('id_ID');
+      await initializeDateFormatting(
+        'id_ID',
+      );
+
+      if (!mounted) return;
+
       setState(() {
         _isDateFormattingInitialized = true;
       });
-
-      // Set tanggal default setelah formatting diinisialisasi
-      _selectedDate = DateTime.now().add(const Duration(days: 3));
-      _tanggalController.text = DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(_selectedDate!);
     } catch (e) {
-      print('Error initializing date formatting: $e');
-      // Fallback ke format tanggal sederhana jika inisialisasi gagal
-      _selectedDate = DateTime.now().add(const Duration(days: 3));
-      _tanggalController.text = DateFormat('yyyy-MM-dd').format(_selectedDate!);
+      debugPrint(
+        'Date formatting error: $e',
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _isDateFormattingInitialized = true;
+      });
     }
   }
 
   @override
   void dispose() {
     _keluhanController.dispose();
-    _catatanController.dispose();
-    _tanggalController.dispose();
+    _pageController.dispose();
+
     super.dispose();
   }
 
-  Future<void> _selectDate() async {
-    if (!_isDateFormattingInitialized) {
-      _showSnackBar('Sedang memuat data tanggal...', Colors.orange);
+  // ============================================================
+  // STEP CONTROL
+  // ============================================================
+
+  void _nextStep() {
+    if (!_validateStep()) {
       return;
     }
 
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: _selectedDate ?? DateTime.now().add(const Duration(days: 3)),
-      firstDate: DateTime.now().add(const Duration(days: 1)), // Minimal besok
-      lastDate: DateTime.now().add(const Duration(days: 30)), // Maksimal 30 hari ke depan
-      builder: (context, child) {
-        return Theme(
-          data: ThemeData.light().copyWith(
-            colorScheme: ColorScheme.light(
-              primary: kPrimaryColor,
-              onPrimary: Colors.white,
-            ), dialogTheme: DialogThemeData(backgroundColor: Colors.white),
-          ),
-          child: child!,
-        );
-      },
-    );
-
-    if (picked != null && picked != _selectedDate) {
-      setState(() {
-        _selectedDate = picked;
-        _tanggalController.text = DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(picked);
-      });
+    if (_currentStep >= 2) {
+      return;
     }
+
+    setState(() {
+      _currentStep++;
+    });
+
+    _pageController.animateToPage(
+      _currentStep,
+      duration: const Duration(
+        milliseconds: 260,
+      ),
+      curve: Curves.easeOutCubic,
+    );
   }
+
+  void _previousStep() {
+    if (_currentStep == 0) {
+      Navigator.pop(context);
+      return;
+    }
+
+    setState(() {
+      _currentStep--;
+    });
+
+    _pageController.animateToPage(
+      _currentStep,
+      duration: const Duration(
+        milliseconds: 260,
+      ),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  bool _validateStep() {
+    // ==========================================================
+    // STEP 1
+    // ==========================================================
+
+    if (_currentStep == 0) {
+      final keluhan =
+      _keluhanController.text.trim();
+
+      if (keluhan.isEmpty) {
+        _showSnackBar(
+          'Ceritakan masalah AC terlebih dahulu.',
+          Colors.orange,
+        );
+
+        return false;
+      }
+
+      if (keluhan.length < 10) {
+        _showSnackBar(
+          'Keluhan minimal 10 karakter agar teknisi memahami masalah.',
+          Colors.orange,
+        );
+
+        return false;
+      }
+    }
+
+    // ==========================================================
+    // STEP 2
+    // ==========================================================
+
+    if (_currentStep == 1) {
+      if (_selectedDate == null) {
+        _showSnackBar(
+          'Pilih tanggal kunjungan terlebih dahulu.',
+          Colors.orange,
+        );
+
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  // ============================================================
+  // IMAGE
+  // ============================================================
 
   Future<void> _showImageSourceDialog() async {
     if (_fotoKeluhan.length >= 5) {
-      _showSnackBar('Maksimal 5 foto keluhan', Colors.orange);
+      _showSnackBar(
+        'Maksimal 5 foto.',
+        Colors.orange,
+      );
+
       return;
     }
 
-    // Show modern bottom sheet
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) => Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(24),
-            topRight: Radius.circular(24),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha:0.2),
-              blurRadius: 20,
-              offset: const Offset(0, -4),
+      builder: (context) {
+        return SafeArea(
+          child: Container(
+            margin: const EdgeInsets.all(
+              14,
             ),
-          ],
-        ),
-        child: SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Header dengan drag indicator
-              Padding(
-                padding: const EdgeInsets.only(top: 12, bottom: 8),
-                child: Container(
+            padding: const EdgeInsets.fromLTRB(
+              18,
+              10,
+              18,
+              18,
+            ),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(
+                26,
+              ),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
                     color: Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(2),
+                    borderRadius:
+                    BorderRadius.circular(
+                      20,
+                    ),
                   ),
                 ),
-              ),
 
-              // Title
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                const SizedBox(height: 18),
+
+                Row(
                   children: [
-                    Text(
-                      'Pilih Sumber Foto',
-                      style: primaryTextStyle.copyWith(
-                        fontSize: 18,
-                        fontWeight: bold,
+                    Expanded(
+                      child: Text(
+                        'Tambahkan Foto',
+                        style:
+                        primaryTextStyle.copyWith(
+                          fontSize: 17,
+                          fontWeight: bold,
+                        ),
                       ),
                     ),
+
                     IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: Icon(Icons.close, color: kGreyColor),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                      iconSize: 20,
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                      icon: const Icon(
+                        Icons.close_rounded,
+                      ),
                     ),
                   ],
                 ),
-              ),
 
-              const SizedBox(height: 8),
-
-              // Options
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Column(
-                  children: [
-                    // Camera Option
-                    _buildOptionCard(
-                      icon: Icons.camera_alt_rounded,
-                      title: 'Ambil Foto',
-                      subtitle: 'Ambil foto menggunakan kamera',
-                      color: kPrimaryColor,
-                      onTap: () {
-                        Navigator.pop(context);
-                        _pickImage(ImageSource.camera);
-                      },
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    // Gallery Option
-                    _buildOptionCard(
-                      icon: Icons.photo_library_rounded,
-                      title: 'Pilih dari Galeri',
-                      subtitle: 'Pilih foto dari galeri perangkat',
-                      color: Colors.green,
-                      onTap: () {
-                        Navigator.pop(context);
-                        _pickImage(ImageSource.gallery);
-                      },
-                    ),
-                  ],
-                ),
-              ),
-
-              // Cancel Button
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.pop(context),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: kGreyColor,
-                      side: BorderSide(color: kGreyColor.withValues(alpha:0.3)),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                    ),
-                    child: Text(
-                      'Batal',
-                      style: primaryTextStyle.copyWith(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: kGreyColor,
-                      ),
-                    ),
+                Text(
+                  'Foto membantu teknisi memahami kondisi AC sebelum datang.',
+                  style: greyTextStyle.copyWith(
+                    fontSize: 10.5,
+                    height: 1.4,
                   ),
                 ),
-              ),
-            ],
+
+                const SizedBox(height: 18),
+
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildImageSourceButton(
+                        icon:
+                        Iconsax.camera,
+                        title: 'Kamera',
+                        subtitle:
+                        'Ambil foto',
+                        color:
+                        kPrimaryColor,
+                        onTap: () {
+                          Navigator.pop(
+                            context,
+                          );
+
+                          _pickImage(
+                            ImageSource.camera,
+                          );
+                        },
+                      ),
+                    ),
+
+                    const SizedBox(width: 10),
+
+                    Expanded(
+                      child: _buildImageSourceButton(
+                        icon:
+                        Iconsax.gallery,
+                        title: 'Galeri',
+                        subtitle:
+                        'Pilih foto',
+                        color:
+                        Colors.green,
+                        onTap: () {
+                          Navigator.pop(
+                            context,
+                          );
+
+                          _pickImage(
+                            ImageSource.gallery,
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
-  Widget _buildOptionCard({
+  Widget _buildImageSourceButton({
     required IconData icon,
     required String title,
     required String subtitle,
@@ -250,55 +372,67 @@ class _KeluhanCreatePageState extends State<KeluhanCreatePage> {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha:0.05),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: color.withValues(alpha:0.1), width: 1.5),
+        borderRadius:
+        BorderRadius.circular(
+          18,
+        ),
+        child: Ink(
+          padding: const EdgeInsets.all(
+            15,
           ),
-          child: Row(
+          decoration: BoxDecoration(
+            color: color.withValues(
+              alpha: 0.06,
+            ),
+            borderRadius:
+            BorderRadius.circular(
+              18,
+            ),
+            border: Border.all(
+              color: color.withValues(
+                alpha: 0.12,
+              ),
+            ),
+          ),
+          child: Column(
             children: [
-              // Icon Circle
               Container(
-                width: 50,
-                height: 50,
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha:0.15),
-                  shape: BoxShape.circle,
+                  color: color.withValues(
+                    alpha: 0.10,
+                  ),
+                  borderRadius:
+                  BorderRadius.circular(
+                    14,
+                  ),
                 ),
-                child: Icon(icon, color: color, size: 24),
-              ),
-
-              const SizedBox(width: 16),
-
-              // Text Content
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: primaryTextStyle.copyWith(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      style: greyTextStyle.copyWith(fontSize: 12),
-                    ),
-                  ],
+                child: Icon(
+                  icon,
+                  color: color,
+                  size: 21,
                 ),
               ),
 
-              // Chevron
-              Icon(
-                Icons.chevron_right_rounded,
-                color: color.withValues(alpha:0.5),
-                size: 20,
+              const SizedBox(height: 9),
+
+              Text(
+                title,
+                style:
+                primaryTextStyle.copyWith(
+                  fontSize: 12,
+                  fontWeight: bold,
+                ),
+              ),
+
+              const SizedBox(height: 2),
+
+              Text(
+                subtitle,
+                style: greyTextStyle.copyWith(
+                  fontSize: 8.5,
+                ),
               ),
             ],
           ),
@@ -307,635 +441,1232 @@ class _KeluhanCreatePageState extends State<KeluhanCreatePage> {
     );
   }
 
-  Future<void> _pickImage(ImageSource source) async {
+  Future<void> _pickImage(
+      ImageSource source,
+      ) async {
     try {
-      final XFile? image = await _picker.pickImage(
+      final image =
+      await _picker.pickImage(
         source: source,
         imageQuality: 85,
         maxWidth: 1200,
       );
 
-      if (image != null) {
-        setState(() {
-          _fotoKeluhan.add(File(image.path));
-        });
-
-        if (_fotoKeluhan.length >= 5) {
-          _showSnackBar('Maksimal 5 foto telah tercapai', Colors.orange);
-        }
+      if (image == null) {
+        return;
       }
+
+      if (!mounted) return;
+
+      setState(() {
+        _fotoKeluhan.add(
+          File(image.path),
+        );
+      });
     } catch (e) {
-      print('Error picking image: $e');
-      _showSnackBar('Gagal mengambil gambar: $e', Colors.red);
+      if (!mounted) return;
+
+      _showSnackBar(
+        'Gagal mengambil gambar.',
+        Colors.red,
+      );
     }
   }
 
-  void _removeImage(int index) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Hapus Foto', style: primaryTextStyle.copyWith(fontWeight: bold)),
-        content: Text('Apakah Anda yakin ingin menghapus foto ini?', style: primaryTextStyle),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Batal', style: TextStyle(color: kGreyColor)),
-          ),
-          TextButton(
-            onPressed: () {
-              setState(() {
-                _fotoKeluhan.removeAt(index);
-              });
-              Navigator.pop(context);
-            },
-            child: Text('Hapus', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
+  void _removeImage(
+      int index,
+      ) {
+    setState(() {
+      _fotoKeluhan.removeAt(
+        index,
+      );
+    });
   }
+
+  // ============================================================
+  // SUBMIT
+  // ============================================================
 
   Future<void> _submitPerbaikan() async {
-    if (_keluhanController.text.trim().isEmpty) {
-      _showSnackBar('Keluhan harus diisi', kBoxMenuRedColor);
-      return;
-    }
-
-    if (_keluhanController.text.trim().length < 10) {
-      _showSnackBar('Keluhan minimal 10 karakter', kBoxMenuRedColor);
+    if (!_validateStep()) {
       return;
     }
 
     if (_selectedDate == null) {
-      _showSnackBar('Silakan pilih tanggal kunjungan', kBoxMenuRedColor);
+      _showSnackBar(
+        'Tanggal kunjungan belum dipilih.',
+        Colors.orange,
+      );
       return;
     }
 
-    final provider = Provider.of<ClientServisProvider>(context, listen: false);
+    final provider =
+    context.read<
+        ClientServisProvider>();
 
     try {
-      // Format tanggal untuk API
-      String formattedDate = DateFormat('yyyy-MM-dd').format(_selectedDate!);
-
-      // Panggil provider untuk request perbaikan (dengan parameter tanggal)
-      await provider.requestPerbaikan(
-        locationId: widget.lokasi.id,
-        acUnitId: widget.ac.id,
-        keluhan: _keluhanController.text.trim(),
-        priority: _priority,
-        tanggalBerkunjung: formattedDate, // Tambahkan tanggal kunjungan
-        fotoKeluhan: _fotoKeluhan.isNotEmpty ? _fotoKeluhan : null,
+      final formattedDate =
+      DateFormat(
+        'yyyy-MM-dd',
+      ).format(
+        _selectedDate!,
       );
 
-      _showSnackBar('Permintaan perbaikan berhasil dikirim!', kBoxMenuGreenColor);
+      await provider.requestPerbaikan(
+        locationId:
+        widget.lokasi.id,
+        acUnitId:
+        widget.ac.id,
+        keluhan:
+        _keluhanController.text
+            .trim(),
+        priority:
+        _priority,
+        tanggalBerkunjung:
+        formattedDate,
+        fotoKeluhan:
+        _fotoKeluhan.isEmpty
+            ? null
+            : _fotoKeluhan,
+      );
 
-      // Kembali ke halaman sebelumnya
-      Navigator.pop(context, true);
+      if (!mounted) return;
 
+      _showSnackBar(
+        'Permintaan perbaikan berhasil dikirim.',
+        Colors.green,
+      );
+
+      await Future.delayed(
+        const Duration(
+          milliseconds: 600,
+        ),
+      );
+
+      if (!mounted) return;
+
+      Navigator.pop(
+        context,
+        true,
+      );
     } catch (e) {
-      if (provider.submitPerbaikanError != null) {
-        _showSnackBar(provider.submitPerbaikanError!, Colors.red);
-      } else {
-        _showSnackBar('Gagal mengirim permintaan: $e', Colors.red);
-      }
+      if (!mounted) return;
+
+      final message =
+          provider.submitPerbaikanError ??
+              e.toString().replaceFirst(
+                'Exception: ',
+                '',
+              );
+
+      _showSnackBar(
+        message,
+        Colors.red,
+      );
     }
   }
 
-  void _showSnackBar(String message, Color color) {
-    ScaffoldMessenger.of(context).showSnackBar(
+  void _showSnackBar(
+      String message,
+      Color color,
+      ) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(
       SnackBar(
-        content: Text(message, style: whiteTextStyle),
-        backgroundColor: color,
-        behavior: SnackBarBehavior.floating,
-        duration: Duration(seconds: 3),
+        content: Text(
+          message,
+        ),
+        backgroundColor:
+        color,
+        behavior:
+        SnackBarBehavior.floating,
+        shape:
+        RoundedRectangleBorder(
+          borderRadius:
+          BorderRadius.circular(
+            14,
+          ),
+        ),
       ),
     );
   }
 
-  Widget _buildFotoGrid() {
-    if (_fotoKeluhan.isEmpty) return const SizedBox();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 16),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text('Foto Keluhan:', style: primaryTextStyle.copyWith(fontWeight: bold)),
-            Text(
-              '${_fotoKeluhan.length}/5',
-              style: greyTextStyle.copyWith(fontSize: 12),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            childAspectRatio: 1,
-          ),
-          itemCount: _fotoKeluhan.length,
-          itemBuilder: (context, index) {
-            return Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: kGreyColor.withValues(alpha:0.3)),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(11),
-                child: Stack(
-                  children: [
-                    // Foto
-                    Positioned.fill(
-                      child: Image.file(
-                        _fotoKeluhan[index],
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
-                            color: kGreyColor.withValues(alpha:0.1),
-                            child: Icon(Icons.broken_image, color: kGreyColor),
-                          );
-                        },
-                      ),
-                    ),
-
-                    // Overlay gradient
-                    Positioned.fill(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              Colors.transparent,
-                              Colors.black.withValues(alpha:0.6),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    // Nomor urut
-                    Positioned(
-                      bottom: 8,
-                      left: 8,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha:0.7),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          '${index + 1}',
-                          style: whiteTextStyle.copyWith(
-                            fontSize: 12,
-                            fontWeight: bold,
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    // Tombol hapus
-                    Positioned(
-                      top: 8,
-                      right: 8,
-                      child: GestureDetector(
-                        onTap: () => _removeImage(index),
-                        child: Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: BoxDecoration(
-                            color: Colors.red,
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha:0.2),
-                                blurRadius: 4,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Icon(
-                            Icons.close,
-                            size: 14,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        ),
-        const SizedBox(height: 8),
-        if (_fotoKeluhan.length < 5)
-          Text(
-            'Ketuk foto untuk menghapus',
-            style: greyTextStyle.copyWith(fontSize: 12, fontStyle: FontStyle.italic),
-          ),
-      ],
-    );
-  }
+  // ============================================================
+  // BUILD
+  // ============================================================
 
   @override
-  Widget build(BuildContext context) {
-    final provider = Provider.of<ClientServisProvider>(context);
+  Widget build(
+      BuildContext context,
+      ) {
+    final provider =
+    context.watch<
+        ClientServisProvider>();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Pengajuan Perbaikan AC'),
-        backgroundColor: kPrimaryColor,
-        foregroundColor: Colors.white,
-        elevation: 0,
-      ),
-      body: Stack(
-        children: [
-          SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      backgroundColor:
+      kBackgroundColor,
+      body: SafeArea(
+        child: Stack(
+          children: [
+            Column(
               children: [
-                // Header Info
-                _buildHeaderInfo(),
-                const SizedBox(height: 24),
+                _buildTopBar(),
 
-                // Form Perbaikan
-                _buildPerbaikanForm(),
-                const SizedBox(height: 24),
+                _buildStepper(),
 
-                // Tombol Submit
-                _buildSubmitButton(provider),
-                const SizedBox(height: 24),
+                Expanded(
+                  child: PageView(
+                    controller:
+                    _pageController,
+                    physics:
+                    const NeverScrollableScrollPhysics(),
+                    children: [
+                      _buildStepProblem(),
+                      _buildStepSchedule(),
+                      _buildStepConfirm(),
+                    ],
+                  ),
+                ),
 
-                // Info Proses
-                _buildProcessInfo(),
-                const SizedBox(height: 20),
+                _buildBottomNavigation(
+                  provider,
+                ),
+              ],
+            ),
+
+            if (!_isDateFormattingInitialized ||
+                provider.submittingPerbaikan)
+              Positioned.fill(
+                child: Container(
+                  color:
+                  Colors.black.withValues(
+                    alpha: 0.18,
+                  ),
+                  child: Center(
+                    child: Container(
+                      padding:
+                      const EdgeInsets.all(
+                        20,
+                      ),
+                      decoration: BoxDecoration(
+                        color:
+                        Colors.white,
+                        borderRadius:
+                        BorderRadius.circular(
+                          18,
+                        ),
+                      ),
+                      child: Column(
+                        mainAxisSize:
+                        MainAxisSize.min,
+                        children: [
+                          CircularProgressIndicator(
+                            color:
+                            kPrimaryColor,
+                            strokeWidth:
+                            2.5,
+                          ),
+
+                          const SizedBox(
+                            height: 12,
+                          ),
+
+                          Text(
+                            provider
+                                .submittingPerbaikan
+                                ? 'Mengirim permintaan...'
+                                : 'Menyiapkan formulir...',
+                            style:
+                            primaryTextStyle.copyWith(
+                              fontSize: 11,
+                              fontWeight:
+                              medium,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // TOP BAR
+  // ============================================================
+
+  Widget _buildTopBar() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        20,
+        14,
+        20,
+        6,
+      ),
+      child: Row(
+        children: [
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap:
+              _previousStep,
+              borderRadius:
+              BorderRadius.circular(
+                14,
+              ),
+              child: Ink(
+                width: 44,
+                height: 44,
+                decoration:
+                BoxDecoration(
+                  color:
+                  Colors.white,
+                  borderRadius:
+                  BorderRadius.circular(
+                    14,
+                  ),
+                ),
+                child: Icon(
+                  Icons
+                      .arrow_back_rounded,
+                  color:
+                  kPrimaryColor,
+                ),
+              ),
+            ),
+          ),
+
+          const SizedBox(width: 12),
+
+          Expanded(
+            child: Column(
+              crossAxisAlignment:
+              CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Perbaikan AC',
+                  style:
+                  primaryTextStyle.copyWith(
+                    fontSize: 18,
+                    fontWeight: bold,
+                  ),
+                ),
+
+                const SizedBox(height: 2),
+
+                Text(
+                  widget.lokasi.nama,
+                  maxLines: 1,
+                  overflow:
+                  TextOverflow.ellipsis,
+                  style:
+                  greyTextStyle.copyWith(
+                    fontSize: 10,
+                  ),
+                ),
               ],
             ),
           ),
 
-          // Loading overlay untuk inisialisasi date formatting
-          if (!_isDateFormattingInitialized)
-            Container(
-              color: Colors.black.withValues(alpha:0.3),
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(kPrimaryColor),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Menyiapkan formulir...',
-                      style: whiteTextStyle,
-                    ),
-                  ],
-                ),
+          Container(
+            padding:
+            const EdgeInsets.symmetric(
+              horizontal: 10,
+              vertical: 6,
+            ),
+            decoration:
+            BoxDecoration(
+              color:
+              Colors.orange.withValues(
+                alpha: 0.08,
+              ),
+              borderRadius:
+              BorderRadius.circular(
+                20,
               ),
             ),
-
-          // Loading overlay untuk submit
-          if (provider.submittingPerbaikan && _isDateFormattingInitialized)
-            Container(
-              color: Colors.black.withValues(alpha:0.3),
-              child: Center(
-                child: CircularProgressIndicator(),
+            child: const Text(
+              'Perbaikan',
+              style: TextStyle(
+                color:
+                Colors.orange,
+                fontSize: 8.5,
+                fontWeight:
+                FontWeight.w700,
               ),
             ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildHeaderInfo() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: kWhiteColor,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha:0.05),
-            blurRadius: 15,
-            offset: const Offset(0, 6),
+  // ============================================================
+  // STEPPER
+  // ============================================================
+
+  Widget _buildStepper() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        20,
+        10,
+        20,
+        14,
+      ),
+      child: Row(
+        children: [
+          _buildStepIndicator(
+            index: 0,
+            label: 'Keluhan',
+            icon:
+            Iconsax.message_question,
+          ),
+
+          _buildStepLine(0),
+
+          _buildStepIndicator(
+            index: 1,
+            label: 'Jadwal',
+            icon:
+            Iconsax.calendar_1,
+          ),
+
+          _buildStepLine(1),
+
+          _buildStepIndicator(
+            index: 2,
+            label: 'Ajukan',
+            icon:
+            Iconsax.tick_circle,
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildStepIndicator({
+    required int index,
+    required String label,
+    required IconData icon,
+  }) {
+    final active =
+        _currentStep == index;
+
+    final completed =
+        _currentStep > index;
+
+    final enabled =
+        active || completed;
+
+    return Expanded(
+      child: Column(
+        children: [
+          AnimatedContainer(
+            duration:
+            const Duration(
+              milliseconds: 180,
+            ),
+            width: 36,
+            height: 36,
+            decoration:
+            BoxDecoration(
+              color: enabled
+                  ? kPrimaryColor
+                  : Colors.white,
+              shape:
+              BoxShape.circle,
+              border:
+              Border.all(
+                color: enabled
+                    ? kPrimaryColor
+                    : Colors
+                    .grey.shade300,
+              ),
+            ),
+            child: Icon(
+              completed
+                  ? Icons
+                  .check_rounded
+                  : icon,
+              size: 17,
+              color: enabled
+                  ? Colors.white
+                  : Colors
+                  .grey.shade400,
+            ),
+          ),
+
+          const SizedBox(height: 5),
+
+          Text(
+            label,
+            style:
+            TextStyle(
+              fontSize: 8.5,
+              fontWeight:
+              active
+                  ? FontWeight.w700
+                  : FontWeight.w500,
+              color: active
+                  ? kPrimaryColor
+                  : Colors
+                  .grey.shade500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStepLine(
+      int beforeStep,
+      ) {
+    final completed =
+        _currentStep > beforeStep;
+
+    return Expanded(
+      child:
+      AnimatedContainer(
+        duration:
+        const Duration(
+          milliseconds: 180,
+        ),
+        height: 2,
+        margin:
+        const EdgeInsets.only(
+          bottom: 20,
+        ),
+        color: completed
+            ? kPrimaryColor
+            : Colors
+            .grey.shade300,
+      ),
+    );
+  }
+
+  // ============================================================
+  // STEP 1 - PROBLEM
+  // ============================================================
+
+  Widget _buildStepProblem() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        20,
+        6,
+        20,
+        0,
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment:
+        CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: kPrimaryColor.withValues(alpha:0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(Icons.location_on, color: kPrimaryColor, size: 22),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.lokasi.nama,
-                      style: primaryTextStyle.copyWith(
-                        fontSize: 16,
-                        fontWeight: bold,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      widget.lokasi.alamat,
-                      style: greyTextStyle.copyWith(fontSize: 12),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+          _buildStepTitle(
+            'Apa masalahnya?',
+            'Ceritakan kondisi AC agar teknisi dapat mempersiapkan penanganan',
           ),
-          const SizedBox(height: 16),
-          Divider(color: kGreyColor.withValues(alpha:0.2)),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: kSecondaryColor.withValues(alpha:0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(Icons.ac_unit, color: kSecondaryColor, size: 22),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.ac.nama,
-                      style: primaryTextStyle.copyWith(fontWeight: medium),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${widget.ac.merk} • ${widget.ac.type} • ${widget.ac.kapasitas}',
-                      style: greyTextStyle.copyWith(fontSize: 12),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+
+          const SizedBox(height: 14),
+
+          _buildAcInfo(),
+
+          const SizedBox(height: 14),
+
+          Expanded(
+            child: ListView(
+              physics:
+              const BouncingScrollPhysics(),
+              children: [
+                _buildComplaintField(),
+
+                const SizedBox(height: 18),
+
+                _buildPrioritySection(),
+
+                const SizedBox(height: 18),
+
+                _buildPhotoSection(),
+
+                const SizedBox(height: 16),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildPerbaikanForm() {
-    // Tampilkan loading jika date formatting belum diinisialisasi
-    if (!_isDateFormattingInitialized) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 40),
-          child: CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(kPrimaryColor),
+  // ============================================================
+  // AC INFO
+  // ============================================================
+
+  Widget _buildAcInfo() {
+    final room =
+    (widget.ac.room?.name ?? '')
+        .trim();
+
+    final roomName =
+    room.isNotEmpty
+        ? room
+        : widget.ac.lantai > 0
+        ? 'Lantai ${widget.ac.lantai}'
+        : 'Ruangan belum ditentukan';
+
+    final acName =
+    widget.ac.nama.trim().isNotEmpty
+        ? widget.ac.nama
+        : 'AC #${widget.ac.id}';
+
+    final specs = [
+      widget.ac.merk,
+      widget.ac.type,
+      widget.ac.kapasitas,
+    ]
+        .where(
+          (e) =>
+      e.trim().isNotEmpty &&
+          e != '-',
+    )
+        .join(' • ');
+
+    return Container(
+      padding:
+      const EdgeInsets.all(
+        14,
+      ),
+      decoration:
+      BoxDecoration(
+        gradient:
+        LinearGradient(
+          begin:
+          Alignment.topLeft,
+          end:
+          Alignment.bottomRight,
+          colors: [
+            kPrimaryColor
+                .withValues(
+              alpha: 0.07,
+            ),
+            Colors.white,
+          ],
+        ),
+        borderRadius:
+        BorderRadius.circular(
+          18,
+        ),
+        border:
+        Border.all(
+          color:
+          kPrimaryColor.withValues(
+            alpha: 0.09,
           ),
         ),
-      );
-    }
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 46,
+            height: 46,
+            decoration:
+            BoxDecoration(
+              color:
+              kPrimaryColor.withValues(
+                alpha: 0.09,
+              ),
+              borderRadius:
+              BorderRadius.circular(
+                14,
+              ),
+            ),
+            child: Icon(
+              Iconsax.location,
+              color:
+              kPrimaryColor,
+              size: 21,
+            ),
+          ),
 
+          const SizedBox(width: 11),
+
+          Expanded(
+            child: Column(
+              crossAxisAlignment:
+              CrossAxisAlignment.start,
+              children: [
+                Text(
+                  roomName,
+                  maxLines: 1,
+                  overflow:
+                  TextOverflow.ellipsis,
+                  style:
+                  primaryTextStyle.copyWith(
+                    fontSize: 13,
+                    fontWeight: bold,
+                  ),
+                ),
+
+                const SizedBox(height: 4),
+
+                Row(
+                  children: [
+                    Icon(
+                      Icons.ac_unit_rounded,
+                      size: 12,
+                      color:
+                      kPrimaryColor,
+                    ),
+
+                    const SizedBox(width: 5),
+
+                    Expanded(
+                      child: Text(
+                        acName,
+                        maxLines: 1,
+                        overflow:
+                        TextOverflow.ellipsis,
+                        style:
+                        TextStyle(
+                          color:
+                          kPrimaryColor,
+                          fontSize: 9.5,
+                          fontWeight:
+                          FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                if (specs.isNotEmpty) ...[
+                  const SizedBox(height: 3),
+
+                  Text(
+                    specs,
+                    maxLines: 1,
+                    overflow:
+                    TextOverflow.ellipsis,
+                    style:
+                    greyTextStyle.copyWith(
+                      fontSize: 8.5,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+
+          if (widget.ac.lantai > 0)
+            Container(
+              padding:
+              const EdgeInsets.symmetric(
+                horizontal: 8,
+                vertical: 5,
+              ),
+              decoration:
+              BoxDecoration(
+                color: Colors.grey.withValues(
+                  alpha: 0.07,
+                ),
+                borderRadius:
+                BorderRadius.circular(
+                  20,
+                ),
+              ),
+              child: Text(
+                'L${widget.ac.lantai}',
+                style:
+                TextStyle(
+                  fontSize: 8,
+                  color:
+                  Colors.grey.shade600,
+                  fontWeight:
+                  FontWeight.w600,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // COMPLAINT
+  // ============================================================
+
+  Widget _buildComplaintField() {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment:
+      CrossAxisAlignment.start,
       children: [
         Text(
-          'Informasi Perbaikan',
-          style: primaryTextStyle.copyWith(
-            fontSize: 18,
+          'Keluhan',
+          style:
+          primaryTextStyle.copyWith(
+            fontSize: 13.5,
             fontWeight: bold,
           ),
         ),
+
         const SizedBox(height: 4),
+
         Text(
-          'Isi form berikut untuk mengajukan perbaikan AC',
-          style: greyTextStyle.copyWith(fontSize: 13),
+          'Jelaskan gejala atau kondisi yang terjadi',
+          style:
+          greyTextStyle.copyWith(
+            fontSize: 9,
+          ),
         ),
-        const SizedBox(height: 20),
 
-        // Keluhan
-        Text('Keluhan*', style: primaryTextStyle.copyWith(fontWeight: medium)),
-        const SizedBox(height: 8),
+        const SizedBox(height: 9),
+
         TextField(
-          controller: _keluhanController,
-          maxLines: 4,
-          decoration: InputDecoration(
-            hintText: 'Jelaskan keluhan secara detail...\nContoh: AC tidak dingin sejak 2 hari yang lalu, suara berisik dari unit outdoor, ada kebocoran air, dll.',
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(defaultRadius),
-              borderSide: BorderSide(color: kGreyColor),
+          controller:
+          _keluhanController,
+          maxLines: 5,
+          minLines: 4,
+          maxLength: 500,
+          decoration:
+          InputDecoration(
+            hintText:
+            'Contoh: AC tidak dingin sejak kemarin, terdengar suara keras dan terdapat tetesan air...',
+            hintStyle:
+            greyTextStyle.copyWith(
+              fontSize: 10,
+              height: 1.45,
             ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(defaultRadius),
-              borderSide: BorderSide(color: kPrimaryColor),
+            filled: true,
+            fillColor:
+            Colors.white,
+            counterStyle:
+            greyTextStyle.copyWith(
+              fontSize: 8,
             ),
-            contentPadding: const EdgeInsets.all(16),
-          ),
-        ),
-        const SizedBox(height: 16),
-
-        // Tanggal Kunjungan
-        Text('Tanggal Kunjungan*', style: primaryTextStyle.copyWith(fontWeight: medium)),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: _tanggalController,
-          readOnly: true,
-          decoration: InputDecoration(
-            hintText: 'Pilih tanggal kunjungan teknisi',
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(defaultRadius),
-              borderSide: BorderSide(color: kGreyColor),
+            border:
+            OutlineInputBorder(
+              borderRadius:
+              BorderRadius.circular(
+                17,
+              ),
+              borderSide:
+              BorderSide.none,
             ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(defaultRadius),
-              borderSide: BorderSide(color: kPrimaryColor),
-            ),
-            suffixIcon: IconButton(
-              onPressed: _selectDate,
-              icon: Icon(Icons.calendar_today, color: kPrimaryColor),
-            ),
-            contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-          ),
-          onTap: _selectDate,
-        ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            Icon(Icons.info_outline, size: 16, color: kGreyColor),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                'Teknisi akan datang pada tanggal yang dipilih. Anda akan dihubungi untuk konfirmasi waktu.',
-                style: greyTextStyle.copyWith(fontSize: 12),
+            enabledBorder:
+            OutlineInputBorder(
+              borderRadius:
+              BorderRadius.circular(
+                17,
+              ),
+              borderSide:
+              BorderSide(
+                color: Colors.grey.withValues(
+                  alpha: 0.10,
+                ),
               ),
             ),
-          ],
+            focusedBorder:
+            OutlineInputBorder(
+              borderRadius:
+              BorderRadius.circular(
+                17,
+              ),
+              borderSide:
+              BorderSide(
+                color:
+                kPrimaryColor,
+                width: 1.2,
+              ),
+            ),
+            contentPadding:
+            const EdgeInsets.all(
+              15,
+            ),
+          ),
         ),
-        const SizedBox(height: 16),
+      ],
+    );
+  }
 
-        // Prioritas
-        Text('Tingkat Prioritas', style: primaryTextStyle.copyWith(fontWeight: medium)),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: priorityOptions.map((option) {
-            final isSelected = _priority == option['value'];
-            return ChoiceChip(
-              label: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    option['icon'],
-                    size: 12,
-                    color: isSelected ? Colors.white : option['color'],
+  // ============================================================
+  // PRIORITY
+  // ============================================================
+
+  Widget _buildPrioritySection() {
+    return Column(
+      crossAxisAlignment:
+      CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Tingkat Prioritas',
+          style:
+          primaryTextStyle.copyWith(
+            fontSize: 13.5,
+            fontWeight: bold,
+          ),
+        ),
+
+        const SizedBox(height: 4),
+
+        Text(
+          'Pilih sesuai kondisi AC saat ini',
+          style:
+          greyTextStyle.copyWith(
+            fontSize: 9,
+          ),
+        ),
+
+        const SizedBox(height: 10),
+
+        Row(
+          children:
+          List.generate(
+            _priorityOptions.length,
+                (index) {
+              final option =
+              _priorityOptions[index];
+
+              return Expanded(
+                child: Padding(
+                  padding:
+                  EdgeInsets.only(
+                    right: index ==
+                        _priorityOptions.length -
+                            1
+                        ? 0
+                        : 8,
                   ),
-                  const SizedBox(width: 6),
+                  child:
+                  _buildPriorityCard(
+                    option,
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPriorityCard(
+      Map<String, dynamic> option,
+      ) {
+    final value =
+    option['value'] as String;
+
+    final color =
+    option['color'] as Color;
+
+    final selected =
+        _priority == value;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          setState(() {
+            _priority = value;
+          });
+        },
+        borderRadius:
+        BorderRadius.circular(
+          17,
+        ),
+        child: AnimatedContainer(
+          duration:
+          const Duration(
+            milliseconds: 170,
+          ),
+          padding:
+          const EdgeInsets.symmetric(
+            horizontal: 8,
+            vertical: 12,
+          ),
+          decoration:
+          BoxDecoration(
+            color: selected
+                ? color.withValues(
+              alpha: 0.09,
+            )
+                : Colors.white,
+            borderRadius:
+            BorderRadius.circular(
+              17,
+            ),
+            border:
+            Border.all(
+              color: selected
+                  ? color
+                  : Colors.grey.withValues(
+                alpha: 0.10,
+              ),
+              width: selected
+                  ? 1.3
+                  : 1,
+            ),
+          ),
+          child: Column(
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration:
+                BoxDecoration(
+                  color: color.withValues(
+                    alpha: selected
+                        ? 0.14
+                        : 0.07,
+                  ),
+                  borderRadius:
+                  BorderRadius.circular(
+                    11,
+                  ),
+                ),
+                child: Icon(
+                  option['icon']
+                  as IconData,
+                  size: 17,
+                  color: color,
+                ),
+              ),
+
+              const SizedBox(height: 8),
+
+              Text(
+                option['label']
+                as String,
+                style:
+                TextStyle(
+                  fontSize: 10,
+                  color: color,
+                  fontWeight:
+                  FontWeight.w700,
+                ),
+              ),
+
+              const SizedBox(height: 3),
+
+              Text(
+                option['description']
+                as String,
+                textAlign:
+                TextAlign.center,
+                maxLines: 2,
+                overflow:
+                TextOverflow.ellipsis,
+                style:
+                greyTextStyle.copyWith(
+                  fontSize: 7.2,
+                  height: 1.25,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // PHOTO
+  // ============================================================
+
+  Widget _buildPhotoSection() {
+    return Column(
+      crossAxisAlignment:
+      CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment:
+                CrossAxisAlignment.start,
+                children: [
                   Text(
-                    option['label'],
-                    style: TextStyle(
-                      color: isSelected ? Colors.white : option['color'],
-                      fontWeight: FontWeight.w500,
-                      fontSize: 12,
+                    'Foto Keluhan',
+                    style:
+                    primaryTextStyle.copyWith(
+                      fontSize: 13.5,
+                      fontWeight: bold,
+                    ),
+                  ),
+
+                  const SizedBox(height: 3),
+
+                  Text(
+                    'Opsional • Maksimal 5 foto',
+                    style:
+                    greyTextStyle.copyWith(
+                      fontSize: 9,
                     ),
                   ),
                 ],
               ),
-              selected: isSelected,
-              onSelected: (_) => setState(() => _priority = option['value']),
-              selectedColor: option['color'],
-              backgroundColor: (option['color'] as Color).withValues(alpha:0.1),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-                side: BorderSide(
-                  color: isSelected
-                      ? option['color'] as Color
-                      : (option['color'] as Color).withValues(alpha:0.3),
-                  width: 1.5,
+            ),
+
+            if (_fotoKeluhan.isNotEmpty)
+              Text(
+                '${_fotoKeluhan.length}/5',
+                style:
+                TextStyle(
+                  color:
+                  kPrimaryColor,
+                  fontSize: 9,
+                  fontWeight:
+                  FontWeight.w700,
                 ),
               ),
-            );
-          }).toList(),
+          ],
         ),
-        const SizedBox(height: 16),
 
-        // Foto
-        Text('Foto Keluhan', style: primaryTextStyle.copyWith(fontWeight: medium)),
-        const SizedBox(height: 8),
-        Text(
-          'Unggah foto untuk membantu teknisi memahami masalah (maks. 5 foto)',
-          style: greyTextStyle.copyWith(fontSize: 12),
-        ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
 
-        // Tombol tambah foto dengan opsi kamera/galeri
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed: _fotoKeluhan.length >= 5 ? null : _showImageSourceDialog,
-            icon: Icon(
-              Icons.add_a_photo,
-              color: _fotoKeluhan.length >= 5 ? kGreyColor : kPrimaryColor,
-              size: 20,
+        if (_fotoKeluhan.isEmpty)
+          _buildEmptyPhoto()
+        else
+          _buildPhotoGrid(),
+
+        if (_fotoKeluhan.isNotEmpty &&
+            _fotoKeluhan.length < 5) ...[
+          const SizedBox(height: 10),
+
+          OutlinedButton.icon(
+            onPressed:
+            _showImageSourceDialog,
+            icon: const Icon(
+              Iconsax.add,
+              size: 16,
             ),
-            label: Text(
-              _fotoKeluhan.isEmpty ?
-              'Tambah Foto' :
-              'Tambah Foto Lain (${_fotoKeluhan.length}/5)',
-              style: primaryTextStyle.copyWith(
-                color: _fotoKeluhan.length >= 5 ? kGreyColor : kPrimaryColor,
-                fontWeight: FontWeight.w600,
-              ),
+            label:
+            const Text(
+              'Tambah Foto',
             ),
-            style: OutlinedButton.styleFrom(
-              minimumSize: const Size(double.infinity, 52),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(defaultRadius),
+            style:
+            OutlinedButton.styleFrom(
+              foregroundColor:
+              kPrimaryColor,
+              minimumSize:
+              const Size.fromHeight(
+                44,
               ),
               side: BorderSide(
-                color: _fotoKeluhan.length >= 5
-                    ? kGreyColor.withValues(alpha:0.3)
-                    : kPrimaryColor,
-                width: 1.5,
+                color: kPrimaryColor.withValues(
+                  alpha: 0.30,
+                ),
               ),
-              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
+              shape:
+              RoundedRectangleBorder(
+                borderRadius:
+                BorderRadius.circular(
+                  14,
+                ),
+              ),
             ),
           ),
-        ),
-        _buildFotoGrid(),
+        ],
       ],
     );
   }
 
-  Widget _buildSubmitButton(ClientServisProvider provider) {
-    // Jangan tampilkan tombol jika date formatting belum diinisialisasi
-    if (!_isDateFormattingInitialized) {
-      return const SizedBox();
-    }
-
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(defaultRadius),
-        boxShadow: [
-          BoxShadow(
-            color: kPrimaryColor.withValues(alpha:0.3),
-            blurRadius: 15,
-            offset: const Offset(0, 4),
+  Widget _buildEmptyPhoto() {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap:
+        _showImageSourceDialog,
+        borderRadius:
+        BorderRadius.circular(
+          17,
+        ),
+        child: Ink(
+          width:
+          double.infinity,
+          padding:
+          const EdgeInsets.all(
+            16,
           ),
-        ],
-      ),
-      child: SizedBox(
-        width: double.infinity,
-        child: ElevatedButton(
-          onPressed: provider.submittingPerbaikan ? null : _submitPerbaikan,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: kPrimaryColor,
-            foregroundColor: Colors.white,
-            minimumSize: const Size(double.infinity, 56),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(defaultRadius),
+          decoration:
+          BoxDecoration(
+            color:
+            kPrimaryColor.withValues(
+              alpha: 0.035,
             ),
-            elevation: 0,
+            borderRadius:
+            BorderRadius.circular(
+              17,
+            ),
+            border:
+            Border.all(
+              color: kPrimaryColor.withValues(
+                alpha: 0.15,
+              ),
+              style:
+              BorderStyle.solid,
+            ),
           ),
-          child: provider.submittingPerbaikan
-              ? SizedBox(
-            height: 20,
-            width: 20,
-            child: CircularProgressIndicator(
-              strokeWidth: 2.5,
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-            ),
-          )
-              : Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+          child: Row(
             children: [
-              Icon(Icons.send_rounded, size: 20),
-              const SizedBox(width: 12),
-              Text(
-                'Ajukan Perbaikan',
-                style: whiteTextStyle.copyWith(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
+              Container(
+                width: 42,
+                height: 42,
+                decoration:
+                BoxDecoration(
+                  color:
+                  kPrimaryColor.withValues(
+                    alpha: 0.08,
+                  ),
+                  borderRadius:
+                  BorderRadius.circular(
+                    13,
+                  ),
                 ),
+                child: Icon(
+                  Iconsax.camera,
+                  color:
+                  kPrimaryColor,
+                  size: 20,
+                ),
+              ),
+
+              const SizedBox(width: 11),
+
+              Expanded(
+                child: Column(
+                  crossAxisAlignment:
+                  CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Tambahkan Foto',
+                      style:
+                      primaryTextStyle.copyWith(
+                        fontSize: 11.5,
+                        fontWeight: bold,
+                      ),
+                    ),
+
+                    const SizedBox(height: 3),
+
+                    Text(
+                      'Foto AC atau bagian yang bermasalah',
+                      style:
+                      greyTextStyle.copyWith(
+                        fontSize: 8.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              Icon(
+                Icons
+                    .arrow_forward_ios_rounded,
+                size: 13,
+                color:
+                Colors.grey.shade400,
               ),
             ],
           ),
@@ -944,118 +1675,1013 @@ class _KeluhanCreatePageState extends State<KeluhanCreatePage> {
     );
   }
 
-  Widget _buildProcessInfo() {
-    // Jangan tampilkan jika date formatting belum diinisialisasi
-    if (!_isDateFormattingInitialized) {
-      return const SizedBox();
-    }
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: kBoxMenuLightBlueColor.withValues(alpha:0.05),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: kBoxMenuLightBlueColor.withValues(alpha:0.2)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+  Widget _buildPhotoGrid() {
+    return SizedBox(
+      height: 86,
+      child: ListView.separated(
+        scrollDirection:
+        Axis.horizontal,
+        physics:
+        const BouncingScrollPhysics(),
+        itemCount:
+        _fotoKeluhan.length,
+        separatorBuilder:
+            (_, __) =>
+        const SizedBox(
+          width: 8,
+        ),
+        itemBuilder:
+            (context, index) {
+          return Stack(
+            clipBehavior:
+            Clip.none,
             children: [
-              Icon(Icons.info_rounded, color: kBoxMenuLightBlueColor, size: 22),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  'Proses Setelah Pengajuan',
-                  style: primaryTextStyle.copyWith(
-                    fontSize: 16,
-                    fontWeight: bold,
+              ClipRRect(
+                borderRadius:
+                BorderRadius.circular(
+                  14,
+                ),
+                child:
+                Image.file(
+                  _fotoKeluhan[index],
+                  width: 86,
+                  height: 86,
+                  fit:
+                  BoxFit.cover,
+                ),
+              ),
+
+              Positioned(
+                top: 5,
+                right: 5,
+                child:
+                GestureDetector(
+                  onTap: () {
+                    _removeImage(
+                      index,
+                    );
+                  },
+                  child:
+                  Container(
+                    width: 23,
+                    height: 23,
+                    decoration:
+                    BoxDecoration(
+                      color:
+                      Colors.black.withValues(
+                        alpha: 0.60,
+                      ),
+                      shape:
+                      BoxShape.circle,
+                    ),
+                    child:
+                    const Icon(
+                      Icons.close,
+                      size: 13,
+                      color:
+                      Colors.white,
+                    ),
                   ),
                 ),
               ),
             ],
-          ),
-          const SizedBox(height: 16),
-          _buildProcessStep(
-            icon: Icons.send,
-            title: 'Pengajuan Dikirim',
-            description: 'Permintaan perbaikan Anda akan masuk ke sistem',
-          ),
-          _buildProcessStep(
-            icon: Icons.calendar_today,
-            title: 'Konfirmasi Jadwal',
-            description: 'Teknisi akan menghubungi Anda untuk konfirmasi waktu kunjungan',
-          ),
-          _buildProcessStep(
-            icon: Icons.admin_panel_settings,
-            title: 'Review oleh Admin',
-            description: 'Admin akan meninjau dan menugaskan teknisi',
-          ),
-          _buildProcessStep(
-            icon: Icons.engineering,
-            title: 'Kunjungan Teknisi',
-            description: 'Teknisi akan datang ke lokasi sesuai jadwal',
-          ),
-          _buildProcessStep(
-            icon: Icons.build,
-            title: 'Proses Perbaikan',
-            description: 'Teknisi akan melakukan diagnosis dan perbaikan',
-          ),
-          _buildProcessStep(
-            icon: Icons.check_circle,
-            title: 'Selesai & Konfirmasi',
-            description: 'Setelah selesai, teknisi akan meminta konfirmasi Anda',
-          ),
-        ],
+          );
+        },
       ),
     );
   }
 
-  Widget _buildProcessStep({
-    required IconData icon,
-    required String title,
-    required String description,
-  }) {
+  // ============================================================
+  // STEP 2 - SCHEDULE
+  // ============================================================
+
+  Widget _buildStepSchedule() {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      padding: const EdgeInsets.fromLTRB(
+        20,
+        6,
+        20,
+        0,
+      ),
+      child: Column(
+        crossAxisAlignment:
+        CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: kBoxMenuLightBlueColor,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              icon,
-              size: 18,
-              color: Colors.white,
-            ),
+          _buildStepTitle(
+            'Pilih Jadwal',
+            'Tentukan tanggal yang nyaman untuk kunjungan teknisi',
           ),
-          const SizedBox(width: 12),
+
+          const SizedBox(height: 14),
+
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: ListView(
+              physics:
+              const BouncingScrollPhysics(),
               children: [
-                Text(
-                  title,
-                  style: primaryTextStyle.copyWith(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  description,
-                  style: greyTextStyle.copyWith(fontSize: 12),
-                ),
+                _buildCalendar(),
+
+                const SizedBox(height: 14),
+
+                if (_selectedDate != null)
+                  _buildSelectedDateCard(),
+
+                const SizedBox(height: 14),
+
+                _buildScheduleInformation(),
               ],
             ),
           ),
         ],
       ),
     );
+  }
+
+  Widget _buildCalendar() {
+    final now =
+    DateTime.now();
+
+    final firstDate =
+    DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).add(
+      const Duration(
+        days: 1,
+      ),
+    );
+
+    return Container(
+      padding:
+      const EdgeInsets.all(
+        10,
+      ),
+      decoration:
+      BoxDecoration(
+        color:
+        Colors.white,
+        borderRadius:
+        BorderRadius.circular(
+          20,
+        ),
+        border:
+        Border.all(
+          color: Colors.grey.withValues(
+            alpha: 0.09,
+          ),
+        ),
+      ),
+      child:
+      CalendarDatePicker(
+        initialDate:
+        _selectedDate ??
+            firstDate,
+        firstDate:
+        firstDate,
+        lastDate:
+        firstDate.add(
+          const Duration(
+            days: 30,
+          ),
+        ),
+        onDateChanged:
+            (date) {
+          setState(() {
+            _selectedDate =
+                date;
+          });
+        },
+      ),
+    );
+  }
+
+  Widget _buildSelectedDateCard() {
+    return Container(
+      padding:
+      const EdgeInsets.all(
+        14,
+      ),
+      decoration:
+      BoxDecoration(
+        gradient:
+        LinearGradient(
+          begin:
+          Alignment.topLeft,
+          end:
+          Alignment.bottomRight,
+          colors: [
+            kPrimaryColor.withValues(
+              alpha: 0.09,
+            ),
+            kPrimaryColor.withValues(
+              alpha: 0.035,
+            ),
+          ],
+        ),
+        borderRadius:
+        BorderRadius.circular(
+          17,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 43,
+            height: 43,
+            decoration:
+            BoxDecoration(
+              color:
+              kPrimaryColor,
+              borderRadius:
+              BorderRadius.circular(
+                13,
+              ),
+            ),
+            child:
+            const Icon(
+              Iconsax.calendar_tick,
+              color:
+              Colors.white,
+              size: 20,
+            ),
+          ),
+
+          const SizedBox(width: 11),
+
+          Expanded(
+            child: Column(
+              crossAxisAlignment:
+              CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Tanggal Kunjungan',
+                  style:
+                  greyTextStyle.copyWith(
+                    fontSize: 8.5,
+                  ),
+                ),
+
+                const SizedBox(height: 3),
+
+                Text(
+                  _formatLongDate(
+                    _selectedDate!,
+                  ),
+                  style:
+                  primaryTextStyle.copyWith(
+                    fontSize: 11.5,
+                    fontWeight: bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          Icon(
+            Iconsax.tick_circle,
+            color:
+            kPrimaryColor,
+            size: 20,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildScheduleInformation() {
+    return Container(
+      padding:
+      const EdgeInsets.all(
+        14,
+      ),
+      decoration:
+      BoxDecoration(
+        color:
+        Colors.orange.withValues(
+          alpha: 0.055,
+        ),
+        borderRadius:
+        BorderRadius.circular(
+          16,
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment:
+        CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Iconsax.info_circle,
+            color:
+            Colors.orange,
+            size: 18,
+          ),
+
+          const SizedBox(width: 9),
+
+          Expanded(
+            child: Text(
+              'Tanggal yang dipilih merupakan preferensi kunjungan. Jadwal dapat dikonfirmasi kembali oleh admin atau teknisi.',
+              style:
+              primaryTextStyle.copyWith(
+                fontSize: 9.5,
+                height: 1.4,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // STEP 3 - CONFIRM
+  // ============================================================
+
+  Widget _buildStepConfirm() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        20,
+        6,
+        20,
+        0,
+      ),
+      child: Column(
+        crossAxisAlignment:
+        CrossAxisAlignment.start,
+        children: [
+          _buildStepTitle(
+            'Konfirmasi Perbaikan',
+            'Periksa kembali data sebelum mengirim permintaan',
+          ),
+
+          const SizedBox(height: 14),
+
+          Expanded(
+            child: ListView(
+              physics:
+              const BouncingScrollPhysics(),
+              children: [
+                _buildConfirmationCard(),
+
+                const SizedBox(height: 14),
+
+                _buildProcessPreview(),
+
+                const SizedBox(height: 16),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildConfirmationCard() {
+    final room =
+    (widget.ac.room?.name ?? '')
+        .trim();
+
+    final roomName =
+    room.isNotEmpty
+        ? room
+        : 'Unit AC';
+
+    return Container(
+      padding:
+      const EdgeInsets.all(
+        16,
+      ),
+      decoration:
+      BoxDecoration(
+        color:
+        Colors.white,
+        borderRadius:
+        BorderRadius.circular(
+          20,
+        ),
+        border:
+        Border.all(
+          color: Colors.grey.withValues(
+            alpha: 0.09,
+          ),
+        ),
+      ),
+      child: Column(
+        children: [
+          _buildConfirmationRow(
+            icon:
+            Iconsax.location,
+            label:
+            'Lokasi',
+            value:
+            widget.lokasi.nama,
+          ),
+
+          const Divider(
+            height: 24,
+          ),
+
+          _buildConfirmationRow(
+            icon:
+            Icons.ac_unit_rounded,
+            label:
+            roomName,
+            value:
+            widget.ac.nama,
+          ),
+
+          const Divider(
+            height: 24,
+          ),
+
+          _buildConfirmationRow(
+            icon:
+            Iconsax.message_question,
+            label:
+            'Keluhan',
+            value:
+            _keluhanController.text
+                .trim(),
+            maxLines: 4,
+          ),
+
+          const Divider(
+            height: 24,
+          ),
+
+          _buildConfirmationRow(
+            icon:
+            Iconsax.warning_2,
+            label:
+            'Prioritas',
+            value:
+            _priorityLabel(),
+            valueColor:
+            _priorityColor(),
+          ),
+
+          const Divider(
+            height: 24,
+          ),
+
+          _buildConfirmationRow(
+            icon:
+            Iconsax.calendar_1,
+            label:
+            'Tanggal',
+            value:
+            _selectedDate == null
+                ? '-'
+                : _formatLongDate(
+              _selectedDate!,
+            ),
+          ),
+
+          if (_fotoKeluhan.isNotEmpty) ...[
+            const Divider(
+              height: 24,
+            ),
+
+            _buildConfirmationPhotos(),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildConfirmationRow({
+    required IconData icon,
+    required String label,
+    required String value,
+    Color? valueColor,
+    int maxLines = 2,
+  }) {
+    return Row(
+      crossAxisAlignment:
+      CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 36,
+          height: 36,
+          decoration:
+          BoxDecoration(
+            color:
+            kPrimaryColor.withValues(
+              alpha: 0.08,
+            ),
+            borderRadius:
+            BorderRadius.circular(
+              11,
+            ),
+          ),
+          child: Icon(
+            icon,
+            size: 17,
+            color:
+            kPrimaryColor,
+          ),
+        ),
+
+        const SizedBox(width: 10),
+
+        Expanded(
+          child: Column(
+            crossAxisAlignment:
+            CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style:
+                greyTextStyle.copyWith(
+                  fontSize: 8.5,
+                ),
+              ),
+
+              const SizedBox(height: 3),
+
+              Text(
+                value,
+                maxLines:
+                maxLines,
+                overflow:
+                TextOverflow.ellipsis,
+                style:
+                primaryTextStyle.copyWith(
+                  fontSize: 10.8,
+                  height: 1.35,
+                  fontWeight: bold,
+                  color:
+                  valueColor,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildConfirmationPhotos() {
+    return Row(
+      crossAxisAlignment:
+      CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 36,
+          height: 36,
+          decoration:
+          BoxDecoration(
+            color:
+            kPrimaryColor.withValues(
+              alpha: 0.08,
+            ),
+            borderRadius:
+            BorderRadius.circular(
+              11,
+            ),
+          ),
+          child: Icon(
+            Iconsax.gallery,
+            size: 17,
+            color:
+            kPrimaryColor,
+          ),
+        ),
+
+        const SizedBox(width: 10),
+
+        Expanded(
+          child: Column(
+            crossAxisAlignment:
+            CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Foto Keluhan',
+                style:
+                greyTextStyle.copyWith(
+                  fontSize: 8.5,
+                ),
+              ),
+
+              const SizedBox(height: 7),
+
+              SizedBox(
+                height: 54,
+                child:
+                ListView.separated(
+                  scrollDirection:
+                  Axis.horizontal,
+                  itemCount:
+                  _fotoKeluhan.length,
+                  separatorBuilder:
+                      (_, __) =>
+                  const SizedBox(
+                    width: 6,
+                  ),
+                  itemBuilder:
+                      (context, index) {
+                    return ClipRRect(
+                      borderRadius:
+                      BorderRadius.circular(
+                        9,
+                      ),
+                      child:
+                      Image.file(
+                        _fotoKeluhan[index],
+                        width: 54,
+                        height: 54,
+                        fit:
+                        BoxFit.cover,
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ============================================================
+  // PROCESS PREVIEW
+  // ============================================================
+
+  Widget _buildProcessPreview() {
+    return Container(
+      padding:
+      const EdgeInsets.all(
+        14,
+      ),
+      decoration:
+      BoxDecoration(
+        color:
+        kPrimaryColor.withValues(
+          alpha: 0.045,
+        ),
+        borderRadius:
+        BorderRadius.circular(
+          17,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment:
+        CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Iconsax
+                    .info_circle,
+                color:
+                kPrimaryColor,
+                size: 17,
+              ),
+
+              const SizedBox(width: 8),
+
+              Text(
+                'Setelah diajukan',
+                style:
+                primaryTextStyle.copyWith(
+                  fontSize: 11,
+                  fontWeight: bold,
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 12),
+
+          _buildProcessMiniStep(
+            number: '1',
+            text:
+            'Permintaan diterima admin',
+          ),
+
+          _buildProcessMiniStep(
+            number: '2',
+            text:
+            'Teknisi ditugaskan',
+          ),
+
+          _buildProcessMiniStep(
+            number: '3',
+            text:
+            'Teknisi datang dan melakukan pemeriksaan',
+            last: true,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProcessMiniStep({
+    required String number,
+    required String text,
+    bool last = false,
+  }) {
+    return Row(
+      crossAxisAlignment:
+      CrossAxisAlignment.start,
+      children: [
+        Column(
+          children: [
+            Container(
+              width: 25,
+              height: 25,
+              decoration:
+              BoxDecoration(
+                color:
+                kPrimaryColor,
+                shape:
+                BoxShape.circle,
+              ),
+              alignment:
+              Alignment.center,
+              child: Text(
+                number,
+                style:
+                const TextStyle(
+                  color:
+                  Colors.white,
+                  fontSize: 8.5,
+                  fontWeight:
+                  FontWeight.w700,
+                ),
+              ),
+            ),
+
+            if (!last)
+              Container(
+                width: 1.5,
+                height: 22,
+                color:
+                kPrimaryColor.withValues(
+                  alpha: 0.18,
+                ),
+              ),
+          ],
+        ),
+
+        const SizedBox(width: 9),
+
+        Expanded(
+          child: Padding(
+            padding:
+            const EdgeInsets.only(
+              top: 5,
+            ),
+            child: Text(
+              text,
+              style:
+              greyTextStyle.copyWith(
+                fontSize: 9.5,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ============================================================
+  // BOTTOM NAV
+  // ============================================================
+
+  Widget _buildBottomNavigation(
+      ClientServisProvider provider,
+      ) {
+    return Container(
+      padding:
+      EdgeInsets.fromLTRB(
+        20,
+        11,
+        20,
+        MediaQuery.of(context)
+            .padding
+            .bottom +
+            11,
+      ),
+      decoration:
+      BoxDecoration(
+        color:
+        Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color:
+            Colors.black.withValues(
+              alpha: 0.055,
+            ),
+            blurRadius: 18,
+            offset:
+            const Offset(
+              0,
+              -5,
+            ),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          if (_currentStep > 0)
+            Expanded(
+              child:
+              OutlinedButton(
+                onPressed:
+                _previousStep,
+                style:
+                OutlinedButton.styleFrom(
+                  minimumSize:
+                  const Size.fromHeight(
+                    50,
+                  ),
+                  foregroundColor:
+                  kPrimaryColor,
+                  side:
+                  BorderSide(
+                    color:
+                    kPrimaryColor,
+                  ),
+                  shape:
+                  RoundedRectangleBorder(
+                    borderRadius:
+                    BorderRadius.circular(
+                      15,
+                    ),
+                  ),
+                ),
+                child:
+                const Text(
+                  'Kembali',
+                  style:
+                  TextStyle(
+                    fontWeight:
+                    FontWeight.w700,
+                  ),
+                ),
+              ),
+            ),
+
+          if (_currentStep > 0)
+            const SizedBox(width: 10),
+
+          Expanded(
+            flex:
+            _currentStep > 0
+                ? 2
+                : 1,
+            child:
+            ElevatedButton(
+              onPressed:
+              provider.submittingPerbaikan
+                  ? null
+                  : _currentStep ==
+                  2
+                  ? _submitPerbaikan
+                  : _nextStep,
+              style:
+              ElevatedButton.styleFrom(
+                minimumSize:
+                const Size.fromHeight(
+                  50,
+                ),
+                backgroundColor:
+                kPrimaryColor,
+                foregroundColor:
+                Colors.white,
+                elevation: 0,
+                shape:
+                RoundedRectangleBorder(
+                  borderRadius:
+                  BorderRadius.circular(
+                    15,
+                  ),
+                ),
+              ),
+              child:
+              provider.submittingPerbaikan
+                  ? const SizedBox(
+                width: 19,
+                height: 19,
+                child:
+                CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color:
+                  Colors.white,
+                ),
+              )
+                  : Row(
+                mainAxisAlignment:
+                MainAxisAlignment.center,
+                children: [
+                  Text(
+                    _currentStep ==
+                        2
+                        ? 'Ajukan Perbaikan'
+                        : 'Lanjut',
+                    style:
+                    const TextStyle(
+                      fontWeight:
+                      FontWeight.w700,
+                    ),
+                  ),
+
+                  if (_currentStep !=
+                      2) ...[
+                    const SizedBox(width: 7),
+
+                    const Icon(
+                      Icons.arrow_forward_rounded,
+                      size: 18,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // HELPERS
+  // ============================================================
+
+  Widget _buildStepTitle(
+      String title,
+      String subtitle,
+      ) {
+    return Column(
+      crossAxisAlignment:
+      CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style:
+          primaryTextStyle.copyWith(
+            fontSize: 16,
+            fontWeight: bold,
+          ),
+        ),
+
+        const SizedBox(height: 3),
+
+        Text(
+          subtitle,
+          style:
+          greyTextStyle.copyWith(
+            fontSize: 9.5,
+            height: 1.35,
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _priorityLabel() {
+    for (final option
+    in _priorityOptions) {
+      if (option['value'] ==
+          _priority) {
+        return option['label']
+        as String;
+      }
+    }
+
+    return 'Sedang';
+  }
+
+  Color _priorityColor() {
+    for (final option
+    in _priorityOptions) {
+      if (option['value'] ==
+          _priority) {
+        return option['color']
+        as Color;
+      }
+    }
+
+    return Colors.orange;
+  }
+
+  String _formatLongDate(
+      DateTime date,
+      ) {
+    if (_isDateFormattingInitialized) {
+      try {
+        return DateFormat(
+          'EEEE, d MMMM yyyy',
+          'id_ID',
+        ).format(date);
+      } catch (_) {}
+    }
+
+    return DateFormat(
+      'd MMM yyyy',
+    ).format(date);
   }
 }

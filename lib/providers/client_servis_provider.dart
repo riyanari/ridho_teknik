@@ -34,9 +34,46 @@ class ClientServisProvider extends ChangeNotifier {
   bool get hasData => _servisList.isNotEmpty;
   bool get hasError => _error != null && _error!.isNotEmpty;
 
+  List<ServisModel> _allServisList = [];
+  bool _loadingAll = false;
+  String? _allError;
+
+  List<ServisModel> get allServisList => _allServisList;
+  bool get loadingAll => _loadingAll;
+  String? get allError => _allError;
+
   void _setLoading(bool value) {
     _loading = value;
     notifyListeners();
+  }
+
+  Future<void> fetchAllServis() async {
+    _allError = null;
+
+    _loadingAll = true;
+    notifyListeners();
+
+    try {
+      final result = await service.getServis();
+
+      _allServisList = result;
+    } catch (e) {
+      _allError = e
+          .toString()
+          .replaceFirst(
+        'Exception: ',
+        '',
+      );
+
+      if (kDebugMode) {
+        debugPrint(
+          '❌ fetchAllServis error: $e',
+        );
+      }
+    } finally {
+      _loadingAll = false;
+      notifyListeners();
+    }
   }
 
   Future<void> fetchServis({
@@ -141,6 +178,67 @@ class ClientServisProvider extends ChangeNotifier {
       _submittingPerbaikan = false;
       notifyListeners();
     }
+  }
+
+  ServisStatus effectiveStatus(
+      ServisModel servis,
+      ) {
+    final items = servis.itemsData;
+
+    if (items.isEmpty) {
+      return servis.status;
+    }
+
+    final statuses = items
+        .map(
+          (item) => (item['status'] ?? '')
+          .toString()
+          .toLowerCase()
+          .trim(),
+    )
+        .where(
+          (status) => status.isNotEmpty,
+    )
+        .toList();
+
+    if (statuses.isEmpty) {
+      return servis.status;
+    }
+
+    if (statuses.every(
+          (status) => status == 'selesai',
+    )) {
+      return ServisStatus.selesai;
+    }
+
+    if (statuses.any(
+          (status) => status == 'dikerjakan',
+    )) {
+      return ServisStatus.dikerjakan;
+    }
+
+    if (statuses.any(
+          (status) => status == 'ditugaskan',
+    )) {
+      return ServisStatus.ditugaskan;
+    }
+
+    if (statuses.every(
+          (status) => status == 'batal',
+    )) {
+      return ServisStatus.batal;
+    }
+
+    return servis.status;
+  }
+
+  List<ServisModel> get allActiveServis {
+    return _allServisList.where((servis) {
+      final status = effectiveStatus(servis);
+
+      return status != ServisStatus.selesai &&
+          status != ServisStatus.batal;
+    }).toList();
   }
 
   int _parseToInt(dynamic value) {
