@@ -7,9 +7,8 @@ PODS:
     - Flutter
   - image_picker_ios (0.0.1):
     - Flutter
-  - path_provider_foundation (0.0.1):
+  - printing (1.0.0):
     - Flutter
-    - FlutterMacOS
   - rive_native (0.0.1):
     - Flutter
   - share_plus (0.0.1):
@@ -25,7 +24,7 @@ DEPENDENCIES:
   - flutter_secure_storage_darwin (from `.symlinks/plugins/flutter_secure_storage_darwin/darwin`)
   - image_gallery_saver_plus (from `.symlinks/plugins/image_gallery_saver_plus/ios`)
   - image_picker_ios (from `.symlinks/plugins/image_picker_ios/ios`)
-  - path_provider_foundation (from `.symlinks/plugins/path_provider_foundation/darwin`)
+  - printing (from `.symlinks/plugins/printing/ios`)
   - rive_native (from `.symlinks/plugins/rive_native/ios`)
   - share_plus (from `.symlinks/plugins/share_plus/ios`)
   - shared_preferences_foundation (from `.symlinks/plugins/shared_preferences_foundation/darwin`)
@@ -40,8 +39,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/image_gallery_saver_plus/ios"
   image_picker_ios:
     :path: ".symlinks/plugins/image_picker_ios/ios"
-  path_provider_foundation:
-    :path: ".symlinks/plugins/path_provider_foundation/darwin"
+  printing:
+    :path: ".symlinks/plugins/printing/ios"
   rive_native:
     :path: ".symlinks/plugins/rive_native/ios"
   share_plus:
@@ -56,11 +55,11 @@ SPEC CHECKSUMS:
   flutter_secure_storage_darwin: 557817588b80e60213cbecb573c45c76b788018d
   image_gallery_saver_plus: 782ade975fe6a4600b53e7c1983e3a2979d1e9e5
   image_picker_ios: 4f2f91b01abdb52842a8e277617df877e40f905b
-  path_provider_foundation: 2b6b4c569c0fb62ec74538f866245ac84301af46
-  rive_native: b9a36ed0644fc2ed1fd46f1d2b4e5501e5948235
+  printing: 233e1b73bd1f4a05615548e9b5a324c98588640b
+  rive_native: 6fd739ece3e1976374c6804badde07053aa05b36
   share_plus: 8b6f8b3447e494cca5317c8c3073de39b3600d1f
   shared_preferences_foundation: 5086985c1d43c5ba4d5e69a4e8083a389e2909e6
-  url_launcher_ios: 5334b05cef931de560670eeae103fd3e431ac3fe
+  url_launcher_ios: bb13df5870e8c4234ca12609d04010a21be43dfa
 
 PODFILE CHECKSUM: 3c63482e143d1b91d2d2560aee9fb04ecc74ac7e
 

@@ -16,34 +16,67 @@ class TeknisiDashboardPage extends StatefulWidget {
   const TeknisiDashboardPage({super.key});
 
   @override
-  State<TeknisiDashboardPage> createState() => _TeknisiDashboardPageState();
+  State<TeknisiDashboardPage> createState() =>
+      _TeknisiDashboardPageState();
 }
 
-class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
-  String _selectedStatus = 'Semua'; // Semua | ditugaskan | dikerjakan | selesai
-  String _selectedJenis = 'Semua'; // Semua | cuci | perbaikan | instalasi
+class _TeknisiDashboardPageState
+    extends State<TeknisiDashboardPage> {
+  String _selectedStatus = 'Semua';
+  String _selectedJenis = 'Semua';
   String _searchQuery = '';
 
-  final TextEditingController _searchController = TextEditingController();
+  final TextEditingController _searchController =
+  TextEditingController();
+
   Timer? _searchDebounce;
 
   final List<Map<String, dynamic>> _statusChips = [
-    {'value': 'Semua', 'display': 'Semua', 'color': kPrimaryColor},
-    {'value': 'ditugaskan', 'display': 'Ditugaskan', 'color': Colors.blue},
-    {'value': 'dikerjakan', 'display': 'Dikerjakan', 'color': Colors.purple},
-    {'value': 'selesai', 'display': 'Selesai', 'color': Colors.green},
+    {
+      'value': 'Semua',
+      'display': 'Semua',
+      'color': kPrimaryColor,
+    },
+    {
+      'value': 'ditugaskan',
+      'display': 'Ditugaskan',
+      'color': Colors.blue,
+    },
+    {
+      'value': 'dikerjakan',
+      'display': 'Dikerjakan',
+      'color': Colors.purple,
+    },
+    {
+      'value': 'selesai',
+      'display': 'Selesai',
+      'color': Colors.green,
+    },
   ];
 
   final List<Map<String, String>> _jenisList = const [
-    {'value': 'Semua', 'display': 'Semua Jenis'},
-    {'value': 'cuci', 'display': 'Cuci'},
-    {'value': 'perbaikan', 'display': 'Perbaikan'},
-    {'value': 'instalasi', 'display': 'Instalasi'},
+    {
+      'value': 'Semua',
+      'display': 'Semua Jenis',
+    },
+    {
+      'value': 'cuci',
+      'display': 'Cuci',
+    },
+    {
+      'value': 'perbaikan',
+      'display': 'Perbaikan',
+    },
+    {
+      'value': 'instalasi',
+      'display': 'Instalasi',
+    },
   ];
 
   @override
   void initState() {
     super.initState();
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<TeknisiProvider>().fetchTasks();
     });
@@ -56,80 +89,98 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
     super.dispose();
   }
 
-  // =========================
+  // ============================================================
   // FILTERING
-  // =========================
+  // ============================================================
 
-  // String _statusKey(ServisModel s) => s.statusKeyFromItems;
   String _statusKey(ServisModel s) {
     final items = s.itemsData;
 
-    // fallback kalau itemsData kosong
-    if (items.isEmpty) return s.status.name.toLowerCase();
+    if (items.isEmpty) {
+      return s.status.name.toLowerCase();
+    }
 
     final statuses = items
-        .map((it) => (it['status'] ?? '').toString().toLowerCase().trim())
+        .map(
+          (it) =>
+          (it['status'] ?? '')
+              .toString()
+              .toLowerCase()
+              .trim(),
+    )
         .where((x) => x.isNotEmpty)
         .toList();
 
-    if (statuses.isEmpty) return s.status.name.toLowerCase();
+    if (statuses.isEmpty) {
+      return s.status.name.toLowerCase();
+    }
 
-    final allSelesai = statuses.every((x) => x == 'selesai');
-    if (allSelesai) return 'selesai';
+    final allSelesai =
+    statuses.every((x) => x == 'selesai');
 
-    final anyDitugaskan = statuses.any((x) => x == 'ditugaskan');
-    if (anyDitugaskan) return 'ditugaskan';
+    if (allSelesai) {
+      return 'selesai';
+    }
 
-    // di titik ini: tidak ada ditugaskan,
-    // berarti semua item minimal sudah mulai (dikerjakan/selesai)
+    final anyDitugaskan =
+    statuses.any((x) => x == 'ditugaskan');
+
+    if (anyDitugaskan) {
+      return 'ditugaskan';
+    }
+
     return 'dikerjakan';
   }
-
-  // String _jenisKey(ServisModel s) {
-  //   switch (s.jenis) {
-  //     case JenisPenanganan.cuci:
-  //       return 'cuci';
-  //     case JenisPenanganan.perbaikan:
-  //       return 'perbaikan';
-  //     case JenisPenanganan.instalasi:
-  //       return 'instalasi';
-  //   }
-  // }
 
   String _jenisKey(ServisModel s) {
     return s.jenis.name;
   }
 
   bool _matchStatus(ServisModel s) {
-    if (_selectedStatus == 'Semua') return true;
+    if (_selectedStatus == 'Semua') {
+      return true;
+    }
+
     return _statusKey(s) == _selectedStatus;
   }
 
   bool _matchJenis(ServisModel s) {
-    if (_selectedJenis == 'Semua') return true;
+    if (_selectedJenis == 'Semua') {
+      return true;
+    }
+
     return _jenisKey(s) == _selectedJenis;
   }
 
   bool _matchSearch(ServisModel s) {
-    if (_searchQuery.trim().isEmpty) return true;
+    if (_searchQuery.trim().isEmpty) {
+      return true;
+    }
+
     final q = _searchQuery.toLowerCase();
 
     final id = s.id.toString();
 
-    final lokasiNama = s.lokasiNama.toLowerCase();
+    final lokasiNama =
+    s.lokasiNama.toLowerCase();
 
-    // ambil alamat dari lokasiData
-    final lokasiAlamat = (s.lokasiData?['address'] ?? '')
+    final lokasiAlamat =
+    (s.lokasiData?['address'] ?? '')
         .toString()
         .toLowerCase();
 
-    // ambil AC dari itemsData
     final acText = s.itemsData
-        .map((it) => (it['ac_unit']?['name'] ?? '').toString().toLowerCase())
+        .map(
+          (it) =>
+          (it['ac_unit']?['name'] ?? '')
+              .toString()
+              .toLowerCase(),
+    )
         .join(' ');
 
-    // tindakan pakai tindakanSummary
-    final tindakanText = (s.tindakanSummary ?? '').toLowerCase();
+    final tindakanText =
+    (s.tindakanSummary ?? '')
+        .toLowerCase();
 
     return id.contains(q) ||
         lokasiNama.contains(q) ||
@@ -138,7 +189,9 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
         tindakanText.contains(q);
   }
 
-  List<ServisModel> _filtered(List<ServisModel> all) {
+  List<ServisModel> _filtered(
+      List<ServisModel> all,
+      ) {
     final rows = all
         .where(_matchStatus)
         .where(_matchJenis)
@@ -146,9 +199,16 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
         .toList();
 
     rows.sort((a, b) {
-      DateTime aKey = a.tanggalSelesai ?? a.tanggalDitugaskan ?? DateTime(2000);
+      final aKey =
+          a.tanggalSelesai ??
+              a.tanggalDitugaskan ??
+              DateTime(2000);
 
-      DateTime bKey = b.tanggalSelesai ?? b.tanggalDitugaskan ?? DateTime(2000);
+      final bKey =
+          b.tanggalSelesai ??
+              b.tanggalDitugaskan ??
+              DateTime(2000);
+
       return bKey.compareTo(aKey);
     });
 
@@ -156,21 +216,26 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
   }
 
   Future<void> _refresh() async {
-    await context.read<TeknisiProvider>().fetchTasks();
+    await context
+        .read<TeknisiProvider>()
+        .fetchTasks();
   }
 
-  // =========================
+  // ============================================================
   // UI HELPERS
-  // =========================
+  // ============================================================
 
   Color _statusColor(String status) {
     switch (status) {
       case 'ditugaskan':
         return Colors.blue;
+
       case 'dikerjakan':
         return Colors.purple;
+
       case 'selesai':
         return Colors.green;
+
       default:
         return Colors.grey;
     }
@@ -180,10 +245,13 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
     switch (status) {
       case 'ditugaskan':
         return 'Ditugaskan';
+
       case 'dikerjakan':
         return 'Dikerjakan';
+
       case 'selesai':
         return 'Selesai';
+
       default:
         return status;
     }
@@ -193,21 +261,32 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
     switch (status) {
       case 'ditugaskan':
         return Iconsax.task_square;
+
       case 'dikerjakan':
         return Iconsax.timer;
+
       case 'selesai':
         return Iconsax.tick_circle;
+
       default:
         return Iconsax.activity;
     }
   }
 
   String _fmtDateTime(DateTime? dt) {
-    if (dt == null) return '-';
-    return DateFormat('dd MMM y • HH:mm', 'id_ID').format(dt);
+    if (dt == null) {
+      return '-';
+    }
+
+    return DateFormat(
+      'dd MMM y • HH:mm',
+      'id_ID',
+    ).format(dt);
   }
 
-  Future<void> _confirmLogout(BuildContext context) async {
+  Future<void> _confirmLogout(
+      BuildContext context,
+      ) async {
     AwesomeDialog(
       context: context,
       dialogType: DialogType.warning,
@@ -218,74 +297,26 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
       btnOkText: 'Keluar',
       btnCancelOnPress: () {},
       btnOkOnPress: () async {
-        await context.read<AuthProvider>().logout();
-        if (!context.mounted) return;
-        Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+        await context
+            .read<AuthProvider>()
+            .logout();
+
+        if (!context.mounted) {
+          return;
+        }
+
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          '/login',
+              (route) => false,
+        );
       },
     ).show();
   }
 
-  // =========================
-  // WIDGETS
-  // =========================
-
-  Widget _buildJenisDropdown() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Icon(Iconsax.category, color: kPrimaryColor, size: 20),
-            const SizedBox(width: 8),
-            Expanded(
-              child: DropdownButton<String>(
-                value: _selectedJenis,
-                isExpanded: true,
-                underline: const SizedBox(),
-                icon: Icon(Iconsax.arrow_down_1, color: kPrimaryColor),
-                items: _jenisList.map((e) {
-                  return DropdownMenuItem<String>(
-                    value: e['value']!,
-                    child: Text(
-                      e['display']!,
-                      style: primaryTextStyle.copyWith(fontSize: 14),
-                    ),
-                  );
-                }).toList(),
-                onChanged: (v) {
-                  if (v == null) return;
-                  setState(() => _selectedJenis = v);
-                },
-              ),
-            ),
-            if (_selectedJenis != 'Semua')
-              IconButton(
-                onPressed: () => setState(() => _selectedJenis = 'Semua'),
-                icon: const Icon(
-                  Iconsax.close_circle,
-                  color: Colors.red,
-                  size: 18,
-                ),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
+  // ============================================================
+  // HEADER
+  // ============================================================
 
   Widget _buildHeader({
     required BuildContext context,
@@ -297,12 +328,20 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
   }) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(
+        20,
+        18,
+        20,
+        20,
+      ),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [kPrimaryColor, const Color(0xFF5D6BC0)],
+          colors: [
+            kPrimaryColor,
+            const Color(0xFF5D6BC0),
+          ],
         ),
         borderRadius: const BorderRadius.only(
           bottomLeft: Radius.circular(30),
@@ -310,24 +349,29 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
         ),
         boxShadow: [
           BoxShadow(
-            color: kPrimaryColor.withValues(alpha: 0.25),
+            color: kPrimaryColor.withValues(
+              alpha: 0.25,
+            ),
             blurRadius: 18,
             offset: const Offset(0, 10),
           ),
         ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment:
+        CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               Expanded(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment:
+                  CrossAxisAlignment.start,
                   children: [
                     Text(
                       nama,
-                      style: whiteTextStyle.copyWith(
+                      style:
+                      whiteTextStyle.copyWith(
                         fontSize: 20,
                         fontWeight: bold,
                       ),
@@ -335,55 +379,84 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
                     const SizedBox(height: 4),
                     Text(
                       subtitle,
-                      style: whiteTextStyle.copyWith(
-                        fontSize: 13,
-                        color: Colors.white.withValues(alpha: 0.9),
+                      style:
+                      whiteTextStyle.copyWith(
+                        fontSize: 12,
+                        color: Colors.white
+                            .withValues(
+                          alpha: 0.85,
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
-              GestureDetector(
-                onTap: () => _confirmLogout(context),
-                child: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(
-                    Iconsax.logout_1,
-                    color: Colors.white,
-                    size: 20,
+
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () =>
+                      _confirmLogout(context),
+                  borderRadius:
+                  BorderRadius.circular(12),
+                  child: Container(
+                    padding:
+                    const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.white
+                          .withValues(
+                        alpha: 0.16,
+                      ),
+                      borderRadius:
+                      BorderRadius.circular(
+                        12,
+                      ),
+                    ),
+                    child: const Icon(
+                      Iconsax.logout_1,
+                      color: Colors.white,
+                      size: 20,
+                    ),
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 18),
+
+          const SizedBox(height: 16),
+
           Row(
             children: [
               Expanded(
                 child: _buildHeaderStat(
-                  icon: Iconsax.task_square,
+                  icon:
+                  Iconsax.task_square,
                   value: '$ditugaskan',
                   label: 'Ditugaskan',
-                  statusValue: 'ditugaskan',
+                  statusValue:
+                  'ditugaskan',
                 ),
               ),
+
               const SizedBox(width: 10),
+
               Expanded(
                 child: _buildHeaderStat(
-                  icon: Iconsax.timer_start,
+                  icon:
+                  Iconsax.timer_start,
                   value: '$dikerjakan',
                   label: 'Dikerjakan',
-                  statusValue: 'dikerjakan',
+                  statusValue:
+                  'dikerjakan',
                 ),
               ),
+
               const SizedBox(width: 10),
+
               Expanded(
                 child: _buildHeaderStat(
-                  icon: Iconsax.tick_circle,
+                  icon:
+                  Iconsax.tick_circle,
                   value: '$selesai',
                   label: 'Selesai',
                   statusValue: 'selesai',
@@ -402,55 +475,95 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
     required String label,
     required String statusValue,
   }) {
-    final isActive = _selectedStatus == statusValue;
+    final isActive =
+        _selectedStatus == statusValue;
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius:
+        BorderRadius.circular(14),
         onTap: () {
           setState(() {
-            _selectedStatus = statusValue;
+            if (_selectedStatus ==
+                statusValue) {
+              _selectedStatus = 'Semua';
+            } else {
+              _selectedStatus =
+                  statusValue;
+            }
           });
         },
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          padding: const EdgeInsets.symmetric(vertical: 12),
+          duration:
+          const Duration(
+            milliseconds: 180,
+          ),
+          padding:
+          const EdgeInsets.symmetric(
+            vertical: 12,
+          ),
           decoration: BoxDecoration(
             color: isActive
-                ? Colors.white.withValues(alpha: 0.24)
-                : Colors.white.withValues(alpha: 0.14),
-            borderRadius: BorderRadius.circular(14),
+                ? Colors.white.withValues(
+              alpha: 0.24,
+            )
+                : Colors.white.withValues(
+              alpha: 0.12,
+            ),
+            borderRadius:
+            BorderRadius.circular(14),
             border: Border.all(
               color: isActive
-                  ? Colors.white.withValues(alpha: 0.35)
-                  : Colors.white.withValues(alpha: 0.12),
+                  ? Colors.white.withValues(
+                alpha: 0.45,
+              )
+                  : Colors.white.withValues(
+                alpha: 0.10,
+              ),
               width: isActive ? 1.5 : 1,
             ),
           ),
           child: Column(
             children: [
               Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisAlignment:
+                MainAxisAlignment.center,
                 children: [
-                  Icon(icon, color: Colors.white, size: 16),
+                  Icon(
+                    icon,
+                    color: Colors.white,
+                    size: 16,
+                  ),
+
                   const SizedBox(width: 6),
+
                   Text(
                     value,
-                    style: whiteTextStyle.copyWith(
+                    style:
+                    whiteTextStyle.copyWith(
                       fontSize: 18,
                       fontWeight: bold,
                     ),
                   ),
                 ],
               ),
+
               const SizedBox(height: 4),
+
               Text(
                 label,
-                style: whiteTextStyle.copyWith(
-                  fontSize: 11,
-                  fontWeight: isActive ? bold : medium,
-                  color: Colors.white.withValues(alpha: 0.90),
+                style:
+                whiteTextStyle.copyWith(
+                  fontSize: 10,
+                  fontWeight:
+                  isActive
+                      ? bold
+                      : medium,
+                  color: Colors.white
+                      .withValues(
+                    alpha: 0.90,
+                  ),
                 ),
               ),
             ],
@@ -460,54 +573,138 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
     );
   }
 
+  // ============================================================
+  // SEARCH
+  // ============================================================
+
   Widget _buildSearchBar() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
+      padding: const EdgeInsets.fromLTRB(
+        16,
+        18,
+        16,
+        10,
+      ),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14),
+        height: 54,
+        padding:
+        const EdgeInsets.symmetric(
+          horizontal: 14,
+        ),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius:
+          BorderRadius.circular(16),
+          border: Border.all(
+            color: Colors.grey
+                .withValues(alpha: 0.08),
+          ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 12,
-              offset: const Offset(0, 3),
+              color: Colors.black
+                  .withValues(alpha: 0.05),
+              blurRadius: 14,
+              offset:
+              const Offset(0, 4),
             ),
           ],
         ),
         child: Row(
           children: [
-            const Icon(Iconsax.search_normal_1, color: kPrimaryColor),
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: kPrimaryColor
+                    .withValues(
+                  alpha: 0.08,
+                ),
+                borderRadius:
+                BorderRadius.circular(
+                  10,
+                ),
+              ),
+              child: const Icon(
+                Iconsax.search_normal_1,
+                color: kPrimaryColor,
+                size: 18,
+              ),
+            ),
+
             const SizedBox(width: 10),
+
             Expanded(
               child: TextField(
-                controller: _searchController,
+                controller:
+                _searchController,
+
                 onChanged: (v) {
-                  _searchDebounce?.cancel();
-                  _searchDebounce = Timer(
-                    const Duration(milliseconds: 350),
-                    () {
-                      if (!mounted) return;
-                      setState(() => _searchQuery = v);
-                    },
-                  );
+                  // rebuild langsung supaya tombol
+                  // clear segera tampil
+                  setState(() {});
+
+                  _searchDebounce
+                      ?.cancel();
+
+                  _searchDebounce =
+                      Timer(
+                        const Duration(
+                          milliseconds: 350,
+                        ),
+                            () {
+                          if (!mounted) {
+                            return;
+                          }
+
+                          setState(() {
+                            _searchQuery = v;
+                          });
+                        },
+                      );
                 },
-                decoration: InputDecoration(
-                  hintText: 'Cari ID / lokasi / AC / tindakan...',
-                  hintStyle: greyTextStyle.copyWith(fontSize: 14),
+
+                decoration:
+                InputDecoration(
+                  hintText:
+                  'Cari lokasi, AC, tindakan...',
+                  hintStyle:
+                  greyTextStyle.copyWith(
+                    fontSize: 13,
+                  ),
                   border: InputBorder.none,
+                  isDense: true,
                 ),
               ),
             ),
-            if (_searchController.text.isNotEmpty)
-              IconButton(
-                onPressed: () {
-                  _searchDebounce?.cancel();
-                  _searchController.clear();
-                  setState(() => _searchQuery = '');
+
+            if (_searchController
+                .text
+                .isNotEmpty)
+              InkWell(
+                onTap: () {
+                  _searchDebounce
+                      ?.cancel();
+
+                  _searchController
+                      .clear();
+
+                  setState(() {
+                    _searchQuery = '';
+                  });
                 },
-                icon: const Icon(Iconsax.close_circle, color: Colors.red),
+                borderRadius:
+                BorderRadius.circular(
+                  20,
+                ),
+                child: const Padding(
+                  padding:
+                  EdgeInsets.all(6),
+                  child: Icon(
+                    Iconsax.close_circle,
+                    color: Colors.red,
+                    size: 20,
+                  ),
+                ),
               ),
           ],
         ),
@@ -515,45 +712,88 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
     );
   }
 
+  // ============================================================
+  // STATUS FILTER
+  // ============================================================
+
   Widget _buildStatusChips() {
     return SizedBox(
-      height: 54,
+      height: 52,
       child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        children: _statusChips.map((chip) {
-          final isSelected = _selectedStatus == chip['value'];
-          final color = chip['color'] as Color;
+        scrollDirection:
+        Axis.horizontal,
+        padding:
+        const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 7,
+        ),
+        children:
+        _statusChips.map((chip) {
+          final isSelected =
+              _selectedStatus ==
+                  chip['value'];
+
+          final color =
+          chip['color'] as Color;
 
           return Padding(
-            padding: const EdgeInsets.only(right: 8),
+            padding:
+            const EdgeInsets.only(
+              right: 8,
+            ),
             child: ChoiceChip(
               label: Text(
-                chip['display'] as String,
+                chip['display']
+                as String,
                 style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: medium,
-                  color: isSelected ? Colors.white : color,
+                  fontSize: 11,
+                  fontWeight:
+                  FontWeight.w600,
+                  color: isSelected
+                      ? Colors.white
+                      : color,
                 ),
               ),
-              selected: isSelected,
-              selectedColor: color,
-              backgroundColor: color.withValues(alpha: 0.1),
-              avatar: isSelected
+              selected:
+              isSelected,
+              selectedColor:
+              color,
+              backgroundColor:
+              color.withValues(
+                alpha: 0.07,
+              ),
+              avatar:
+              isSelected
                   ? const Icon(
-                      Iconsax.tick_circle,
-                      size: 16,
-                      color: Colors.white,
-                    )
+                Iconsax
+                    .tick_circle,
+                size: 15,
+                color:
+                Colors.white,
+              )
                   : null,
-              onSelected: (_) =>
-                  setState(() => _selectedStatus = chip['value'] as String),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
+              onSelected: (_) {
+                setState(() {
+                  _selectedStatus =
+                  chip['value']
+                  as String;
+                });
+              },
+              shape:
+              RoundedRectangleBorder(
+                borderRadius:
+                BorderRadius.circular(
+                  20,
+                ),
                 side: BorderSide(
                   color: isSelected
-                      ? Colors.transparent
-                      : color.withValues(alpha: 0.25),
+                      ? Colors
+                      .transparent
+                      : color
+                      .withValues(
+                    alpha:
+                    0.20,
+                  ),
                 ),
               ),
             ),
@@ -563,115 +803,462 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
     );
   }
 
-  // =========================
+  // ============================================================
+  // JENIS FILTER
+  // ============================================================
+
+  Widget _buildJenisDropdown() {
+    return Padding(
+      padding:
+      const EdgeInsets.fromLTRB(
+        16,
+        2,
+        16,
+        14,
+      ),
+      child: Container(
+        height: 52,
+        padding:
+        const EdgeInsets.symmetric(
+          horizontal: 14,
+        ),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius:
+          BorderRadius.circular(16),
+          border: Border.all(
+            color: Colors.grey
+                .withValues(alpha: 0.08),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black
+                  .withValues(alpha: 0.04),
+              blurRadius: 10,
+              offset:
+              const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: kPrimaryColor
+                    .withValues(
+                  alpha: 0.08,
+                ),
+                borderRadius:
+                BorderRadius.circular(
+                  10,
+                ),
+              ),
+              child: const Icon(
+                Iconsax.category,
+                color: kPrimaryColor,
+                size: 18,
+              ),
+            ),
+
+            const SizedBox(width: 10),
+
+            Expanded(
+              child:
+              DropdownButtonHideUnderline(
+                child:
+                DropdownButton<String>(
+                  value:
+                  _selectedJenis,
+                  isExpanded: true,
+
+                  icon: Icon(
+                    Iconsax
+                        .arrow_down_1,
+                    color:
+                    Colors.grey[600],
+                    size: 18,
+                  ),
+
+                  items:
+                  _jenisList.map(
+                        (e) {
+                      return DropdownMenuItem<
+                          String>(
+                        value:
+                        e['value']!,
+                        child: Text(
+                          e['display']!,
+                          style:
+                          primaryTextStyle
+                              .copyWith(
+                            fontSize:
+                            13,
+                            fontWeight:
+                            medium,
+                          ),
+                        ),
+                      );
+                    },
+                  ).toList(),
+
+                  onChanged: (v) {
+                    if (v == null) {
+                      return;
+                    }
+
+                    setState(() {
+                      _selectedJenis =
+                          v;
+                    });
+                  },
+                ),
+              ),
+            ),
+
+            if (_selectedJenis !=
+                'Semua')
+              InkWell(
+                onTap: () {
+                  setState(() {
+                    _selectedJenis =
+                    'Semua';
+                  });
+                },
+                borderRadius:
+                BorderRadius.circular(
+                  20,
+                ),
+                child: const Padding(
+                  padding:
+                  EdgeInsets.all(5),
+                  child: Icon(
+                    Iconsax
+                        .close_circle,
+                    color: Colors.red,
+                    size: 18,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // RESULT INFO
+  // ============================================================
+
+  Widget _buildResultInfo(
+      int count,
+      ) {
+    return Padding(
+      padding:
+      const EdgeInsets.fromLTRB(
+        18,
+        0,
+        18,
+        12,
+      ),
+      child: Row(
+        children: [
+          Text(
+            '$count pekerjaan',
+            style:
+            primaryTextStyle.copyWith(
+              fontSize: 13,
+              fontWeight: bold,
+            ),
+          ),
+
+          const Spacer(),
+
+          if (_selectedStatus !=
+              'Semua' ||
+              _selectedJenis !=
+                  'Semua' ||
+              _searchQuery.isNotEmpty)
+            InkWell(
+              onTap: () {
+                _searchDebounce
+                    ?.cancel();
+
+                _searchController
+                    .clear();
+
+                setState(() {
+                  _selectedStatus =
+                  'Semua';
+
+                  _selectedJenis =
+                  'Semua';
+
+                  _searchQuery = '';
+                });
+              },
+              borderRadius:
+              BorderRadius.circular(
+                10,
+              ),
+              child: Padding(
+                padding:
+                const EdgeInsets
+                    .symmetric(
+                  horizontal: 6,
+                  vertical: 4,
+                ),
+                child: Text(
+                  'Reset filter',
+                  style: TextStyle(
+                    color:
+                    kPrimaryColor,
+                    fontSize: 11,
+                    fontWeight:
+                    FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
   // CARD
-  // =========================
+  // ============================================================
 
-  Widget _buildTaskCard(ServisModel s) {
-    final status = _statusKey(s);
-    final statusColor = _statusColor(status);
-    final statusText = _statusLabel(status);
-    final statusIcon = _statusIcon(status);
+  Widget _buildTaskCard(
+      ServisModel s,
+      ) {
+    final status =
+    _statusKey(s);
 
-    final jumlahText = s.itemsData.isNotEmpty
+    final statusColor =
+    _statusColor(status);
+
+    final statusText =
+    _statusLabel(status);
+
+    final statusIcon =
+    _statusIcon(status);
+
+    final jumlahText =
+    s.itemsData.isNotEmpty
         ? '${s.itemsData.length}'
-        : (s.jumlahAc.toString());
+        : s.jumlahAc.toString();
 
-    final lokasiText = (s.lokasiData?['address'] ?? '-').toString();
-    final assignedAt = _fmtDateTime(s.tanggalDitugaskan);
+    final lokasiText =
+    (s.lokasiData?['address'] ??
+        '-')
+        .toString();
 
-    final keluhanText = (s.catatan ?? '').trim();
-    final tindakanText = (s.tindakanSummary ?? '').trim();
+    final assignedAt =
+    _fmtDateTime(
+      s.tanggalDitugaskan,
+    );
 
-    final infoUtama = (status == 'ditugaskan')
-        ? (keluhanText.isNotEmpty ? keluhanText : 'Belum ada keluhan')
-        : (tindakanText.isNotEmpty
-              ? tindakanText
-              : (keluhanText.isNotEmpty ? keluhanText : 'Belum ada tindakan'));
+    final keluhanText =
+    (s.catatan ?? '').trim();
 
-    final clientName = (s.lokasiNama).toString().trim();
-    final titleText = clientName.isNotEmpty ? clientName : 'Client #${s.id}';
+    final tindakanText =
+    (s.tindakanSummary ?? '')
+        .trim();
 
-    final techNames = s.itemsData
-        .map((it) => (it['technician_name'] ?? '').toString())
-        .where((e) => e.isNotEmpty)
+    final infoUtama =
+    status == 'ditugaskan'
+        ? (
+        keluhanText
+            .isNotEmpty
+            ? keluhanText
+            : 'Belum ada keluhan'
+    )
+        : (
+        tindakanText
+            .isNotEmpty
+            ? tindakanText
+            : (
+            keluhanText
+                .isNotEmpty
+                ? keluhanText
+                : 'Belum ada tindakan'
+        )
+    );
+
+    final clientName =
+    s.lokasiNama.trim();
+
+    final titleText =
+    clientName.isNotEmpty
+        ? clientName
+        : 'Client #${s.id}';
+
+    final techNames =
+    s.itemsData
+        .map(
+          (it) =>
+          (it['technician_name'] ??
+              '')
+              .toString(),
+    )
+        .where(
+          (e) =>
+      e.trim().isNotEmpty,
+    )
         .toSet()
         .toList();
 
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      margin:
+      const EdgeInsets.fromLTRB(
+        16,
+        0,
+        16,
+        16,
+      ),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius:
+        BorderRadius.circular(22),
+        border: Border.all(
+          color: Colors.grey
+              .withValues(alpha: 0.08),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 20,
-            offset: const Offset(0, 6),
-            spreadRadius: 0,
+            color: Colors.black
+                .withValues(alpha: 0.06),
+            blurRadius: 16,
+            offset:
+            const Offset(0, 5),
           ),
         ],
       ),
       child: Column(
         children: [
+          // ======================================================
+          // CARD HEADER
+          // ======================================================
+
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            padding:
+            const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: statusColor.withValues(alpha: 0.08),
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(24),
-                topRight: Radius.circular(24),
+              color: statusColor
+                  .withValues(
+                alpha: 0.07,
               ),
-              border: Border.all(
-                color: statusColor.withValues(alpha: 0.15),
-                width: 1.5,
+              borderRadius:
+              const BorderRadius.only(
+                topLeft:
+                Radius.circular(22),
+                topRight:
+                Radius.circular(22),
               ),
             ),
             child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
+                  width: 44,
+                  height: 44,
+                  decoration:
+                  BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius:
+                    BorderRadius
+                        .circular(
+                      13,
+                    ),
                     boxShadow: [
                       BoxShadow(
-                        color: statusColor.withValues(alpha: 0.15),
-                        blurRadius: 10,
-                        offset: const Offset(0, 3),
+                        color:
+                        statusColor
+                            .withValues(
+                          alpha:
+                          0.12,
+                        ),
+                        blurRadius: 8,
+                        offset:
+                        const Offset(
+                          0,
+                          2,
+                        ),
                       ),
                     ],
                   ),
-                  child: Icon(statusIcon, color: statusColor, size: 22),
+                  child: Icon(
+                    statusIcon,
+                    color:
+                    statusColor,
+                    size: 21,
+                  ),
                 ),
-                const SizedBox(width: 14),
+
+                const SizedBox(
+                  width: 12,
+                ),
+
                 Expanded(
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment:
+                    CrossAxisAlignment
+                        .start,
                     children: [
                       Text(
                         titleText,
-                        style: const TextStyle(
+                        maxLines: 2,
+                        overflow:
+                        TextOverflow
+                            .ellipsis,
+                        style:
+                        const TextStyle(
                           fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          height: 1.2,
+                          fontWeight:
+                          FontWeight
+                              .w700,
+                          height: 1.25,
                         ),
                       ),
-                      const SizedBox(height: 6),
+
+                      const SizedBox(
+                        height: 6,
+                      ),
+
                       Row(
                         children: [
                           Icon(
-                            Iconsax.calendar_1,
-                            size: 13,
-                            color: Colors.grey[600],
+                            Iconsax
+                                .calendar_1,
+                            size: 12,
+                            color: Colors
+                                .grey[600],
                           ),
-                          const SizedBox(width: 6),
-                          Text(
-                            assignedAt,
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: Colors.grey[600],
-                              fontWeight: FontWeight.w500,
+
+                          const SizedBox(
+                            width: 5,
+                          ),
+
+                          Expanded(
+                            child: Text(
+                              assignedAt,
+                              maxLines: 1,
+                              overflow:
+                              TextOverflow
+                                  .ellipsis,
+                              style:
+                              TextStyle(
+                                fontSize:
+                                10,
+                                color:
+                                Colors
+                                    .grey[
+                                600],
+                                fontWeight:
+                                FontWeight
+                                    .w500,
+                              ),
                             ),
                           ),
                         ],
@@ -679,33 +1266,50 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
                     ],
                   ),
                 ),
+
+                const SizedBox(
+                  width: 8,
+                ),
+
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 8,
+                  padding:
+                  const EdgeInsets
+                      .symmetric(
+                    horizontal: 11,
+                    vertical: 7,
                   ),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        statusColor.withValues(alpha: 0.2),
-                        statusColor.withValues(alpha: 0.1),
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
+                  decoration:
+                  BoxDecoration(
+                    color:
+                    statusColor
+                        .withValues(
+                      alpha: 0.10,
                     ),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: statusColor.withValues(alpha: 0.3),
-                      width: 1.5,
+                    borderRadius:
+                    BorderRadius
+                        .circular(
+                      20,
+                    ),
+                    border:
+                    Border.all(
+                      color:
+                      statusColor
+                          .withValues(
+                        alpha:
+                        0.20,
+                      ),
                     ),
                   ),
                   child: Text(
                     statusText,
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w800,
-                      color: statusColor,
-                      letterSpacing: 0.5,
+                    style:
+                    TextStyle(
+                      fontSize: 9,
+                      fontWeight:
+                      FontWeight
+                          .w800,
+                      color:
+                      statusColor,
                     ),
                   ),
                 ),
@@ -713,97 +1317,206 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
             ),
           ),
 
+          // ======================================================
+          // CARD CONTENT
+          // ======================================================
+
           Padding(
-            padding: const EdgeInsets.all(20),
+            padding:
+            const EdgeInsets.all(
+              16,
+            ),
             child: Column(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[50],
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.grey[100]!),
+                  padding:
+                  const EdgeInsets
+                      .symmetric(
+                    horizontal: 14,
+                    vertical: 14,
+                  ),
+                  decoration:
+                  BoxDecoration(
+                    color: Colors
+                        .grey[50],
+                    borderRadius:
+                    BorderRadius
+                        .circular(
+                      16,
+                    ),
                   ),
                   child: Row(
                     children: [
                       Expanded(
-                        child: _infoItemForTechnician(
-                          icon: Iconsax.cpu,
-                          title: 'Jumlah AC',
-                          value: '$jumlahText Unit',
-                          color: Colors.blue,
+                        child:
+                        _infoItemForTechnician(
+                          icon:
+                          Iconsax.cpu,
+                          title:
+                          'Jumlah AC',
+                          value:
+                          '$jumlahText Unit',
+                          color:
+                          Colors.blue,
                         ),
                       ),
+
                       Container(
                         width: 1,
-                        height: 40,
-                        color: Colors.grey[200],
-                        margin: const EdgeInsets.symmetric(horizontal: 16),
+                        height: 38,
+                        margin:
+                        const EdgeInsets
+                            .symmetric(
+                          horizontal:
+                          14,
+                        ),
+                        color: Colors
+                            .grey[200],
                       ),
+
                       Expanded(
-                        child: _infoItemForTechnician(
-                          icon: Iconsax.info_circle,
-                          title: 'Jenis',
-                          value: s.jenisDisplay,
-                          color: Colors.purple,
+                        child:
+                        _infoItemForTechnician(
+                          icon:
+                          Iconsax
+                              .info_circle,
+                          title:
+                          'Jenis',
+                          value: s
+                              .jenisDisplay,
+                          color: Colors
+                              .purple,
                         ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 16),
 
-                if (status != 'selesai') ...[
+                const SizedBox(
+                  height: 14,
+                ),
+
+                if (status !=
+                    'selesai') ...[
                   _modernDetailTile(
-                    icon: Iconsax.location,
+                    icon:
+                    Iconsax.location,
                     title: 'Alamat',
-                    value: lokasiText,
-                    iconColor: kPrimaryColor,
+                    value:
+                    lokasiText,
+                    iconColor:
+                    kPrimaryColor,
                     gradientColors: [
-                      kPrimaryColor.withValues(alpha: 0.1),
-                      kPrimaryColor.withValues(alpha: 0.05),
+                      kPrimaryColor
+                          .withValues(
+                        alpha: 0.08,
+                      ),
+                      kPrimaryColor
+                          .withValues(
+                        alpha: 0.03,
+                      ),
                     ],
                     maxLines: 2,
                   ),
-                  const SizedBox(height: 12),
+
+                  const SizedBox(
+                    height: 10,
+                  ),
                 ],
 
                 _modernDetailTile(
-                  icon: status == 'ditugaskan'
-                      ? Iconsax.message_text
-                      : Iconsax.note_text,
-                  title: status == 'ditugaskan' ? 'Keluhan Client' : 'Tindakan',
-                  value: infoUtama,
-                  iconColor: status == 'ditugaskan'
+                  icon:
+                  status ==
+                      'ditugaskan'
+                      ? Iconsax
+                      .message_text
+                      : Iconsax
+                      .note_text,
+                  title:
+                  status ==
+                      'ditugaskan'
+                      ? 'Keluhan Client'
+                      : 'Tindakan',
+                  value:
+                  infoUtama,
+                  iconColor:
+                  status ==
+                      'ditugaskan'
                       ? Colors.orange
                       : Colors.purple,
-                  gradientColors: status == 'ditugaskan'
+                  gradientColors:
+                  status ==
+                      'ditugaskan'
                       ? [
-                          Colors.orange.withValues(alpha: 0.1),
-                          Colors.orange.withValues(alpha: 0.05),
-                        ]
+                    Colors
+                        .orange
+                        .withValues(
+                      alpha:
+                      0.08,
+                    ),
+                    Colors
+                        .orange
+                        .withValues(
+                      alpha:
+                      0.03,
+                    ),
+                  ]
                       : [
-                          Colors.purple.withValues(alpha: 0.1),
-                          Colors.purple.withValues(alpha: 0.05),
-                        ],
+                    Colors
+                        .purple
+                        .withValues(
+                      alpha:
+                      0.08,
+                    ),
+                    Colors
+                        .purple
+                        .withValues(
+                      alpha:
+                      0.03,
+                    ),
+                  ],
                   maxLines: 3,
                 ),
 
-                if (techNames.length > 1) ...[
+                if (techNames.length >
+                    1) ...[
+                  const SizedBox(
+                    height: 10,
+                  ),
+
                   _modernDetailTile(
-                    icon: Iconsax.profile_2user,
-                    title: 'Tim Teknisi',
-                    value: techNames.join(', '),
-                    iconColor: Colors.indigo,
+                    icon:
+                    Iconsax
+                        .profile_2user,
+                    title:
+                    'Tim Teknisi',
+                    value:
+                    techNames.join(
+                      ', ',
+                    ),
+                    iconColor:
+                    Colors.indigo,
                     gradientColors: [
-                      Colors.indigo.withValues(alpha: 0.1),
-                      Colors.indigo.withValues(alpha: 0.05)
+                      Colors.indigo
+                          .withValues(
+                        alpha: 0.08,
+                      ),
+                      Colors.indigo
+                          .withValues(
+                        alpha: 0.03,
+                      ),
                     ],
                   ),
                 ],
 
-                const SizedBox(height: 20),
-                _buildActionButtonForTechnician(statusColor, s),
+                const SizedBox(
+                  height: 16,
+                ),
+
+                _buildActionButtonForTechnician(
+                  statusColor,
+                  s,
+                ),
               ],
             ),
           ),
@@ -820,40 +1533,63 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
     String subtitle = '',
   }) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment:
+      CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            Icon(icon, size: 16, color: color.withValues(alpha: 0.8)),
-            const SizedBox(width: 8),
+            Icon(
+              icon,
+              size: 15,
+              color: color.withValues(
+                alpha: 0.80,
+              ),
+            ),
+
+            const SizedBox(
+              width: 7,
+            ),
+
             Text(
               title,
               style: TextStyle(
-                fontSize: 11,
-                color: Colors.grey[600],
-                fontWeight: FontWeight.w600,
+                fontSize: 10,
+                color:
+                Colors.grey[600],
+                fontWeight:
+                FontWeight.w600,
               ),
             ),
           ],
         ),
-        const SizedBox(height: 6),
+
+        const SizedBox(height: 5),
+
         Text(
           value,
+          maxLines: 1,
+          overflow:
+          TextOverflow.ellipsis,
           style: TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w800,
-            color: Colors.grey[900],
+            fontSize: 14,
+            fontWeight:
+            FontWeight.w800,
+            color:
+            Colors.grey[900],
             height: 1.2,
           ),
         ),
+
         if (subtitle.isNotEmpty) ...[
-          const SizedBox(height: 2),
+          const SizedBox(
+            height: 2,
+          ),
           Text(
             subtitle,
             style: TextStyle(
               fontSize: 10,
-              color: Colors.grey[500],
-              fontWeight: FontWeight.w500,
+              color:
+              Colors.grey[500],
             ),
           ),
         ],
@@ -866,67 +1602,98 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
     required String title,
     required String value,
     required Color iconColor,
-    required List<Color> gradientColors,
+    required List<Color>
+    gradientColors,
     int maxLines = 2,
   }) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding:
+      const EdgeInsets.all(14),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: gradientColors,
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+          begin:
+          Alignment.topLeft,
+          end:
+          Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(18),
+        borderRadius:
+        BorderRadius.circular(16),
         border: Border.all(
-          color: iconColor.withValues(alpha: 0.15),
-          width: 1.5,
+          color:
+          iconColor.withValues(
+            alpha: 0.10,
+          ),
         ),
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment:
+        CrossAxisAlignment.start,
         children: [
           Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
+            width: 38,
+            height: 38,
+            decoration:
+            BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: iconColor.withValues(alpha: 0.1),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+              borderRadius:
+              BorderRadius.circular(
+                11,
+              ),
             ),
-            child: Icon(icon, size: 20, color: iconColor),
+            child: Icon(
+              icon,
+              size: 19,
+              color:
+              iconColor,
+            ),
           ),
-          const SizedBox(width: 14),
+
+          const SizedBox(
+            width: 12,
+          ),
+
           Expanded(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment:
+              CrossAxisAlignment
+                  .start,
               children: [
                 Text(
                   title,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: iconColor.withValues(alpha: 0.9),
-                    letterSpacing: 0.5,
+                  style:
+                  TextStyle(
+                    fontSize: 11,
+                    fontWeight:
+                    FontWeight
+                        .w700,
+                    color:
+                    iconColor,
                   ),
                 ),
-                const SizedBox(height: 8),
+
+                const SizedBox(
+                  height: 6,
+                ),
+
                 Text(
                   value,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey[800],
+                  maxLines:
+                  maxLines,
+                  overflow:
+                  TextOverflow
+                      .ellipsis,
+                  style:
+                  TextStyle(
+                    fontSize: 12,
+                    fontWeight:
+                    FontWeight
+                        .w600,
+                    color:
+                    Colors
+                        .grey[800],
                     height: 1.4,
                   ),
-                  maxLines: maxLines,
-                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
@@ -936,46 +1703,102 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
     );
   }
 
-  Widget _buildActionButtonForTechnician(Color statusColor, ServisModel s) {
+  Widget
+  _buildActionButtonForTechnician(
+      Color statusColor,
+      ServisModel s,
+      ) {
     return Material(
-      color: Colors.transparent,
+      color:
+      Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: () => _openDetail(s),
+        onTap:
+            () => _openDetail(s),
+        borderRadius:
+        BorderRadius.circular(14),
         child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
+          width:
+          double.infinity,
+          padding:
+          const EdgeInsets
+              .symmetric(
+            vertical: 14,
+          ),
+          decoration:
+          BoxDecoration(
+            gradient:
+            LinearGradient(
               colors: [
-                statusColor.withValues(alpha: 0.95),
-                statusColor.withValues(alpha: 0.75),
+                statusColor
+                    .withValues(
+                  alpha: 0.95,
+                ),
+                statusColor
+                    .withValues(
+                  alpha: 0.78,
+                ),
               ],
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
             ),
-            borderRadius: BorderRadius.circular(16),
+            borderRadius:
+            BorderRadius.circular(
+              14,
+            ),
             boxShadow: [
               BoxShadow(
-                color: statusColor.withValues(alpha: 0.25),
-                blurRadius: 15,
-                offset: const Offset(0, 4),
+                color:
+                statusColor
+                    .withValues(
+                  alpha: 0.20,
+                ),
+                blurRadius: 10,
+                offset:
+                const Offset(
+                  0,
+                  4,
+                ),
               ),
             ],
           ),
           child: const Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisAlignment:
+            MainAxisAlignment
+                .center,
             children: [
-              Icon(Iconsax.document_text, size: 20, color: Colors.white),
-              SizedBox(width: 10),
+              Icon(
+                Iconsax
+                    .document_text,
+                size: 18,
+                color:
+                Colors.white,
+              ),
+
+              SizedBox(
+                width: 8,
+              ),
+
               Text(
-                'Detail',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                  letterSpacing: 0.5,
+                'Lihat Detail',
+                style:
+                TextStyle(
+                  fontSize: 13,
+                  fontWeight:
+                  FontWeight
+                      .w700,
+                  color:
+                  Colors.white,
                 ),
+              ),
+
+              SizedBox(
+                width: 6,
+              ),
+
+              Icon(
+                Iconsax
+                    .arrow_right_3,
+                size: 16,
+                color:
+                Colors.white,
               ),
             ],
           ),
@@ -984,159 +1807,471 @@ class _TeknisiDashboardPageState extends State<TeknisiDashboardPage> {
     );
   }
 
-  void _openDetail(ServisModel s) {
+  void _openDetail(
+      ServisModel s,
+      ) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => TeknisiTaskDetailPage(servis: s)),
+      MaterialPageRoute(
+        builder: (_) =>
+            TeknisiTaskDetailPage(
+              servis: s,
+            ),
+      ),
     );
   }
 
-  // =========================
+  // ============================================================
+  // ERROR
+  // ============================================================
+
+  Widget _buildError(
+      String message,
+      ) {
+    return Container(
+      width: double.infinity,
+      margin:
+      const EdgeInsets.fromLTRB(
+        16,
+        0,
+        16,
+        14,
+      ),
+      padding:
+      const EdgeInsets.all(13),
+      decoration: BoxDecoration(
+        color: Colors.red
+            .withValues(alpha: 0.06),
+        borderRadius:
+        BorderRadius.circular(14),
+        border: Border.all(
+          color: Colors.red
+              .withValues(alpha: 0.15),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration:
+            BoxDecoration(
+              color: Colors.red
+                  .withValues(
+                alpha: 0.08,
+              ),
+              borderRadius:
+              BorderRadius.circular(
+                10,
+              ),
+            ),
+            child: const Icon(
+              Iconsax.warning_2,
+              color:
+              Colors.red,
+              size: 18,
+            ),
+          ),
+
+          const SizedBox(
+            width: 10,
+          ),
+
+          Expanded(
+            child: Text(
+              message,
+              style:
+              primaryTextStyle
+                  .copyWith(
+                fontSize: 11,
+                color:
+                Colors.red,
+              ),
+            ),
+          ),
+
+          TextButton(
+            onPressed:
+            _refresh,
+            child:
+            const Text(
+              'Ulangi',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // EMPTY STATE
+  // ============================================================
+
+  Widget _buildEmptyState() {
+    return Padding(
+      padding:
+      const EdgeInsets.symmetric(
+        horizontal: 30,
+      ),
+      child: Column(
+        mainAxisSize:
+        MainAxisSize.min,
+        children: [
+          Container(
+            width: 100,
+            height: 100,
+            decoration:
+            BoxDecoration(
+              color: Colors.grey
+                  .withValues(
+                alpha: 0.07,
+              ),
+              shape:
+              BoxShape.circle,
+            ),
+            child: Icon(
+              Iconsax.note_remove,
+              color:
+              Colors.grey[400],
+              size: 46,
+            ),
+          ),
+
+          const SizedBox(
+            height: 18,
+          ),
+
+          Text(
+            'Tidak ada pekerjaan',
+            style:
+            primaryTextStyle.copyWith(
+              fontSize: 17,
+              fontWeight: bold,
+            ),
+          ),
+
+          const SizedBox(
+            height: 6,
+          ),
+
+          Text(
+            'Tidak ada data yang cocok dengan filter atau pencarian saat ini.',
+            textAlign:
+            TextAlign.center,
+            style:
+            greyTextStyle.copyWith(
+              fontSize: 12,
+              height: 1.5,
+            ),
+          ),
+
+          const SizedBox(
+            height: 18,
+          ),
+
+          ElevatedButton.icon(
+            onPressed: () {
+              _searchDebounce
+                  ?.cancel();
+
+              _searchController
+                  .clear();
+
+              setState(() {
+                _selectedStatus =
+                'Semua';
+
+                _selectedJenis =
+                'Semua';
+
+                _searchQuery = '';
+              });
+            },
+            icon: const Icon(
+              Iconsax.refresh,
+              size: 17,
+            ),
+            label:
+            const Text(
+              'Reset Filter',
+            ),
+            style:
+            ElevatedButton
+                .styleFrom(
+              backgroundColor:
+              kPrimaryColor,
+              foregroundColor:
+              Colors.white,
+              elevation: 0,
+              padding:
+              const EdgeInsets
+                  .symmetric(
+                horizontal: 18,
+                vertical: 12,
+              ),
+              shape:
+              RoundedRectangleBorder(
+                borderRadius:
+                BorderRadius
+                    .circular(
+                  12,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
   // BUILD
-  // =========================
+  // ============================================================
 
   @override
-  Widget build(BuildContext context) {
-    return Consumer2<TeknisiProvider, AuthProvider>(
-      builder: (context, prov, auth, _) {
-        final all = prov.tasks;
-        final list = _filtered(all);
+  Widget build(
+      BuildContext context,
+      ) {
+    return Consumer2<
+        TeknisiProvider,
+        AuthProvider>(
+      builder:
+          (
+          context,
+          prov,
+          auth,
+          _,
+          ) {
+        final all =
+            prov.tasks;
 
-        final ditugaskan = all
-            .where((s) => _statusKey(s) == 'ditugaskan')
-            .length;
-        final dikerjakan = all
-            .where((s) => _statusKey(s) == 'dikerjakan')
-            .length;
-        final selesai = all.where((s) => _statusKey(s) == 'selesai').length;
+        final list =
+        _filtered(all);
 
-        final user = auth.user;
-        final nama = (user?.name?.toString().trim().isNotEmpty ?? false)
+        // ========================================================
+        // SUMMARY
+        // ========================================================
+
+        final ditugaskan =
+            all
+                .where(
+                  (s) =>
+              _statusKey(
+                s,
+              ) ==
+                  'ditugaskan',
+            )
+                .length;
+
+        final dikerjakan =
+            all
+                .where(
+                  (s) =>
+              _statusKey(
+                s,
+              ) ==
+                  'dikerjakan',
+            )
+                .length;
+
+        final selesai =
+            all
+                .where(
+                  (s) =>
+              _statusKey(
+                s,
+              ) ==
+                  'selesai',
+            )
+                .length;
+
+        // ========================================================
+        // USER
+        // ========================================================
+
+        final user =
+            auth.user;
+
+        final nama =
+        (
+            user
+                ?.name
+                ?.toString()
+                .trim()
+                .isNotEmpty ??
+                false
+        )
             ? user!.name!
             : 'Teknisi';
-        final subtitle = (user?.role?.toString().trim().isNotEmpty ?? false)
-            ? user!.role!.toString().toUpperCase()
+
+        final subtitle =
+        (
+            user
+                ?.role
+                ?.toString()
+                .trim()
+                .isNotEmpty ??
+                false
+        )
+            ? user!.role!
+            .toString()
+            .toUpperCase()
             : 'TEKNISI';
 
         return Scaffold(
-          backgroundColor: kBackgroundColor,
-          body: SafeArea(
-            child: Column(
-              children: [
-                _buildHeader(
-                  context: context,
-                  nama: nama,
-                  subtitle: subtitle,
-                  ditugaskan: ditugaskan,
-                  dikerjakan: dikerjakan,
-                  selesai: selesai,
-                ),
-                _buildSearchBar(),
-                _buildStatusChips(),
-                _buildJenisDropdown(),
+          backgroundColor:
+          kBackgroundColor,
 
-                if (prov.error != null)
-                  Container(
-                    width: double.infinity,
-                    margin: const EdgeInsets.fromLTRB(16, 6, 16, 8),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.red.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: Colors.red.withValues(alpha: 0.18),
+          body: SafeArea(
+            child:
+            RefreshIndicator(
+              onRefresh:
+              _refresh,
+              color:
+              kPrimaryColor,
+
+              child:
+              CustomScrollView(
+                physics:
+                const AlwaysScrollableScrollPhysics(),
+
+                slivers: [
+                  // ===============================================
+                  // HEADER
+                  // HEADER IKUT SCROLL
+                  // ===============================================
+
+                  SliverToBoxAdapter(
+                    child:
+                    _buildHeader(
+                      context:
+                      context,
+                      nama: nama,
+                      subtitle:
+                      subtitle,
+                      ditugaskan:
+                      ditugaskan,
+                      dikerjakan:
+                      dikerjakan,
+                      selesai:
+                      selesai,
+                    ),
+                  ),
+
+                  // ===============================================
+                  // SEARCH
+                  // ===============================================
+
+                  SliverToBoxAdapter(
+                    child:
+                    _buildSearchBar(),
+                  ),
+
+                  // ===============================================
+                  // STATUS FILTER
+                  // ===============================================
+
+                  SliverToBoxAdapter(
+                    child:
+                    _buildStatusChips(),
+                  ),
+
+                  // ===============================================
+                  // JENIS FILTER
+                  // ===============================================
+
+                  SliverToBoxAdapter(
+                    child:
+                    _buildJenisDropdown(),
+                  ),
+
+                  // ===============================================
+                  // ERROR
+                  // ===============================================
+
+                  if (prov.error !=
+                      null)
+                    SliverToBoxAdapter(
+                      child:
+                      _buildError(
+                        prov.error!,
                       ),
                     ),
-                    child: Row(
-                      children: [
-                        const Icon(Iconsax.warning_2, color: Colors.red),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            prov.error!,
-                            style: primaryTextStyle.copyWith(
-                              fontSize: 12,
-                              color: Colors.red,
-                            ),
-                          ),
-                        ),
-                        TextButton(
-                          onPressed: _refresh,
-                          child: const Text('Coba lagi'),
-                        ),
-                      ],
-                    ),
-                  ),
 
-                Expanded(
-                  child: RefreshIndicator(
-                    onRefresh: _refresh,
-                    child: prov.loading && all.isEmpty
-                        ? ListView(
-                            physics: const AlwaysScrollableScrollPhysics(),
-                            children: const [
-                              SizedBox(height: 120),
-                              Center(child: CircularProgressIndicator()),
-                            ],
-                          )
-                        : list.isEmpty
-                        ? ListView(
-                            physics: const AlwaysScrollableScrollPhysics(),
-                            children: [
-                              const SizedBox(height: 90),
-                              Column(
-                                children: [
-                                  Icon(
-                                    Iconsax.note_remove,
-                                    color: Colors.grey[400],
-                                    size: 78,
-                                  ),
-                                  const SizedBox(height: 14),
-                                  Text(
-                                    'Tidak ada data',
-                                    style: greyTextStyle.copyWith(
-                                      fontSize: 16,
-                                      fontWeight: medium,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    'Coba ubah filter atau kata kunci.',
-                                    style: greyTextStyle.copyWith(fontSize: 13),
-                                  ),
-                                  const SizedBox(height: 18),
-                                  ElevatedButton(
-                                    onPressed: () {
-                                      setState(() {
-                                        _selectedStatus = 'Semua';
-                                        _selectedJenis = 'Semua';
-                                        _searchQuery = '';
-                                        _searchController.clear();
-                                      });
-                                    },
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: kPrimaryColor,
-                                      foregroundColor: Colors.white,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                    ),
-                                    child: const Text('Reset'),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          )
-                        : ListView.builder(
-                            physics: const AlwaysScrollableScrollPhysics(),
-                            padding: const EdgeInsets.only(top: 8, bottom: 90),
-                            itemCount: list.length,
-                            itemBuilder: (context, i) =>
-                                _buildTaskCard(list[i]),
-                          ),
-                  ),
-                ),
-              ],
+                  // ===============================================
+                  // RESULT COUNTER
+                  // ===============================================
+
+                  if (!(prov.loading &&
+                      all.isEmpty))
+                    SliverToBoxAdapter(
+                      child:
+                      _buildResultInfo(
+                        list.length,
+                      ),
+                    ),
+
+                  // ===============================================
+                  // LOADING
+                  // ===============================================
+
+                  if (prov.loading &&
+                      all.isEmpty)
+                    const SliverFillRemaining(
+                      hasScrollBody:
+                      false,
+                      child: Center(
+                        child:
+                        CircularProgressIndicator(),
+                      ),
+                    )
+
+                  // ===============================================
+                  // EMPTY
+                  // ===============================================
+
+                  else if (list
+                      .isEmpty)
+                    SliverFillRemaining(
+                      hasScrollBody:
+                      false,
+                      child: Center(
+                        child:
+                        _buildEmptyState(),
+                      ),
+                    )
+
+                  // ===============================================
+                  // LIST
+                  // ===============================================
+
+                  else
+                    SliverPadding(
+                      padding:
+                      const EdgeInsets.only(
+                        top: 2,
+                        bottom: 100,
+                      ),
+
+                      sliver:
+                      SliverList(
+                        delegate:
+                        SliverChildBuilderDelegate(
+                              (
+                              context,
+                              index,
+                              ) {
+                            return _buildTaskCard(
+                              list[index],
+                            );
+                          },
+                          childCount:
+                          list.length,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
         );

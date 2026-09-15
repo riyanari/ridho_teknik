@@ -66,5 +66,14 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+
+	<key>NSCameraUsageDescription</key>
+    <string>Aplikasi membutuhkan akses kamera untuk mengambil foto dokumentasi servis AC.</string>
+
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>Aplikasi membutuhkan akses galeri untuk memilih foto dokumentasi servis AC.</string>
+
+    <key>NSPhotoLibraryAddUsageDescription</key>
+    <string>Aplikasi membutuhkan akses untuk menyimpan foto dokumentasi servis AC.</string>
 </dict>
 </plist>
