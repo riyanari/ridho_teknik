@@ -1511,10 +1511,12 @@ class _HomePageState extends State<HomePage> {
     return DateFormat(
       'EEE, dd MMM',
       'id_ID',
-    ).format(
-      date.toLocal(),
-    );
+    ).format(date);
   }
+
+// ============================================================
+// UPCOMING TIME FORMAT
+// ============================================================
 
   String _formatUpcomingTime(
       DateTime? date,
@@ -1526,9 +1528,7 @@ class _HomePageState extends State<HomePage> {
     return DateFormat(
       'HH:mm',
       'id_ID',
-    ).format(
-      date.toLocal(),
-    );
+    ).format(date);
   }
 
   // ============================================================
