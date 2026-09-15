@@ -161,14 +161,6 @@ class _HomePageState extends State<HomePage> {
     return DateFormat('EEEE, d MMMM y', 'id_ID').format(date);
   }
 
-  String _formatVisitDate(DateTime? date) {
-    if (date == null) {
-      return 'Belum dijadwalkan';
-    }
-
-    return DateFormat('EEE, dd MMM • HH:mm', 'id_ID').format(date);
-  }
-
   // ============================================================
   // BUILD
   // ============================================================
@@ -903,125 +895,639 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildServiceItem(ServisModel service) {
+  // ============================================================
+// UPCOMING SERVICE ITEM
+// ============================================================
+
+  Widget _buildServiceItem(
+      ServisModel service,
+      ) {
+    final locationName =
+    _getServiceLocationName(
+      service,
+    );
+
+    final clientName =
+    service.clientNama.trim();
+
+    final hasClient =
+        clientName.isNotEmpty &&
+            clientName != '-';
+
+    final acCount =
+    service.jumlahAc > 0
+        ? service.jumlahAc
+        : service.acUnits.length;
+
+    final statusColor =
+        service.statusColor;
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => const ServiceListPage()),
+            MaterialPageRoute(
+              builder: (_) =>
+              const ServiceListPage(),
+            ),
           );
         },
-        borderRadius: BorderRadius.circular(17),
+        borderRadius:
+        BorderRadius.circular(20),
         child: Container(
-          padding: const EdgeInsets.all(13),
+          width: double.infinity,
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(17),
-            border: Border.all(color: Colors.black.withValues(alpha: 0.025)),
+            borderRadius:
+            BorderRadius.circular(20),
+            border: Border.all(
+              color: statusColor.withValues(
+                alpha: 0.09,
+              ),
+            ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.025),
-                blurRadius: 10,
-                offset: const Offset(0, 3),
+                color: Colors.black.withValues(
+                  alpha: 0.035,
+                ),
+                blurRadius: 16,
+                offset: const Offset(
+                  0,
+                  5,
+                ),
               ),
             ],
           ),
-          child: Row(
-            children: [
-              Container(
-                width: 45,
-                height: 45,
-                decoration: BoxDecoration(
-                  color: service.statusColor.withValues(alpha: 0.09),
-                  borderRadius: BorderRadius.circular(13),
-                ),
-                child: Icon(
-                  Iconsax.calendar_1,
-                  color: service.statusColor,
-                  size: 19,
-                ),
-              ),
+          child: ClipRRect(
+            borderRadius:
+            BorderRadius.circular(20),
+            child: Stack(
+              children: [
+                // ==================================================
+                // LEFT STATUS STRIPE
+                // ==================================================
 
-              const SizedBox(width: 11),
+                Positioned(
+                  left: 0,
+                  top: 0,
+                  bottom: 0,
+                  child: Container(
+                    width: 4,
+                    color: statusColor,
+                  ),
+                ),
 
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            service.lokasiNama,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
+                Padding(
+                  padding:
+                  const EdgeInsets.fromLTRB(
+                    16,
+                    14,
+                    14,
+                    14,
+                  ),
+                  child: Column(
+                    crossAxisAlignment:
+                    CrossAxisAlignment.start,
+                    children: [
+                      // ============================================
+                      // TOP
+                      // ============================================
+
+                      Row(
+                        crossAxisAlignment:
+                        CrossAxisAlignment.start,
+                        children: [
+                          // ========================================
+                          // LOCATION ICON
+                          // ========================================
+
+                          Container(
+                            width: 48,
+                            height: 48,
+                            decoration:
+                            BoxDecoration(
+                              color: statusColor
+                                  .withValues(
+                                alpha: 0.08,
+                              ),
+                              borderRadius:
+                              BorderRadius
+                                  .circular(
+                                14,
+                              ),
+                            ),
+                            child: Icon(
+                              Iconsax.location,
+                              color:
+                              statusColor,
+                              size: 21,
                             ),
                           ),
+
+                          const SizedBox(
+                            width: 12,
+                          ),
+
+                          // ========================================
+                          // LOCATION
+                          // ========================================
+
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment:
+                              CrossAxisAlignment
+                                  .start,
+                              children: [
+                                Text(
+                                  'Lokasi',
+                                  style:
+                                  TextStyle(
+                                    fontSize: 7.5,
+                                    color: Colors
+                                        .grey[500],
+                                    fontWeight:
+                                    FontWeight
+                                        .w500,
+                                  ),
+                                ),
+
+                                const SizedBox(
+                                  height: 3,
+                                ),
+
+                                Text(
+                                  locationName,
+                                  maxLines: 2,
+                                  overflow:
+                                  TextOverflow
+                                      .ellipsis,
+                                  style:
+                                  const TextStyle(
+                                    fontSize: 13,
+                                    height: 1.25,
+                                    color: Color(
+                                      0xFF20222E,
+                                    ),
+                                    fontWeight:
+                                    FontWeight
+                                        .w800,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          const SizedBox(
+                            width: 8,
+                          ),
+
+                          // ========================================
+                          // STATUS
+                          // ========================================
+
+                          Container(
+                            padding:
+                            const EdgeInsets
+                                .symmetric(
+                              horizontal: 9,
+                              vertical: 5,
+                            ),
+                            decoration:
+                            BoxDecoration(
+                              color: statusColor
+                                  .withValues(
+                                alpha: 0.08,
+                              ),
+                              borderRadius:
+                              BorderRadius
+                                  .circular(
+                                20,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize:
+                              MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: 5,
+                                  height: 5,
+                                  decoration:
+                                  BoxDecoration(
+                                    color:
+                                    statusColor,
+                                    shape: BoxShape
+                                        .circle,
+                                  ),
+                                ),
+
+                                const SizedBox(
+                                  width: 5,
+                                ),
+
+                                Text(
+                                  service
+                                      .statusDisplay,
+                                  style:
+                                  TextStyle(
+                                    color:
+                                    statusColor,
+                                    fontSize: 7.5,
+                                    fontWeight:
+                                    FontWeight
+                                        .w700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(
+                        height: 13,
+                      ),
+
+                      // ============================================
+                      // SERVICE META
+                      // ============================================
+
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 7,
+                        children: [
+                          _buildUpcomingMetaChip(
+                            icon:
+                            Iconsax.setting_2,
+                            label:
+                            'Service ${service.jenisDisplay}',
+                            color: statusColor,
+                          ),
+
+                          if (acCount > 0)
+                            _buildUpcomingMetaChip(
+                              icon:
+                              Iconsax.cpu,
+                              label:
+                              '$acCount AC',
+                              color:
+                              kPrimaryColor,
+                            ),
+
+                          if (hasClient)
+                            _buildUpcomingMetaChip(
+                              icon:
+                              Iconsax.user,
+                              label:
+                              clientName,
+                              color:
+                              const Color(
+                                0xFFB7791F,
+                              ),
+                            ),
+                        ],
+                      ),
+
+                      const SizedBox(
+                        height: 12,
+                      ),
+
+                      // ============================================
+                      // SCHEDULE PANEL
+                      // ============================================
+
+                      Container(
+                        width: double.infinity,
+                        padding:
+                        const EdgeInsets
+                            .symmetric(
+                          horizontal: 11,
+                          vertical: 10,
+                        ),
+                        decoration:
+                        BoxDecoration(
+                          color: const Color(
+                            0xFFF7F8FB,
+                          ),
+                          borderRadius:
+                          BorderRadius
+                              .circular(
+                            12,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            // ======================================
+                            // DATE
+                            // ======================================
+
+                            Expanded(
+                              child:
+                              _buildUpcomingScheduleInfo(
+                                icon:
+                                Iconsax.calendar_1,
+                                title:
+                                'Tanggal',
+                                value:
+                                _formatUpcomingDate(
+                                  service
+                                      .tanggalBerkunjung,
+                                ),
+                              ),
+                            ),
+
+                            Container(
+                              width: 1,
+                              height: 31,
+                              margin:
+                              const EdgeInsets
+                                  .symmetric(
+                                horizontal: 10,
+                              ),
+                              color:
+                              Colors.grey[200],
+                            ),
+
+                            // ======================================
+                            // TIME
+                            // ======================================
+
+                            Expanded(
+                              child:
+                              _buildUpcomingScheduleInfo(
+                                icon:
+                                Iconsax.clock,
+                                title:
+                                'Jam',
+                                value:
+                                _formatUpcomingTime(
+                                  service
+                                      .tanggalBerkunjung,
+                                ),
+                                valueColor:
+                                kPrimaryColor,
+                              ),
+                            ),
+
+                            const SizedBox(
+                              width: 6,
+                            ),
+
+                            Icon(
+                              Iconsax
+                                  .arrow_right_3,
+                              size: 16,
+                              color:
+                              Colors.grey[400],
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // ============================================
+                      // NOTE
+                      // ============================================
+
+                      if ((service.catatan ??
+                          '')
+                          .trim()
+                          .isNotEmpty) ...[
+                        const SizedBox(
+                          height: 10,
                         ),
 
                         Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 7,
-                            vertical: 3,
+                          width:
+                          double.infinity,
+                          padding:
+                          const EdgeInsets
+                              .symmetric(
+                            horizontal: 10,
+                            vertical: 8,
                           ),
-                          decoration: BoxDecoration(
-                            color: service.statusColor.withValues(alpha: 0.08),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            service.statusDisplay,
-                            style: TextStyle(
-                              color: service.statusColor,
-                              fontSize: 8,
-                              fontWeight: FontWeight.w700,
+                          decoration:
+                          BoxDecoration(
+                            color: statusColor
+                                .withValues(
+                              alpha: 0.045,
                             ),
+                            borderRadius:
+                            BorderRadius
+                                .circular(
+                              10,
+                            ),
+                          ),
+                          child: Row(
+                            crossAxisAlignment:
+                            CrossAxisAlignment
+                                .start,
+                            children: [
+                              Icon(
+                                Iconsax.note_1,
+                                size: 13,
+                                color:
+                                statusColor,
+                              ),
+
+                              const SizedBox(
+                                width: 7,
+                              ),
+
+                              Expanded(
+                                child: Text(
+                                  service.catatan!
+                                      .trim(),
+                                  maxLines: 2,
+                                  overflow:
+                                  TextOverflow
+                                      .ellipsis,
+                                  style:
+                                  TextStyle(
+                                    fontSize: 8,
+                                    height: 1.35,
+                                    color: Colors
+                                        .grey[700],
+                                    fontWeight:
+                                    FontWeight
+                                        .w500,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
-                    ),
-
-                    const SizedBox(height: 4),
-
-                    Text(
-                      'Service ${service.jenisDisplay}',
-                      style: TextStyle(fontSize: 9, color: Colors.grey[600]),
-                    ),
-
-                    const SizedBox(height: 5),
-
-                    Row(
-                      children: [
-                        Icon(Iconsax.clock, size: 12, color: kPrimaryColor),
-
-                        const SizedBox(width: 5),
-
-                        Expanded(
-                          child: Text(
-                            _formatVisitDate(service.tanggalBerkunjung),
-                            style: TextStyle(
-                              fontSize: 9,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-
-              const SizedBox(width: 6),
-
-              Icon(Iconsax.arrow_right_3, size: 17, color: Colors.grey[400]),
-            ],
+              ],
+            ),
           ),
         ),
       ),
+    );
+  }
+
+  // ============================================================
+// UPCOMING META CHIP
+// ============================================================
+
+  Widget _buildUpcomingMetaChip({
+    required IconData icon,
+    required String label,
+    required Color color,
+  }) {
+    return Container(
+      padding:
+      const EdgeInsets.symmetric(
+        horizontal: 9,
+        vertical: 6,
+      ),
+      decoration: BoxDecoration(
+        color: color.withValues(
+          alpha: 0.065,
+        ),
+        borderRadius:
+        BorderRadius.circular(10),
+        border: Border.all(
+          color: color.withValues(
+            alpha: 0.08,
+          ),
+        ),
+      ),
+      child: Row(
+        mainAxisSize:
+        MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: 12,
+            color: color,
+          ),
+
+          const SizedBox(
+            width: 5,
+          ),
+
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 8,
+              color: color,
+              fontWeight:
+              FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+// UPCOMING SCHEDULE INFO
+// ============================================================
+
+  Widget _buildUpcomingScheduleInfo({
+    required IconData icon,
+    required String title,
+    required String value,
+    Color? valueColor,
+  }) {
+    return Row(
+      children: [
+        Container(
+          width: 29,
+          height: 29,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius:
+            BorderRadius.circular(8),
+          ),
+          child: Icon(
+            icon,
+            size: 13,
+            color: Colors.grey[500],
+          ),
+        ),
+
+        const SizedBox(
+          width: 7,
+        ),
+
+        Expanded(
+          child: Column(
+            crossAxisAlignment:
+            CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 7,
+                  color:
+                  Colors.grey[500],
+                  fontWeight:
+                  FontWeight.w500,
+                ),
+              ),
+
+              const SizedBox(
+                height: 2,
+              ),
+
+              Text(
+                value,
+                maxLines: 1,
+                overflow:
+                TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 8.5,
+                  color: valueColor ??
+                      const Color(
+                        0xFF474955,
+                      ),
+                  fontWeight:
+                  FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ============================================================
+// UPCOMING DATE FORMAT
+// ============================================================
+
+  String _formatUpcomingDate(
+      DateTime? date,
+      ) {
+    if (date == null) {
+      return '-';
+    }
+
+    return DateFormat(
+      'EEE, dd MMM',
+      'id_ID',
+    ).format(
+      date.toLocal(),
+    );
+  }
+
+  String _formatUpcomingTime(
+      DateTime? date,
+      ) {
+    if (date == null) {
+      return '-';
+    }
+
+    return DateFormat(
+      'HH:mm',
+      'id_ID',
+    ).format(
+      date.toLocal(),
     );
   }
 
@@ -2124,6 +2630,166 @@ class _HomePageState extends State<HomePage> {
         );
       },
     );
+  }
+
+  // ============================================================
+// SERVICE LOCATION NAME
+// ============================================================
+
+  String _getServiceLocationName(
+      ServisModel service,
+      ) {
+    // ==========================================================
+    // 1. FIELD YANG SUDAH ADA DI MODEL
+    // ==========================================================
+
+    try {
+      final direct =
+      service.lokasiNama.trim();
+
+      if (direct.isNotEmpty &&
+          direct != '-' &&
+          direct.toLowerCase() !=
+              'null') {
+        return direct;
+      }
+    } catch (_) {}
+
+    // ==========================================================
+    // 2. FALLBACK DARI JSON
+    // ==========================================================
+
+    try {
+      final dynamic dynamicService =
+          service;
+
+      final dynamic raw =
+      dynamicService.toJson();
+
+      if (raw is! Map) {
+        return 'Lokasi belum tersedia';
+      }
+
+      final map =
+      Map<String, dynamic>.from(
+        raw,
+      );
+
+      // ========================================================
+      // DIRECT FIELD
+      // ========================================================
+
+      final directCandidates = [
+        map['lokasi_nama'],
+        map['location_name'],
+        map['lokasi_name'],
+        map['nama_lokasi'],
+        map['locationName'],
+        map['lokasiNama'],
+      ];
+
+      for (final candidate
+      in directCandidates) {
+        final value =
+        (candidate ?? '')
+            .toString()
+            .trim();
+
+        if (value.isNotEmpty &&
+            value != '-' &&
+            value.toLowerCase() !=
+                'null') {
+          return value;
+        }
+      }
+
+      // ========================================================
+      // LOCATION / LOKASI
+      // ========================================================
+
+      final locationRaw =
+          map['location'] ??
+              map['lokasi'];
+
+      if (locationRaw is Map) {
+        final name =
+        (locationRaw['name'] ??
+            locationRaw['nama'] ??
+            '')
+            .toString()
+            .trim();
+
+        if (name.isNotEmpty &&
+            name != '-') {
+          return name;
+        }
+      }
+
+      // ========================================================
+      // ROOM -> LOCATION
+      // ========================================================
+
+      final roomRaw =
+      map['room'];
+
+      if (roomRaw is Map) {
+        final roomLocation =
+            roomRaw['location'] ??
+                roomRaw['lokasi'];
+
+        if (roomLocation is Map) {
+          final name =
+          (roomLocation['name'] ??
+              roomLocation[
+              'nama'] ??
+              '')
+              .toString()
+              .trim();
+
+          if (name.isNotEmpty &&
+              name != '-') {
+            return name;
+          }
+        }
+      }
+
+      // ========================================================
+      // AC UNIT -> ROOM -> LOCATION
+      // ========================================================
+
+      final acRaw =
+          map['ac_unit'] ??
+              map['acUnit'] ??
+              map['ac'];
+
+      if (acRaw is Map) {
+        final acRoom =
+        acRaw['room'];
+
+        if (acRoom is Map) {
+          final acLocation =
+              acRoom['location'] ??
+                  acRoom['lokasi'];
+
+          if (acLocation is Map) {
+            final name =
+            (acLocation['name'] ??
+                acLocation[
+                'nama'] ??
+                '')
+                .toString()
+                .trim();
+
+            if (name.isNotEmpty &&
+                name != '-') {
+              return name;
+            }
+          }
+        }
+      }
+    } catch (_) {}
+
+    return 'Lokasi belum tersedia';
   }
 
   // ============================================================

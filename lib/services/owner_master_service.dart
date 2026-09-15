@@ -483,8 +483,129 @@ class OwnerMasterService {
   Future<List<ServisModel>> getUpcomingVisits() async {
     _log('📅 getUpcomingVisits');
 
-    final response = await api.get(ApiConfig.upcomingVisits);
-    return _parseList(response['data'], ServisModel.fromMap);
+    final response = await api.get(
+      ApiConfig.upcomingVisits,
+    );
+
+    final rawData =
+    response['data'];
+
+    if (rawData is! List) {
+      return <ServisModel>[];
+    }
+
+    // ============================================================
+    // PARSE SERVICE ITEM -> SERVICE
+    // ============================================================
+
+    final parsed = <ServisModel>[];
+
+    for (final item in rawData) {
+      if (item is! Map) {
+        continue;
+      }
+
+      try {
+        parsed.add(
+          ServisModel.fromMap(
+            Map<String, dynamic>.from(
+              item,
+            ),
+          ),
+        );
+      } catch (e) {
+        _log(
+          '⚠️ Gagal parse upcoming visit: $e',
+        );
+      }
+    }
+
+    // ============================================================
+    // DEDUP BERDASARKAN SERVICE ID
+    //
+    // Contoh:
+    // service_id = 11 mempunyai 4 AC / 4 ServiceItem.
+    //
+    // Di Home cukup tampil 1 card Service.
+    // ============================================================
+
+    final uniqueServices =
+    <int, ServisModel>{};
+
+    for (final service in parsed) {
+      final existing =
+      uniqueServices[service.id];
+
+      if (existing == null) {
+        uniqueServices[service.id] =
+            service;
+
+        continue;
+      }
+
+      // Jika ada beberapa ServiceItem,
+      // gunakan jadwal yang paling awal.
+      final existingDate =
+          existing.tanggalBerkunjung;
+
+      final newDate =
+          service.tanggalBerkunjung;
+
+      if (existingDate == null &&
+          newDate != null) {
+        uniqueServices[service.id] =
+            service;
+      } else if (existingDate != null &&
+          newDate != null &&
+          newDate.isBefore(
+            existingDate,
+          )) {
+        uniqueServices[service.id] =
+            service;
+      }
+    }
+
+    final result =
+    uniqueServices.values.toList();
+
+    // ============================================================
+    // SORT BERDASARKAN JADWAL TERDEKAT
+    // ============================================================
+
+    result.sort(
+          (a, b) {
+        final aDate =
+            a.tanggalBerkunjung;
+
+        final bDate =
+            b.tanggalBerkunjung;
+
+        if (aDate == null &&
+            bDate == null) {
+          return 0;
+        }
+
+        if (aDate == null) {
+          return 1;
+        }
+
+        if (bDate == null) {
+          return -1;
+        }
+
+        return aDate.compareTo(
+          bDate,
+        );
+      },
+    );
+
+    _log(
+      '📅 Upcoming visits: '
+          '${rawData.length} item -> '
+          '${result.length} service',
+    );
+
+    return result;
   }
 
   Future<List<AcModel>> getReminderAc3Bulan() async {
