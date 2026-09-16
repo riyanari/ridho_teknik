@@ -14,6 +14,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/client_ac_provider.dart';
 import '../../providers/client_master_provider.dart';
 import '../../providers/client_servis_provider.dart';
+import '../../services/notification_service.dart';
 
 import '../../theme/theme.dart';
 
@@ -45,15 +46,27 @@ class _KlienPageState extends State<KlienPage> {
   void initState() {
     super.initState();
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadHomeData();
-    });
+    WidgetsBinding.instance.addPostFrameCallback(
+          (_) async {
+        await NotificationService.instance
+            .requestPermission();
+
+        if (!mounted) return;
+
+        await _loadHomeData();
+      },
+    );
   }
 
   Future<void> _loadHomeData() async {
-    final masterProvider = context.read<ClientMasterProvider>();
-    final acProvider = context.read<ClientAcProvider>();
-    final servisProvider = context.read<ClientServisProvider>();
+    final masterProvider =
+    context.read<ClientMasterProvider>();
+
+    final acProvider =
+    context.read<ClientAcProvider>();
+
+    final servisProvider =
+    context.read<ClientServisProvider>();
 
     await masterProvider.fetchLokasi();
 
@@ -65,6 +78,111 @@ class _KlienPageState extends State<KlienPage> {
       ),
       servisProvider.fetchAllServis(),
     ]);
+
+    if (!mounted) return;
+
+    await _scheduleMaintenanceNotifications(
+      masterProvider.lokasi,
+      acProvider.acByLocation,
+    );
+  }
+
+  Future<void> _scheduleMaintenanceNotifications(
+      List<LokasiModel> lokasiList,
+      Map<int, List<AcModel>> acByLocation,
+      ) async {
+    for (final lokasi in lokasiList) {
+      final acList =
+          acByLocation[lokasi.id] ??
+              <AcModel>[];
+
+      if (acList.isEmpty) {
+        continue;
+      }
+
+      final intervalMonths =
+      _getServiceIntervalMonths(
+        lokasi,
+      );
+
+      // ==========================================================
+      // GROUP AC BERDASARKAN TANGGAL SERVICE BERIKUTNYA
+      //
+      // Contoh:
+      //
+      // AC 1  -> 27 Sep 2026
+      // AC 2  -> 27 Sep 2026
+      // AC 3  -> 28 Sep 2026
+      //
+      // Hasil:
+      //
+      // 27 Sep = 2 AC
+      // 28 Sep = 1 AC
+      //
+      // ==========================================================
+
+      final groupedByDate =
+      <DateTime, List<AcModel>>{};
+
+      for (final ac in acList) {
+        final nextService =
+        _getNextServiceDateForAc(
+          ac,
+          intervalMonths,
+        );
+
+        // AC belum pernah service
+        if (nextService == null) {
+          continue;
+        }
+
+        // Normalisasi agar jam tidak mempengaruhi grouping
+        final serviceDate =
+        DateTime(
+          nextService.year,
+          nextService.month,
+          nextService.day,
+        );
+
+        groupedByDate.putIfAbsent(
+          serviceDate,
+              () => <AcModel>[],
+        );
+
+        groupedByDate[serviceDate]!.add(
+          ac,
+        );
+      }
+
+      // ==========================================================
+      // SCHEDULE 1 NOTIF UNTUK 1 TANGGAL
+      // ==========================================================
+
+      for (final entry
+      in groupedByDate.entries) {
+        final serviceDate =
+            entry.key;
+
+        final acGroup =
+            entry.value;
+
+        if (acGroup.isEmpty) {
+          continue;
+        }
+
+        await NotificationService.instance
+            .scheduleMaintenanceReminder(
+          locationId:
+          lokasi.id,
+          locationName:
+          lokasi.nama,
+          totalAc:
+          acGroup.length,
+          nextServiceDate:
+          serviceDate,
+        );
+      }
+    }
   }
 
   // ============================================================

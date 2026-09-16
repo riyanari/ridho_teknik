@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:ridho_teknik/pages/klien/client_main_page.dart';
 import 'package:ridho_teknik/providers/ac_master_provider.dart';
 import 'package:ridho_teknik/services/ac_master_service.dart';
+import 'package:ridho_teknik/services/notification_service.dart';
 
 import 'api/api_client.dart';
 import 'pages/splash_page.dart';
@@ -41,6 +42,12 @@ void main() async {
 
   await initializeDateFormatting('id_ID', '');
   Intl.defaultLocale = 'id_ID';
+
+  // ============================================================
+  // NOTIFICATION
+  // ============================================================
+
+  await NotificationService.instance.initialize();
 
   // 🔥 SINGLETON (PENTING)
   final tokenStore = TokenStore();
