@@ -35,6 +35,8 @@ class _KlienPageState extends State<KlienPage> {
   static const int _maxMaintenanceHome = 3;
   static const int _maxActiveServiceHome = 3;
 
+  static const Color _successColor = Color(0xFF16A34A);
+
   // ============================================================
   // INIT
   // ============================================================
@@ -49,16 +51,10 @@ class _KlienPageState extends State<KlienPage> {
   }
 
   Future<void> _loadHomeData() async {
-    final masterProvider =
-    context.read<ClientMasterProvider>();
+    final masterProvider = context.read<ClientMasterProvider>();
+    final acProvider = context.read<ClientAcProvider>();
+    final servisProvider = context.read<ClientServisProvider>();
 
-    final acProvider =
-    context.read<ClientAcProvider>();
-
-    final servisProvider =
-    context.read<ClientServisProvider>();
-
-    // Lokasi harus diambil dulu karena endpoint AC wajib location_id.
     await masterProvider.fetchLokasi();
 
     if (!mounted) return;
@@ -75,8 +71,11 @@ class _KlienPageState extends State<KlienPage> {
   // USER
   // ============================================================
 
-  String _getNamaUser(BuildContext context) {
+  String _getNamaUser(
+      BuildContext context,
+      ) {
     final auth = context.read<AuthProvider>();
+
     final name = auth.user?.name?.trim();
 
     if (name != null && name.isNotEmpty) {
@@ -122,26 +121,37 @@ class _KlienPageState extends State<KlienPage> {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
+      isScrollControlled: true,
       builder: (sheetContext) {
-        final nama = _getNamaUser(context);
+        final nama = _getNamaUser(
+          context,
+        );
 
         return SafeArea(
+          top: false,
           child: Container(
-            margin: const EdgeInsets.all(16),
+            margin: const EdgeInsets.all(14),
             padding: const EdgeInsets.fromLTRB(
-              20,
-              12,
-              20,
-              20,
+              18,
+              11,
+              18,
+              18,
             ),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(28),
+              borderRadius: BorderRadius.circular(
+                24,
+              ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.08),
-                  blurRadius: 30,
-                  offset: const Offset(0, 15),
+                  color: Colors.black.withValues(
+                    alpha: 0.08,
+                  ),
+                  blurRadius: 28,
+                  offset: const Offset(
+                    0,
+                    14,
+                  ),
                 ),
               ],
             ),
@@ -149,94 +159,132 @@ class _KlienPageState extends State<KlienPage> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  width: 42,
-                  height: 5,
+                  width: 40,
+                  height: 4,
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(20),
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(
+                      20,
+                    ),
                   ),
                 ),
 
-                const SizedBox(height: 22),
+                const SizedBox(
+                  height: 20,
+                ),
 
                 Container(
-                  width: 64,
-                  height: 64,
+                  width: 62,
+                  height: 62,
                   decoration: BoxDecoration(
-                    color: kPrimaryColor.withValues(alpha: 0.10),
+                    color: kPrimaryColor.withValues(
+                      alpha: 0.09,
+                    ),
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(
+                  child: const Icon(
                     Iconsax.user,
-                    size: 28,
                     color: kPrimaryColor,
+                    size: 27,
                   ),
                 ),
 
-                const SizedBox(height: 12),
+                const SizedBox(
+                  height: 11,
+                ),
 
                 Text(
                   nama,
                   textAlign: TextAlign.center,
                   style: primaryTextStyle.copyWith(
-                    fontSize: 18,
+                    fontSize: 17,
                     fontWeight: bold,
                   ),
                 ),
 
-                const SizedBox(height: 4),
+                const SizedBox(
+                  height: 3,
+                ),
 
                 Text(
                   'Akun Klien',
                   style: greyTextStyle.copyWith(
-                    fontSize: 12,
+                    fontSize: 11,
                   ),
                 ),
 
-                const SizedBox(height: 22),
+                const SizedBox(
+                  height: 20,
+                ),
 
-                InkWell(
-                  onTap: () {
-                    Navigator.pop(sheetContext);
-                    _confirmLogout();
-                  },
-                  borderRadius: BorderRadius.circular(18),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 15,
-                      horizontal: 16,
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () {
+                      Navigator.pop(
+                        sheetContext,
+                      );
+
+                      _confirmLogout();
+                    },
+                    borderRadius: BorderRadius.circular(
+                      15,
                     ),
-                    decoration: BoxDecoration(
-                      color: Colors.red.withValues(alpha: 0.07),
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Iconsax.logout_1,
-                          color: Colors.red.shade500,
-                          size: 21,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 13,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withValues(
+                          alpha: 0.055,
                         ),
-
-                        const SizedBox(width: 12),
-
-                        Text(
-                          'Keluar',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.red.shade500,
+                        borderRadius: BorderRadius.circular(
+                          15,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 38,
+                            height: 38,
+                            decoration: BoxDecoration(
+                              color: Colors.red.withValues(
+                                alpha: 0.08,
+                              ),
+                              borderRadius: BorderRadius.circular(
+                                11,
+                              ),
+                            ),
+                            child: Icon(
+                              Iconsax.logout_1,
+                              color: Colors.red[500],
+                              size: 18,
+                            ),
                           ),
-                        ),
 
-                        const Spacer(),
+                          const SizedBox(
+                            width: 10,
+                          ),
 
-                        Icon(
-                          Icons.arrow_forward_ios_rounded,
-                          size: 14,
-                          color: Colors.red.shade300,
-                        ),
-                      ],
+                          Expanded(
+                            child: Text(
+                              'Keluar dari akun',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.red[500],
+                              ),
+                            ),
+                          ),
+
+                          Icon(
+                            Iconsax.arrow_right_3,
+                            size: 15,
+                            color: Colors.red[300],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -261,30 +309,19 @@ class _KlienPageState extends State<KlienPage> {
   // ============================================================
 
   @override
-  Widget build(BuildContext context) {
-    final masterProvider =
-    context.watch<ClientMasterProvider>();
+  Widget build(
+      BuildContext context,
+      ) {
+    final masterProvider = context.watch<ClientMasterProvider>();
+    final acProvider = context.watch<ClientAcProvider>();
+    final servisProvider = context.watch<ClientServisProvider>();
 
-    final acProvider =
-    context.watch<ClientAcProvider>();
+    final lokasiList = masterProvider.lokasi;
+    final allAc = acProvider.allAc;
+    final activeServis = servisProvider.allActiveServis;
 
-    final servisProvider =
-    context.watch<ClientServisProvider>();
-
-    final lokasiList =
-        masterProvider.lokasi;
-
-    final allAc =
-        acProvider.allAc;
-
-    final activeServis =
-        servisProvider.allActiveServis;
-
-    final totalLokasi =
-        lokasiList.length;
-
-    final totalAc =
-        allAc.length;
+    final totalLokasi = lokasiList.length;
+    final totalAc = allAc.length;
 
     final isInitialLoading =
         (masterProvider.loading && lokasiList.isEmpty) ||
@@ -304,9 +341,9 @@ class _KlienPageState extends State<KlienPage> {
             slivers: [
               SliverPadding(
                 padding: const EdgeInsets.fromLTRB(
-                  20,
-                  16,
-                  20,
+                  18,
+                  14,
+                  18,
                   120,
                 ),
                 sliver: SliverList(
@@ -318,10 +355,12 @@ class _KlienPageState extends State<KlienPage> {
 
                       _buildHeader(),
 
-                      const SizedBox(height: 28),
+                      const SizedBox(
+                        height: 24,
+                      ),
 
                       // ====================================================
-                      // RINGKASAN
+                      // SUMMARY
                       // ====================================================
 
                       _buildSectionHeader(
@@ -329,7 +368,9 @@ class _KlienPageState extends State<KlienPage> {
                         subtitle: 'Informasi aset AC Anda',
                       ),
 
-                      const SizedBox(height: 14),
+                      const SizedBox(
+                        height: 12,
+                      ),
 
                       if (isInitialLoading)
                         _buildSummaryLoading()
@@ -341,23 +382,28 @@ class _KlienPageState extends State<KlienPage> {
                                 icon: Icons.ac_unit_rounded,
                                 value: totalAc.toString(),
                                 title: 'Unit AC',
-                                backgroundColor:
-                                const Color(0xFFF1F4FF),
+                                backgroundColor: const Color(
+                                  0xFFF1F3FF,
+                                ),
                                 iconColor: kPrimaryColor,
                               ),
                             ),
 
-                            const SizedBox(width: 12),
+                            const SizedBox(
+                              width: 10,
+                            ),
 
                             Expanded(
                               child: _buildSummaryCard(
                                 icon: Iconsax.building_4,
                                 value: totalLokasi.toString(),
                                 title: 'Lokasi',
-                                backgroundColor:
-                                const Color(0xFFF2F8F7),
-                                iconColor:
-                                const Color(0xFF3B8C80),
+                                backgroundColor: const Color(
+                                  0xFFF0F8F6,
+                                ),
+                                iconColor: const Color(
+                                  0xFF2F8B7E,
+                                ),
                               ),
                             ),
                           ],
@@ -365,7 +411,9 @@ class _KlienPageState extends State<KlienPage> {
 
                       if (masterProvider.error != null &&
                           lokasiList.isEmpty) ...[
-                        const SizedBox(height: 12),
+                        const SizedBox(
+                          height: 10,
+                        ),
                         _buildErrorCard(
                           masterProvider.error!,
                         ),
@@ -373,16 +421,20 @@ class _KlienPageState extends State<KlienPage> {
 
                       if (acProvider.allError != null &&
                           allAc.isEmpty) ...[
-                        const SizedBox(height: 12),
+                        const SizedBox(
+                          height: 10,
+                        ),
                         _buildErrorCard(
                           acProvider.allError!,
                         ),
                       ],
 
-                      const SizedBox(height: 32),
+                      const SizedBox(
+                        height: 28,
+                      ),
 
                       // ====================================================
-                      // SERVIS BERJALAN
+                      // ACTIVE SERVICE
                       // ====================================================
 
                       _buildSectionHeader(
@@ -390,13 +442,13 @@ class _KlienPageState extends State<KlienPage> {
                         subtitle:
                         'Permintaan dan pengerjaan yang belum selesai',
                         actionText:
-                        activeServis.isNotEmpty
-                            ? 'Lihat Semua'
-                            : null,
+                        activeServis.isNotEmpty ? 'Lihat Semua' : null,
                         onAction: widget.onOpenServis,
                       ),
 
-                      const SizedBox(height: 14),
+                      const SizedBox(
+                        height: 12,
+                      ),
 
                       if (servisProvider.loadingAll &&
                           activeServis.isEmpty)
@@ -410,29 +462,29 @@ class _KlienPageState extends State<KlienPage> {
                           servisProvider,
                         ),
 
-                      const SizedBox(height: 32),
+                      const SizedBox(
+                        height: 28,
+                      ),
 
                       // ====================================================
-                      // PENGINGAT SERVIS
+                      // MAINTENANCE
                       // ====================================================
 
                       _buildSectionHeader(
                         title: 'Pengingat Servis AC',
                         subtitle:
                         'Lokasi yang paling membutuhkan perhatian',
-                        actionText:
-                        lokasiList.length >
-                            _maxMaintenanceHome
+                        actionText: lokasiList.length > _maxMaintenanceHome
                             ? 'Lihat Semua'
                             : null,
-                        onAction:
-                        widget.onOpenDaftarAc,
+                        onAction: widget.onOpenDaftarAc,
                       ),
 
-                      const SizedBox(height: 14),
+                      const SizedBox(
+                        height: 12,
+                      ),
 
-                      if (acProvider.loadingAll &&
-                          allAc.isEmpty)
+                      if (acProvider.loadingAll && allAc.isEmpty)
                         _buildMaintenanceLoading()
                       else
                         _buildMaintenanceSchedule(
@@ -440,7 +492,9 @@ class _KlienPageState extends State<KlienPage> {
                           acProvider.acByLocation,
                         ),
 
-                      const SizedBox(height: 20),
+                      const SizedBox(
+                        height: 20,
+                      ),
                     ],
                   ),
                 ),
@@ -460,90 +514,117 @@ class _KlienPageState extends State<KlienPage> {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(
-        20,
-        17,
-        15,
-        17,
+        18,
+        16,
+        14,
+        16,
       ),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
+        gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            kPrimaryColor,
-            const Color(0xFF6372D0),
+            Color(0xFF535EC4),
+            Color(0xFF34479D),
           ],
         ),
-        borderRadius: BorderRadius.circular(27),
+        borderRadius: BorderRadius.circular(
+          23,
+        ),
         boxShadow: [
           BoxShadow(
-            color: kPrimaryColor.withValues(alpha: 0.20),
-            blurRadius: 25,
-            offset: const Offset(0, 10),
+            color: kPrimaryColor.withValues(
+              alpha: 0.18,
+            ),
+            blurRadius: 22,
+            offset: const Offset(
+              0,
+              8,
+            ),
           ),
         ],
       ),
-      child: Row(
+      child: Stack(
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment:
-              CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Halo, ${_getNamaUser(context)}!',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: whiteTextStyle.copyWith(
-                    fontSize: 20,
-                    fontWeight: bold,
-                  ),
+          Positioned(
+            right: -25,
+            top: -45,
+            child: Container(
+              width: 130,
+              height: 130,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(
+                  alpha: 0.04,
                 ),
-
-                const SizedBox(height: 4),
-
-                Text(
-                  'Selamat datang kembali',
-                  style: whiteTextStyle.copyWith(
-                    fontSize: 12.5,
-                    fontWeight: regular,
-                    color: Colors.white.withValues(
-                      alpha: 0.78,
-                    ),
-                  ),
-                ),
-              ],
+                shape: BoxShape.circle,
+              ),
             ),
           ),
 
-          const SizedBox(width: 14),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Halo, ${_getNamaUser(context)}!',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: whiteTextStyle.copyWith(
+                        fontSize: 19,
+                        fontWeight: bold,
+                      ),
+                    ),
 
-          Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: _openAccountMenu,
-              borderRadius:
-              BorderRadius.circular(18),
-              child: Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: Colors.white
-                      .withValues(alpha: 0.15),
-                  borderRadius:
-                  BorderRadius.circular(18),
-                  border: Border.all(
-                    color: Colors.white
-                        .withValues(alpha: 0.18),
-                  ),
-                ),
-                child: const Icon(
-                  Iconsax.user,
-                  color: Colors.white,
-                  size: 23,
+                    const SizedBox(
+                      height: 4,
+                    ),
+
+                    Text(
+                      'Pantau aset dan servis AC Anda',
+                      style: TextStyle(
+                        fontSize: 10.5,
+                        color: Colors.white.withValues(
+                          alpha: 0.72,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ),
+
+              const SizedBox(
+                width: 12,
+              ),
+
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: _openAccountMenu,
+                  borderRadius: BorderRadius.circular(
+                    14,
+                  ),
+                  child: Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(
+                        alpha: 0.13,
+                      ),
+                      borderRadius: BorderRadius.circular(
+                        14,
+                      ),
+                    ),
+                    child: const Icon(
+                      Iconsax.user,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -561,13 +642,11 @@ class _KlienPageState extends State<KlienPage> {
     VoidCallback? onAction,
   }) {
     return Row(
-      crossAxisAlignment:
-      CrossAxisAlignment.end,
+      crossAxisAlignment: CrossAxisAlignment.end,
       children: [
         Expanded(
           child: Column(
-            crossAxisAlignment:
-            CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 title,
@@ -578,11 +657,13 @@ class _KlienPageState extends State<KlienPage> {
               ),
 
               if (subtitle != null) ...[
-                const SizedBox(height: 4),
+                const SizedBox(
+                  height: 3,
+                ),
                 Text(
                   subtitle,
                   style: greyTextStyle.copyWith(
-                    fontSize: 11.5,
+                    fontSize: 10,
                     height: 1.35,
                   ),
                 ),
@@ -596,21 +677,18 @@ class _KlienPageState extends State<KlienPage> {
             onPressed: onAction,
             style: TextButton.styleFrom(
               foregroundColor: kPrimaryColor,
-              padding:
-              const EdgeInsets.symmetric(
+              padding: const EdgeInsets.symmetric(
                 horizontal: 4,
-                vertical: 2,
+                vertical: 3,
               ),
               minimumSize: Size.zero,
-              tapTargetSize:
-              MaterialTapTargetSize.shrinkWrap,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
             child: Text(
               actionText,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight:
-                FontWeight.w700,
+              style: const TextStyle(
+                fontSize: 10.5,
+                fontWeight: FontWeight.w700,
                 color: kPrimaryColor,
               ),
             ),
@@ -631,7 +709,11 @@ class _KlienPageState extends State<KlienPage> {
     required Color iconColor,
   }) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      height: 84,
+      padding: const EdgeInsets.symmetric(
+        horizontal: 14,
+        vertical: 13,
+      ),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -641,64 +723,73 @@ class _KlienPageState extends State<KlienPage> {
             Colors.white,
           ],
         ),
-        borderRadius:
-        BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(
+          19,
+        ),
         border: Border.all(
-          color:
-          iconColor.withValues(alpha: 0.08),
+          color: iconColor.withValues(
+            alpha: 0.07,
+          ),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black
-                .withValues(alpha: 0.03),
-            blurRadius: 18,
-            offset: const Offset(0, 7),
+            color: Colors.black.withValues(
+              alpha: 0.025,
+            ),
+            blurRadius: 14,
+            offset: const Offset(
+              0,
+              5,
+            ),
           ),
         ],
       ),
       child: Row(
         children: [
           Container(
-            width: 46,
-            height: 46,
+            width: 43,
+            height: 43,
             decoration: BoxDecoration(
               color: iconColor.withValues(
-                alpha: 0.10,
+                alpha: 0.09,
               ),
-              borderRadius:
-              BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(
+                13,
+              ),
             ),
             child: Icon(
               icon,
               color: iconColor,
-              size: 22,
+              size: 20,
             ),
           ),
 
-          const SizedBox(width: 13),
+          const SizedBox(
+            width: 11,
+          ),
 
           Expanded(
             child: Column(
-              crossAxisAlignment:
-              CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   value,
-                  style:
-                  primaryTextStyle.copyWith(
-                    fontSize: 21,
+                  style: primaryTextStyle.copyWith(
+                    fontSize: 20,
                     height: 1,
                     fontWeight: bold,
                   ),
                 ),
 
-                const SizedBox(height: 6),
+                const SizedBox(
+                  height: 6,
+                ),
 
                 Text(
                   title,
-                  style:
-                  greyTextStyle.copyWith(
-                    fontSize: 11.5,
+                  style: greyTextStyle.copyWith(
+                    fontSize: 10,
                   ),
                 ),
               ],
@@ -714,13 +805,15 @@ class _KlienPageState extends State<KlienPage> {
       children: [
         Expanded(
           child: _buildLoadingBox(
-            height: 80,
+            height: 84,
           ),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(
+          width: 10,
+        ),
         Expanded(
           child: _buildLoadingBox(
-            height: 80,
+            height: 84,
           ),
         ),
       ],
@@ -738,8 +831,7 @@ class _KlienPageState extends State<KlienPage> {
       return servis.locationId;
     }
 
-    final raw =
-    servis.lokasiData?['id'];
+    final raw = servis.lokasiData?['id'];
 
     if (raw is int) {
       return raw;
@@ -750,17 +842,37 @@ class _KlienPageState extends State<KlienPage> {
     );
   }
 
+  DateTime? _getLatestServiceDate(
+      List<ServisModel> servisList,
+      ) {
+    DateTime? latest;
+
+    for (final servis in servisList) {
+      final date = servis.tanggalBerkunjung;
+
+      if (date == null) {
+        continue;
+      }
+
+      if (latest == null || date.isAfter(latest)) {
+        latest = date;
+      }
+    }
+
+    return latest;
+  }
+
   Widget _buildActiveServiceList(
       List<ServisModel> servisList,
       List<LokasiModel> lokasiList,
       ClientServisProvider provider,
       ) {
-    final grouped =
-    <int, List<ServisModel>>{};
+    final grouped = <int, List<ServisModel>>{};
 
     for (final servis in servisList) {
-      final locationId =
-      _getServiceLocationId(servis);
+      final locationId = _getServiceLocationId(
+        servis,
+      );
 
       if (locationId == null) {
         continue;
@@ -768,38 +880,86 @@ class _KlienPageState extends State<KlienPage> {
 
       grouped.putIfAbsent(
         locationId,
-            () => [],
+            () => <ServisModel>[],
       );
 
-      grouped[locationId]!.add(servis);
+      grouped[locationId]!.add(
+        servis,
+      );
     }
 
-    final entries =
-    grouped.entries.toList();
+    final entries = grouped.entries.toList();
 
-    entries.sort((a, b) {
-      final aPriority =
-      _getHighestServicePriority(
-        a.value,
-        provider,
-      );
+    // ==========================================================
+    // URUTKAN BERDASARKAN TANGGAL SERVICE TERBARU
+    // ==========================================================
 
-      final bPriority =
-      _getHighestServicePriority(
-        b.value,
-        provider,
-      );
+    entries.sort(
+          (a, b) {
+        final dateA = _getLatestServiceDate(
+          a.value,
+        );
 
-      return bPriority.compareTo(aPriority);
-    });
+        final dateB = _getLatestServiceDate(
+          b.value,
+        );
+
+        if (dateA == null && dateB == null) {
+          final priorityA = _getHighestServicePriority(
+            a.value,
+            provider,
+          );
+
+          final priorityB = _getHighestServicePriority(
+            b.value,
+            provider,
+          );
+
+          return priorityB.compareTo(
+            priorityA,
+          );
+        }
+
+        if (dateA == null) {
+          return 1;
+        }
+
+        if (dateB == null) {
+          return -1;
+        }
+
+        final dateCompare = dateB.compareTo(
+          dateA,
+        );
+
+        if (dateCompare != 0) {
+          return dateCompare;
+        }
+
+        final priorityA = _getHighestServicePriority(
+          a.value,
+          provider,
+        );
+
+        final priorityB = _getHighestServicePriority(
+          b.value,
+          provider,
+        );
+
+        return priorityB.compareTo(
+          priorityA,
+        );
+      },
+    );
 
     if (entries.isEmpty) {
       return _buildEmptyActiveService();
     }
 
-    final visibleEntries =
-    entries
-        .take(_maxActiveServiceHome)
+    final visibleEntries = entries
+        .take(
+      _maxActiveServiceHome,
+    )
         .toList();
 
     return Column(
@@ -807,26 +967,21 @@ class _KlienPageState extends State<KlienPage> {
         ...List.generate(
           visibleEntries.length,
               (index) {
-            final entry =
-            visibleEntries[index];
+            final entry = visibleEntries[index];
 
-            final lokasi =
-            _findLocation(
+            final lokasi = _findLocation(
               lokasiList,
               entry.key,
             );
 
             return Padding(
               padding: EdgeInsets.only(
-                bottom:
-                index ==
-                    visibleEntries.length -
-                        1
+                bottom: index ==
+                    visibleEntries.length - 1
                     ? 0
-                    : 12,
+                    : 10,
               ),
-              child:
-              _buildActiveServiceCard(
+              child: _buildActiveServiceCard(
                 lokasi: lokasi,
                 servisList: entry.value,
                 provider: provider,
@@ -835,12 +990,13 @@ class _KlienPageState extends State<KlienPage> {
           },
         ),
 
-        if (entries.length >
-            _maxActiveServiceHome) ...[
-          const SizedBox(height: 12),
+        if (entries.length > _maxActiveServiceHome) ...[
+          const SizedBox(
+            height: 11,
+          ),
           _buildMoreInfoBar(
             text:
-            'Menampilkan $_maxActiveServiceHome dari ${entries.length} lokasi servis',
+            'Menampilkan $_maxActiveServiceHome dari ${entries.length} lokasi servis aktif',
             onTap: widget.onOpenServis,
           ),
         ],
@@ -855,10 +1011,9 @@ class _KlienPageState extends State<KlienPage> {
   }) {
     int totalAc = 0;
 
-    final technicianNames =
-    <String>{};
+    final technicianNames = <String>{};
 
-    DateTime? nearestVisitDate;
+    DateTime? latestVisitDate;
 
     for (final servis in servisList) {
       if (servis.itemsData.isNotEmpty) {
@@ -869,30 +1024,29 @@ class _KlienPageState extends State<KlienPage> {
         totalAc++;
       }
 
-      final visitDate =
-          servis.tanggalBerkunjung;
+      final visitDate = servis.tanggalBerkunjung;
 
       if (visitDate != null) {
-        if (nearestVisitDate == null ||
-            visitDate.isBefore(
-              nearestVisitDate,
+        if (latestVisitDate == null ||
+            visitDate.isAfter(
+              latestVisitDate,
             )) {
-          nearestVisitDate =
-              visitDate;
+          latestVisitDate = visitDate;
         }
       }
 
-      for (final t
-      in servis.techniciansData) {
+      for (final technician in servis.techniciansData) {
         final name =
-        (t['name'] ??
-            t['nama'] ??
+        (technician['name'] ??
+            technician['nama'] ??
             '')
             .toString()
             .trim();
 
         if (name.isNotEmpty) {
-          technicianNames.add(name);
+          technicianNames.add(
+            name,
+          );
         }
       }
 
@@ -909,15 +1063,12 @@ class _KlienPageState extends State<KlienPage> {
         );
       }
 
-      for (final item
-      in servis.itemsData) {
-        final tech =
-        item['technician'];
+      for (final item in servis.itemsData) {
+        final technician = item['technician'];
 
-        if (tech is Map) {
-          final map =
-          Map<String, dynamic>.from(
-            tech,
+        if (technician is Map) {
+          final map = Map<String, dynamic>.from(
+            technician,
           );
 
           final name =
@@ -936,245 +1087,425 @@ class _KlienPageState extends State<KlienPage> {
       }
     }
 
-    final highestStatus =
-    _getHighestServiceStatus(
+    final highestStatus = _getHighestServiceStatus(
       servisList,
       provider,
     );
 
-    final statusInfo =
-    _getServiceStatusInfo(
+    final statusInfo = _getServiceStatusInfo(
       highestStatus,
+    );
+
+    final rawLocationName =
+        lokasi?.nama ?? servisList.first.lokasiNama;
+
+    final locationName =
+    rawLocationName.trim().isEmpty ||
+        rawLocationName.trim() == '-'
+        ? 'Lokasi Service'
+        : rawLocationName.trim();
+
+    final technicianText = technicianNames.isEmpty
+        ? 'Belum ditugaskan'
+        : technicianNames.join(
+      ', ',
     );
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: widget.onOpenServis,
-        borderRadius:
-        BorderRadius.circular(23),
-        child: Ink(
+        borderRadius: BorderRadius.circular(
+          18,
+        ),
+        child: Container(
           width: double.infinity,
-          padding:
-          const EdgeInsets.all(17),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end:
-              Alignment.bottomRight,
-              colors: [
-                statusInfo.color
-                    .withValues(alpha: 0.07),
-                Colors.white,
-              ],
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(
+              18,
             ),
-            borderRadius:
-            BorderRadius.circular(23),
             border: Border.all(
-              color: statusInfo.color
-                  .withValues(alpha: 0.13),
+              color: statusInfo.color.withValues(
+                alpha: 0.09,
+              ),
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black
-                    .withValues(
-                  alpha: 0.025,
+                color: Colors.black.withValues(
+                  alpha: 0.028,
                 ),
-                blurRadius: 16,
-                offset:
-                const Offset(0, 7),
+                blurRadius: 13,
+                offset: const Offset(
+                  0,
+                  4,
+                ),
               ),
             ],
           ),
-          child: Column(
-            crossAxisAlignment:
-            CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment:
-                CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 45,
-                    height: 45,
-                    decoration:
-                    BoxDecoration(
-                      color: statusInfo.color
-                          .withValues(
-                        alpha: 0.11,
-                      ),
-                      borderRadius:
-                      BorderRadius
-                          .circular(15),
-                    ),
-                    child: Icon(
-                      statusInfo.icon,
-                      size: 21,
-                      color:
-                      statusInfo.color,
-                    ),
-                  ),
-
-                  const SizedBox(width: 12),
-
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment:
-                      CrossAxisAlignment
-                          .start,
-                      children: [
-                        Text(
-                          lokasi?.nama ??
-                              servisList
-                                  .first
-                                  .lokasiNama,
-                          maxLines: 2,
-                          overflow:
-                          TextOverflow
-                              .ellipsis,
-                          style:
-                          primaryTextStyle
-                              .copyWith(
-                            fontSize: 14,
-                            fontWeight: bold,
-                          ),
-                        ),
-
-                        const SizedBox(
-                          height: 4,
-                        ),
-
-                        Text(
-                          '${servisList.length} pekerjaan • $totalAc AC',
-                          style:
-                          greyTextStyle
-                              .copyWith(
-                            fontSize: 10.5,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(width: 8),
-
-                  _buildSmallStatusBadge(
-                    text:
-                    statusInfo.label,
-                    color:
-                    statusInfo.color,
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 14),
-
-              if (nearestVisitDate !=
-                  null) ...[
-                _buildServiceInfoRow(
-                  icon:
-                  Iconsax.calendar_1,
-                  label:
-                  'Jadwal Kunjungan',
-                  value: _formatDate(
-                    nearestVisitDate,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(
+              18,
+            ),
+            child: Stack(
+              children: [
+                Positioned(
+                  left: 0,
+                  top: 0,
+                  bottom: 0,
+                  child: Container(
+                    width: 4,
+                    color: statusInfo.color,
                   ),
                 ),
-                const SizedBox(
-                  height: 10,
+
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    15,
+                    13,
+                    13,
+                    13,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            width: 43,
+                            height: 43,
+                            decoration: BoxDecoration(
+                              color: statusInfo.color.withValues(
+                                alpha: 0.08,
+                              ),
+                              borderRadius: BorderRadius.circular(
+                                13,
+                              ),
+                            ),
+                            child: Icon(
+                              statusInfo.icon,
+                              size: 19,
+                              color: statusInfo.color,
+                            ),
+                          ),
+
+                          const SizedBox(
+                            width: 10,
+                          ),
+
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  locationName,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: primaryTextStyle.copyWith(
+                                    fontSize: 13,
+                                    height: 1.25,
+                                    fontWeight: bold,
+                                  ),
+                                ),
+
+                                const SizedBox(
+                                  height: 5,
+                                ),
+
+                                Wrap(
+                                  spacing: 6,
+                                  runSpacing: 5,
+                                  children: [
+                                    _buildActiveServiceMeta(
+                                      icon: Iconsax.setting_2,
+                                      text:
+                                      '${servisList.length} pekerjaan',
+                                      color: statusInfo.color,
+                                    ),
+                                    _buildActiveServiceMeta(
+                                      icon: Iconsax.cpu,
+                                      text: '$totalAc AC',
+                                      color: kPrimaryColor,
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          const SizedBox(
+                            width: 7,
+                          ),
+
+                          _buildSmallStatusBadge(
+                            text: statusInfo.label,
+                            color: statusInfo.color,
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(
+                        height: 12,
+                      ),
+
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(
+                          11,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(
+                            0xFFF7F8FB,
+                          ),
+                          borderRadius: BorderRadius.circular(
+                            12,
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            if (latestVisitDate != null)
+                              _buildActiveServiceInfo(
+                                icon: Iconsax.calendar_1,
+                                title: 'Jadwal Kunjungan',
+                                value: _formatServiceDateTime(
+                                  latestVisitDate,
+                                ),
+                                iconColor: statusInfo.color,
+                              ),
+
+                            if (latestVisitDate != null)
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 8,
+                                ),
+                                child: Container(
+                                  height: 1,
+                                  color: Colors.grey[200],
+                                ),
+                              ),
+
+                            _buildActiveServiceInfo(
+                              icon: Iconsax.profile_2user,
+                              title: technicianNames.length > 1
+                                  ? 'Tim Teknisi'
+                                  : 'Teknisi',
+                              value: technicianText,
+                              iconColor: technicianNames.isEmpty
+                                  ? Colors.grey
+                                  : kPrimaryColor,
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(
+                        height: 10,
+                      ),
+
+                      Row(
+                        children: [
+                          const Text(
+                            'Lihat detail servis',
+                            style: TextStyle(
+                              color: kPrimaryColor,
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+
+                          const SizedBox(
+                            width: 4,
+                          ),
+
+                          const Icon(
+                            Iconsax.arrow_right_3,
+                            size: 13,
+                            color: kPrimaryColor,
+                          ),
+
+                          const Spacer(),
+
+                          if (latestVisitDate != null)
+                            Text(
+                              _getRelativeServiceDate(
+                                latestVisitDate,
+                              ),
+                              style: TextStyle(
+                                color: Colors.grey[500],
+                                fontSize: 7.5,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ],
-
-              _buildServiceInfoRow(
-                icon: Iconsax.user,
-                label: 'Teknisi',
-                value:
-                technicianNames.isEmpty
-                    ? 'Belum ditugaskan'
-                    : technicianNames
-                    .join(', '),
-              ),
-
-              const SizedBox(height: 13),
-
-              Row(
-                children: [
-                  Text(
-                    'Lihat detail',
-                    style: TextStyle(
-                      fontSize: 10.5,
-                      color: kPrimaryColor,
-                      fontWeight:
-                      FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  Icon(
-                    Icons
-                        .arrow_forward_rounded,
-                    size: 15,
-                    color: kPrimaryColor,
-                  ),
-                ],
-              ),
-            ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildServiceInfoRow({
+  Widget _buildActiveServiceMeta({
     required IconData icon,
-    required String label,
+    required String text,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 7,
+        vertical: 4,
+      ),
+      decoration: BoxDecoration(
+        color: color.withValues(
+          alpha: 0.06,
+        ),
+        borderRadius: BorderRadius.circular(
+          8,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: 10,
+            color: color,
+          ),
+          const SizedBox(
+            width: 4,
+          ),
+          Text(
+            text,
+            style: TextStyle(
+              color: color,
+              fontSize: 7.5,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActiveServiceInfo({
+    required IconData icon,
+    required String title,
     required String value,
+    required Color iconColor,
   }) {
     return Row(
       children: [
-        Icon(
-          icon,
-          size: 16,
-          color: Colors.grey.shade500,
-        ),
-
-        const SizedBox(width: 7),
-
-        Text(
-          label,
-          style: greyTextStyle.copyWith(
-            fontSize: 10,
+        Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(
+              9,
+            ),
+          ),
+          child: Icon(
+            icon,
+            size: 14,
+            color: iconColor,
           ),
         ),
 
-        const Spacer(),
+        const SizedBox(
+          width: 8,
+        ),
 
-        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: greyTextStyle.copyWith(
+                  fontSize: 7.5,
+                ),
+              ),
 
-        Flexible(
-          child: Text(
-            value,
-            maxLines: 1,
-            overflow:
-            TextOverflow.ellipsis,
-            textAlign: TextAlign.right,
-            style:
-            primaryTextStyle.copyWith(
-              fontSize: 11,
-              fontWeight: medium,
-            ),
+              const SizedBox(
+                height: 2,
+              ),
+
+              Text(
+                value,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: primaryTextStyle.copyWith(
+                  fontSize: 9.5,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
           ),
         ),
       ],
     );
   }
 
+  String _formatServiceDateTime(
+      DateTime date,
+      ) {
+    return DateFormat(
+      'd MMM yyyy • HH:mm',
+      'id_ID',
+    ).format(
+      date.toLocal(),
+    );
+  }
+
+  String _getRelativeServiceDate(
+      DateTime date,
+      ) {
+    final now = DateTime.now();
+
+    final today = DateUtils.dateOnly(
+      now,
+    );
+
+    final target = DateUtils.dateOnly(
+      date.toLocal(),
+    );
+
+    final difference = target.difference(
+      today,
+    ).inDays;
+
+    if (difference == 0) {
+      return 'Hari ini';
+    }
+
+    if (difference == 1) {
+      return 'Besok';
+    }
+
+    if (difference == -1) {
+      return 'Kemarin';
+    }
+
+    if (difference > 1) {
+      return '$difference hari lagi';
+    }
+
+    return '${difference.abs()} hari lalu';
+  }
+
   ServisStatus _getHighestServiceStatus(
       List<ServisModel> servisList,
       ClientServisProvider provider,
       ) {
-    final statuses =
-    servisList
-        .map(provider.effectiveStatus)
+    final statuses = servisList
+        .map(
+      provider.effectiveStatus,
+    )
         .toList();
 
     if (statuses.contains(
@@ -1189,16 +1520,14 @@ class _KlienPageState extends State<KlienPage> {
       return ServisStatus.ditugaskan;
     }
 
-    return ServisStatus
-        .menungguKonfirmasi;
+    return ServisStatus.menungguKonfirmasi;
   }
 
   int _getHighestServicePriority(
       List<ServisModel> servisList,
       ClientServisProvider provider,
       ) {
-    final status =
-    _getHighestServiceStatus(
+    final status = _getHighestServiceStatus(
       servisList,
       provider,
     );
@@ -1219,43 +1548,42 @@ class _KlienPageState extends State<KlienPage> {
     }
   }
 
-  _ServiceStatusInfo
-  _getServiceStatusInfo(
+  _ServiceStatusInfo _getServiceStatusInfo(
       ServisStatus status,
       ) {
     switch (status) {
       case ServisStatus.dikerjakan:
         return const _ServiceStatusInfo(
           label: 'Dikerjakan',
-          color: Colors.purple,
+          color: Color(0xFF9333EA),
           icon: Iconsax.setting_2,
         );
 
       case ServisStatus.ditugaskan:
         return const _ServiceStatusInfo(
           label: 'Ditugaskan',
-          color: Colors.blue,
+          color: Color(0xFF2563EB),
           icon: Iconsax.user_tick,
         );
 
       case ServisStatus.menungguKonfirmasi:
         return const _ServiceStatusInfo(
           label: 'Menunggu',
-          color: Colors.orange,
+          color: Color(0xFFF59E0B),
           icon: Iconsax.clock,
         );
 
       case ServisStatus.selesai:
         return const _ServiceStatusInfo(
           label: 'Selesai',
-          color: Colors.green,
+          color: Color(0xFF16A34A),
           icon: Iconsax.tick_circle,
         );
 
       case ServisStatus.batal:
         return const _ServiceStatusInfo(
           label: 'Batal',
-          color: Colors.red,
+          color: Color(0xFFEF4444),
           icon: Iconsax.close_circle,
         );
     }
@@ -1264,63 +1592,74 @@ class _KlienPageState extends State<KlienPage> {
   Widget _buildEmptyActiveService() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(
+        17,
+      ),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Colors.green
-                .withValues(alpha: 0.06),
-            Colors.white,
-          ],
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(
+          18,
         ),
-        borderRadius:
-        BorderRadius.circular(22),
         border: Border.all(
-          color: Colors.green
-              .withValues(alpha: 0.10),
+          color: Colors.black.withValues(
+            alpha: 0.025,
+          ),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(
+              alpha: 0.02,
+            ),
+            blurRadius: 10,
+            offset: const Offset(
+              0,
+              4,
+            ),
+          ),
+        ],
       ),
       child: Row(
         children: [
           Container(
-            width: 48,
-            height: 48,
+            width: 45,
+            height: 45,
             decoration: BoxDecoration(
-              color: Colors.green
-                  .withValues(alpha: 0.10),
-              borderRadius:
-              BorderRadius.circular(16),
+              color: _successColor.withValues(
+                alpha: 0.08,
+              ),
+              borderRadius: BorderRadius.circular(
+                13,
+              ),
             ),
             child: const Icon(
               Iconsax.tick_circle,
-              color: Colors.green,
-              size: 23,
+              color: _successColor,
+              size: 20,
             ),
           ),
 
-          const SizedBox(width: 13),
+          const SizedBox(
+            width: 11,
+          ),
 
           Expanded(
             child: Column(
-              crossAxisAlignment:
-              CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'Tidak Ada Servis Berjalan',
-                  style:
-                  primaryTextStyle.copyWith(
-                    fontSize: 13.5,
+                  style: primaryTextStyle.copyWith(
+                    fontSize: 12,
                     fontWeight: bold,
                   ),
                 ),
-
-                const SizedBox(height: 4),
-
+                const SizedBox(
+                  height: 3,
+                ),
                 Text(
-                  'Tidak ada permintaan atau pengerjaan servis aktif.',
-                  style:
-                  greyTextStyle.copyWith(
-                    fontSize: 10.5,
+                  'Semua permintaan servis telah selesai.',
+                  style: greyTextStyle.copyWith(
+                    fontSize: 9,
                     height: 1.4,
                   ),
                 ),
@@ -1334,7 +1673,7 @@ class _KlienPageState extends State<KlienPage> {
 
   Widget _buildServiceLoading() {
     return _buildLoadingBox(
-      height: 105,
+      height: 125,
     );
   }
 
@@ -1350,77 +1689,65 @@ class _KlienPageState extends State<KlienPage> {
       return _buildEmptyMaintenance();
     }
 
-    final summaries =
-    lokasiList.map((lokasi) {
-      final acList =
-          acByLocation[lokasi.id] ??
-              <AcModel>[];
+    final summaries = lokasiList.map(
+          (lokasi) {
+        final acList =
+            acByLocation[lokasi.id] ?? <AcModel>[];
 
-      return _buildMaintenanceSummary(
-        lokasi,
-        acList,
-      );
-    }).toList();
-
-    // ==========================================================
-    // PRIORITAS:
-    // 1. overdue
-    // 2. belum pernah
-    // 3. segera
-    // 4. tanggal paling dekat
-    // ==========================================================
-
-    summaries.sort((a, b) {
-      if (a.overdueCount !=
-          b.overdueCount) {
-        return b.overdueCount
-            .compareTo(
-          a.overdueCount,
+        return _buildMaintenanceSummary(
+          lokasi,
+          acList,
         );
-      }
+      },
+    ).toList();
 
-      if (a.neverServicedCount !=
-          b.neverServicedCount) {
-        return b.neverServicedCount
-            .compareTo(
-          a.neverServicedCount,
+    summaries.sort(
+          (a, b) {
+        if (a.overdueCount != b.overdueCount) {
+          return b.overdueCount.compareTo(
+            a.overdueCount,
+          );
+        }
+
+        if (a.neverServicedCount != b.neverServicedCount) {
+          return b.neverServicedCount.compareTo(
+            a.neverServicedCount,
+          );
+        }
+
+        if (a.upcomingCount != b.upcomingCount) {
+          return b.upcomingCount.compareTo(
+            a.upcomingCount,
+          );
+        }
+
+        final aDate = a.nearestServiceDate;
+        final bDate = b.nearestServiceDate;
+
+        if (aDate == null && bDate == null) {
+          return a.lokasi.nama.compareTo(
+            b.lokasi.nama,
+          );
+        }
+
+        if (aDate == null) {
+          return 1;
+        }
+
+        if (bDate == null) {
+          return -1;
+        }
+
+        return aDate.compareTo(
+          bDate,
         );
-      }
+      },
+    );
 
-      if (a.upcomingCount !=
-          b.upcomingCount) {
-        return b.upcomingCount
-            .compareTo(
-          a.upcomingCount,
-        );
-      }
-
-      final aDate =
-          a.nearestServiceDate;
-
-      final bDate =
-          b.nearestServiceDate;
-
-      if (aDate == null &&
-          bDate == null) {
-        return a.lokasi.nama
-            .compareTo(b.lokasi.nama);
-      }
-
-      if (aDate == null) {
-        return 1;
-      }
-
-      if (bDate == null) {
-        return -1;
-      }
-
-      return aDate.compareTo(bDate);
-    });
-
-    final visible =
-    summaries
-        .take(_maxMaintenanceHome)
+    final visible = summaries
+        .take(
+      _maxMaintenanceHome,
+    )
         .toList();
 
     return Column(
@@ -1430,30 +1757,24 @@ class _KlienPageState extends State<KlienPage> {
               (index) {
             return Padding(
               padding: EdgeInsets.only(
-                bottom:
-                index ==
-                    visible.length -
-                        1
-                    ? 0
-                    : 12,
+                bottom: index == visible.length - 1 ? 0 : 10,
               ),
-              child:
-              _buildMaintenanceCard(
+              child: _buildMaintenanceCard(
                 visible[index],
               ),
             );
           },
         ),
 
-        if (summaries.length >
-            _maxMaintenanceHome) ...[
-          const SizedBox(height: 12),
+        if (summaries.length > _maxMaintenanceHome) ...[
+          const SizedBox(
+            height: 11,
+          ),
 
           _buildMoreInfoBar(
             text:
             'Menampilkan $_maxMaintenanceHome dari ${summaries.length} lokasi',
-            onTap:
-            widget.onOpenDaftarAc,
+            onTap: widget.onOpenDaftarAc,
           ),
         ],
       ],
@@ -1464,13 +1785,11 @@ class _KlienPageState extends State<KlienPage> {
   // MAINTENANCE SUMMARY
   // ============================================================
 
-  _LocationMaintenanceSummary
-  _buildMaintenanceSummary(
+  _LocationMaintenanceSummary _buildMaintenanceSummary(
       LokasiModel lokasi,
       List<AcModel> acList,
       ) {
-    final intervalMonths =
-    _getServiceIntervalMonths(
+    final intervalMonths = _getServiceIntervalMonths(
       lokasi,
     );
 
@@ -1490,16 +1809,14 @@ class _KlienPageState extends State<KlienPage> {
     DateTime? nearestNextService;
 
     for (final ac in acList) {
-      final lastService =
-          ac.terakhirService;
+      final lastService = ac.terakhirService;
 
       if (lastService == null) {
         neverServicedCount++;
         continue;
       }
 
-      final nextService =
-      _getNextServiceDateForAc(
+      final nextService = _getNextServiceDateForAc(
         ac,
         intervalMonths,
       );
@@ -1518,13 +1835,13 @@ class _KlienPageState extends State<KlienPage> {
           target.isBefore(
             nearestNextService,
           )) {
-        nearestNextService =
-            target;
+        nearestNextService = target;
         nearestAc = ac;
       }
 
-      final difference =
-          target.difference(today).inDays;
+      final difference = target.difference(
+        today,
+      ).inDays;
 
       if (difference <= 0) {
         overdueCount++;
@@ -1538,12 +1855,9 @@ class _KlienPageState extends State<KlienPage> {
       acList: acList,
       overdueCount: overdueCount,
       upcomingCount: upcomingCount,
-      neverServicedCount:
-      neverServicedCount,
-      lastServiceDate:
-      nearestAc?.terakhirService,
-      nearestServiceDate:
-      nearestNextService,
+      neverServicedCount: neverServicedCount,
+      lastServiceDate: nearestAc?.terakhirService,
+      nearestServiceDate: nearestNextService,
     );
   }
 
@@ -1554,404 +1868,313 @@ class _KlienPageState extends State<KlienPage> {
   Widget _buildMaintenanceCard(
       _LocationMaintenanceSummary summary,
       ) {
-    final lokasi =
-        summary.lokasi;
+    final lokasi = summary.lokasi;
 
-    final lastServiceDate =
-        summary.lastServiceDate;
+    final lastServiceDate = summary.lastServiceDate;
 
-    final nextServiceDate =
-        summary.nearestServiceDate;
+    final nextServiceDate = summary.nearestServiceDate;
 
-    final interval =
-    _getServiceIntervalMonths(
+    final interval = _getServiceIntervalMonths(
       lokasi,
     );
 
-    final status =
-    _getSummaryStatus(
+    final status = _getSummaryStatus(
       summary,
     );
 
-    final visual =
-    _getMaintenanceVisual(status);
+    final visual = _getMaintenanceVisual(
+      status,
+    );
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: widget.onOpenDaftarAc,
-        borderRadius:
-        BorderRadius.circular(24),
-        child: Ink(
+        borderRadius: BorderRadius.circular(
+          19,
+        ),
+        child: Container(
           width: double.infinity,
-          padding:
-          const EdgeInsets.all(17),
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,
-              end:
-              Alignment.bottomRight,
+              end: Alignment.bottomRight,
               colors: [
                 visual.softColor,
                 Colors.white,
               ],
             ),
-            borderRadius:
-            BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(
+              19,
+            ),
             border: Border.all(
-              color: status.color
-                  .withValues(alpha: 0.16),
+              color: status.color.withValues(
+                alpha: 0.12,
+              ),
             ),
             boxShadow: [
               BoxShadow(
-                color: status.color
-                    .withValues(
-                  alpha: 0.035,
+                color: Colors.black.withValues(
+                  alpha: 0.025,
                 ),
-                blurRadius: 20,
-                offset:
-                const Offset(0, 8),
+                blurRadius: 13,
+                offset: const Offset(
+                  0,
+                  5,
+                ),
               ),
             ],
           ),
-          child: Column(
-            crossAxisAlignment:
-            CrossAxisAlignment.start,
-            children: [
-              // ==================================================
-              // TOP
-              // ==================================================
-
-              Row(
-                crossAxisAlignment:
-                CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration:
-                    BoxDecoration(
-                      color: status.color
-                          .withValues(
-                        alpha: 0.10,
-                      ),
-                      borderRadius:
-                      BorderRadius
-                          .circular(17),
-                    ),
-                    child: Icon(
-                      Iconsax.location,
-                      size: 22,
-                      color:
-                      status.color,
-                    ),
-                  ),
-
-                  const SizedBox(width: 12),
-
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment:
-                      CrossAxisAlignment
-                          .start,
-                      children: [
-                        Text(
-                          lokasi.nama,
-                          maxLines: 2,
-                          overflow:
-                          TextOverflow
-                              .ellipsis,
-                          style:
-                          primaryTextStyle
-                              .copyWith(
-                            fontSize: 14.5,
-                            fontWeight: bold,
-                            height: 1.25,
-                          ),
-                        ),
-
-                        const SizedBox(
-                          height: 5,
-                        ),
-
-                        Row(
-                          children: [
-                            Icon(
-                              Icons
-                                  .ac_unit_rounded,
-                              size: 14,
-                              color: Colors
-                                  .grey
-                                  .shade500,
-                            ),
-
-                            const SizedBox(
-                              width: 5,
-                            ),
-
-                            Text(
-                              '${summary.totalAc} Unit AC',
-                              style:
-                              greyTextStyle
-                                  .copyWith(
-                                fontSize: 10.5,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(width: 8),
-
-                  _buildMaintenanceStatusBadge(
-                    status,
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 16),
-
-              // ==================================================
-              // COUNT STATUS
-              // ==================================================
-
-              Wrap(
-                spacing: 7,
-                runSpacing: 7,
-                children: [
-                  if (summary.totalAc ==
-                      0)
-                    _buildCountBadge(
-                      count: 0,
-                      label: 'Belum Ada AC',
-                      color: Colors.grey,
-                    ),
-
-                  if (summary.overdueCount >
-                      0)
-                    _buildCountBadge(
-                      count:
-                      summary.overdueCount,
-                      label:
-                      'Perlu Servis',
-                      color: Colors.red,
-                    ),
-
-                  if (summary.upcomingCount >
-                      0)
-                    _buildCountBadge(
-                      count:
-                      summary.upcomingCount,
-                      label: 'Segera',
-                      color:
-                      Colors.orange,
-                    ),
-
-                  if (summary
-                      .neverServicedCount >
-                      0)
-                    _buildCountBadge(
-                      count: summary
-                          .neverServicedCount,
-                      label:
-                      'Belum Pernah',
-                      color:
-                      Colors.blueGrey,
-                    ),
-
-                  if (summary.totalAc >
-                      0 &&
-                      summary.overdueCount ==
-                          0 &&
-                      summary.upcomingCount ==
-                          0 &&
-                      summary
-                          .neverServicedCount ==
-                          0)
-                    _buildCountBadge(
-                      count:
-                      summary.totalAc,
-                      label: 'Aman',
-                      color:
-                      Colors.green,
-                    ),
-                ],
-              ),
-
-              const SizedBox(height: 15),
-
-              // ==================================================
-              // DATE INFORMATION
-              // ==================================================
-
-              Container(
-                width: double.infinity,
-                padding:
-                const EdgeInsets.all(
-                  13,
-                ),
-                decoration:
-                BoxDecoration(
-                  color: Colors.white
-                      .withValues(
-                    alpha: 0.72,
-                  ),
-                  borderRadius:
-                  BorderRadius.circular(
-                    17,
-                  ),
-                  border: Border.all(
-                    color: Colors.white,
-                  ),
-                ),
-                child: Row(
-                  crossAxisAlignment:
-                  CrossAxisAlignment
-                      .start,
+          child: Padding(
+            padding: const EdgeInsets.all(
+              14,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child:
-                      _buildMaintenanceDateItem(
-                        icon:
-                        Iconsax.tick_circle,
-                        title:
-                        'Terakhir Servis',
-                        value:
-                        lastServiceDate !=
-                            null
-                            ? _formatDate(
-                          lastServiceDate,
-                        )
-                            : 'Belum pernah',
-                        iconColor:
-                        const Color(
-                          0xFF3C9B71,
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: status.color.withValues(
+                          alpha: 0.08,
+                        ),
+                        borderRadius: BorderRadius.circular(
+                          13,
                         ),
                       ),
+                      child: Icon(
+                        Iconsax.location,
+                        size: 19,
+                        color: status.color,
+                      ),
                     ),
 
-                    Container(
-                      width: 1,
-                      height: 54,
-                      margin:
-                      const EdgeInsets
-                          .symmetric(
-                        horizontal: 10,
-                      ),
-                      color: Colors.grey
-                          .withValues(
-                        alpha: 0.13,
-                      ),
+                    const SizedBox(
+                      width: 10,
                     ),
 
                     Expanded(
-                      child:
-                      _buildMaintenanceDateItem(
-                        icon:
-                        Iconsax.calendar_1,
-                        title:
-                        'Servis Berikutnya',
-                        value:
-                        nextServiceDate !=
-                            null
-                            ? _formatDate(
-                          nextServiceDate,
-                        )
-                            : summary.neverServicedCount >
-                            0
-                            ? 'Perlu dijadwalkan'
-                            : '-',
-                        iconColor:
-                        kPrimaryColor,
-                        footer:
-                        nextServiceDate !=
-                            null
-                            ? _getCountdownText(
-                          nextServiceDate,
-                        )
-                            : null,
-                        footerColor:
-                        status.color,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            lokasi.nama,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: primaryTextStyle.copyWith(
+                              fontSize: 13,
+                              height: 1.25,
+                              fontWeight: bold,
+                            ),
+                          ),
+
+                          const SizedBox(
+                            height: 4,
+                          ),
+
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.ac_unit_rounded,
+                                size: 12,
+                                color: Colors.grey[500],
+                              ),
+
+                              const SizedBox(
+                                width: 4,
+                              ),
+
+                              Text(
+                                '${summary.totalAc} Unit AC',
+                                style: greyTextStyle.copyWith(
+                                  fontSize: 9,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
+                    ),
+
+                    const SizedBox(
+                      width: 6,
+                    ),
+
+                    _buildMaintenanceStatusBadge(
+                      status,
                     ),
                   ],
                 ),
-              ),
 
-              const SizedBox(height: 12),
+                const SizedBox(
+                  height: 12,
+                ),
 
-              // ==================================================
-              // INTERVAL
-              // ==================================================
-
-              Row(
-                children: [
-                  Container(
-                    width: 30,
-                    height: 30,
-                    decoration:
-                    BoxDecoration(
-                      color: status.color
-                          .withValues(
-                        alpha: 0.08,
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    if (summary.totalAc == 0)
+                      _buildCountBadge(
+                        count: 0,
+                        label: 'Belum Ada AC',
+                        color: Colors.grey,
                       ),
-                      borderRadius:
-                      BorderRadius
-                          .circular(10),
+
+                    if (summary.overdueCount > 0)
+                      _buildCountBadge(
+                        count: summary.overdueCount,
+                        label: 'Perlu Servis',
+                        color: Colors.red,
+                      ),
+
+                    if (summary.upcomingCount > 0)
+                      _buildCountBadge(
+                        count: summary.upcomingCount,
+                        label: 'Segera',
+                        color: Colors.orange,
+                      ),
+
+                    if (summary.neverServicedCount > 0)
+                      _buildCountBadge(
+                        count: summary.neverServicedCount,
+                        label: 'Belum Pernah',
+                        color: Colors.blueGrey,
+                      ),
+
+                    if (summary.totalAc > 0 &&
+                        summary.overdueCount == 0 &&
+                        summary.upcomingCount == 0 &&
+                        summary.neverServicedCount == 0)
+                      _buildCountBadge(
+                        count: summary.totalAc,
+                        label: 'Aman',
+                        color: Colors.green,
+                      ),
+                  ],
+                ),
+
+                const SizedBox(
+                  height: 12,
+                ),
+
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(
+                    11,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(
+                      alpha: 0.75,
                     ),
-                    child: Icon(
-                      Iconsax.timer_1,
-                      size: 15,
-                      color:
-                      status.color,
+                    borderRadius: BorderRadius.circular(
+                      13,
                     ),
                   ),
-
-                  const SizedBox(width: 9),
-
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment:
-                      CrossAxisAlignment
-                          .start,
-                      children: [
-                        Text(
-                          'Interval Perawatan',
-                          style:
-                          greyTextStyle
-                              .copyWith(
-                            fontSize: 9,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: _buildMaintenanceDateItem(
+                          icon: Iconsax.tick_circle,
+                          title: 'Terakhir',
+                          value: lastServiceDate != null
+                              ? _formatDate(
+                            lastServiceDate,
+                          )
+                              : 'Belum pernah',
+                          iconColor: const Color(
+                            0xFF3C9B71,
                           ),
                         ),
-                        const SizedBox(
-                          height: 2,
-                        ),
-                        Text(
-                          'Setiap $interval bulan',
-                          style:
-                          primaryTextStyle
-                              .copyWith(
-                            fontSize: 10.5,
-                            fontWeight:
-                            medium,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                      ),
 
-                  Icon(
-                    Icons
-                        .arrow_forward_ios_rounded,
-                    size: 11,
-                    color:
-                    Colors.grey.shade400,
+                      Container(
+                        width: 1,
+                        height: 47,
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                        ),
+                        color: Colors.grey.withValues(
+                          alpha: 0.13,
+                        ),
+                      ),
+
+                      Expanded(
+                        child: _buildMaintenanceDateItem(
+                          icon: Iconsax.calendar_1,
+                          title: 'Berikutnya',
+                          value: nextServiceDate != null
+                              ? _formatDate(
+                            nextServiceDate,
+                          )
+                              : summary.neverServicedCount > 0
+                              ? 'Perlu dijadwalkan'
+                              : '-',
+                          iconColor: kPrimaryColor,
+                          footer: nextServiceDate != null
+                              ? _getCountdownText(
+                            nextServiceDate,
+                          )
+                              : null,
+                          footerColor: status.color,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            ],
+                ),
+
+                const SizedBox(
+                  height: 10,
+                ),
+
+                Row(
+                  children: [
+                    Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: status.color.withValues(
+                          alpha: 0.07,
+                        ),
+                        borderRadius: BorderRadius.circular(
+                          8,
+                        ),
+                      ),
+                      child: Icon(
+                        Iconsax.timer_1,
+                        size: 13,
+                        color: status.color,
+                      ),
+                    ),
+
+                    const SizedBox(
+                      width: 8,
+                    ),
+
+                    Expanded(
+                      child: Text(
+                        'Perawatan setiap $interval bulan',
+                        style: primaryTextStyle.copyWith(
+                          fontSize: 9.5,
+                          fontWeight: medium,
+                        ),
+                      ),
+                    ),
+
+                    Icon(
+                      Iconsax.arrow_right_3,
+                      size: 13,
+                      color: Colors.grey[400],
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -1967,70 +2190,67 @@ class _KlienPageState extends State<KlienPage> {
     Color? footerColor,
   }) {
     return Row(
-      crossAxisAlignment:
-      CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          width: 34,
-          height: 34,
+          width: 30,
+          height: 30,
           decoration: BoxDecoration(
             color: iconColor.withValues(
-              alpha: 0.09,
+              alpha: 0.08,
             ),
-            borderRadius:
-            BorderRadius.circular(11),
+            borderRadius: BorderRadius.circular(
+              9,
+            ),
           ),
           child: Icon(
             icon,
-            size: 16,
+            size: 14,
             color: iconColor,
           ),
         ),
 
-        const SizedBox(width: 8),
+        const SizedBox(
+          width: 7,
+        ),
 
         Expanded(
           child: Column(
-            crossAxisAlignment:
-            CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 title,
-                style:
-                greyTextStyle.copyWith(
-                  fontSize: 8.5,
+                style: greyTextStyle.copyWith(
+                  fontSize: 7.5,
                 ),
               ),
 
-              const SizedBox(height: 3),
+              const SizedBox(
+                height: 2,
+              ),
 
               Text(
                 value,
                 maxLines: 2,
-                overflow:
-                TextOverflow.ellipsis,
-                style:
-                primaryTextStyle.copyWith(
-                  fontSize: 10.5,
+                overflow: TextOverflow.ellipsis,
+                style: primaryTextStyle.copyWith(
+                  fontSize: 9,
                   fontWeight: bold,
-                  height: 1.25,
                 ),
               ),
 
               if (footer != null) ...[
-                const SizedBox(height: 3),
+                const SizedBox(
+                  height: 2,
+                ),
                 Text(
                   footer,
                   maxLines: 1,
-                  overflow:
-                  TextOverflow.ellipsis,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: 8.5,
-                    fontWeight:
-                    FontWeight.w700,
-                    color:
-                    footerColor ??
-                        Colors.grey,
+                    fontSize: 7.5,
+                    fontWeight: FontWeight.w700,
+                    color: footerColor ?? Colors.grey,
                   ),
                 ),
               ],
@@ -2042,7 +2262,7 @@ class _KlienPageState extends State<KlienPage> {
   }
 
   // ============================================================
-  // MORE INFO BAR
+  // MORE INFO
   // ============================================================
 
   Widget _buildMoreInfoBar({
@@ -2053,75 +2273,72 @@ class _KlienPageState extends State<KlienPage> {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius:
-        BorderRadius.circular(16),
-        child: Ink(
-          padding:
-          const EdgeInsets.symmetric(
-            horizontal: 14,
-            vertical: 12,
+        borderRadius: BorderRadius.circular(
+          13,
+        ),
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: 10,
           ),
           decoration: BoxDecoration(
-            color: kPrimaryColor
-                .withValues(alpha: 0.055),
-            borderRadius:
-            BorderRadius.circular(16),
-            border: Border.all(
-              color: kPrimaryColor
-                  .withValues(alpha: 0.08),
+            color: kPrimaryColor.withValues(
+              alpha: 0.045,
+            ),
+            borderRadius: BorderRadius.circular(
+              13,
             ),
           ),
           child: Row(
             children: [
               Container(
-                width: 30,
-                height: 30,
+                width: 28,
+                height: 28,
                 decoration: BoxDecoration(
-                  color: kPrimaryColor
-                      .withValues(
-                    alpha: 0.09,
+                  color: kPrimaryColor.withValues(
+                    alpha: 0.08,
                   ),
-                  borderRadius:
-                  BorderRadius.circular(
-                    10,
+                  borderRadius: BorderRadius.circular(
+                    8,
                   ),
                 ),
-                child: Icon(
+                child: const Icon(
                   Iconsax.more_circle,
-                  size: 16,
+                  size: 14,
                   color: kPrimaryColor,
                 ),
               ),
 
-              const SizedBox(width: 10),
+              const SizedBox(
+                width: 8,
+              ),
 
               Expanded(
                 child: Text(
                   text,
-                  style:
-                  primaryTextStyle.copyWith(
-                    fontSize: 10.5,
+                  style: primaryTextStyle.copyWith(
+                    fontSize: 9,
                     fontWeight: medium,
                   ),
                 ),
               ),
 
-              Text(
+              const Text(
                 'Lihat Semua',
                 style: TextStyle(
                   color: kPrimaryColor,
-                  fontSize: 10.5,
-                  fontWeight:
-                  FontWeight.w700,
+                  fontSize: 9,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
 
-              const SizedBox(width: 4),
+              const SizedBox(
+                width: 3,
+              ),
 
-              Icon(
-                Icons
-                    .arrow_forward_ios_rounded,
-                size: 11,
+              const Icon(
+                Iconsax.arrow_right_3,
+                size: 12,
                 color: kPrimaryColor,
               ),
             ],
@@ -2132,7 +2349,7 @@ class _KlienPageState extends State<KlienPage> {
   }
 
   // ============================================================
-  // STATUS BADGES
+  // BADGES
   // ============================================================
 
   Widget _buildCountBadge({
@@ -2141,46 +2358,40 @@ class _KlienPageState extends State<KlienPage> {
     required Color color,
   }) {
     return Container(
-      padding:
-      const EdgeInsets.symmetric(
-        horizontal: 10,
-        vertical: 6,
+      padding: const EdgeInsets.symmetric(
+        horizontal: 8,
+        vertical: 5,
       ),
       decoration: BoxDecoration(
         color: color.withValues(
-          alpha: 0.075,
+          alpha: 0.065,
         ),
-        borderRadius:
-        BorderRadius.circular(30),
-        border: Border.all(
-          color: color.withValues(
-            alpha: 0.16,
-          ),
+        borderRadius: BorderRadius.circular(
+          20,
         ),
       ),
       child: Row(
-        mainAxisSize:
-        MainAxisSize.min,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Text(
             '$count',
             style: TextStyle(
               color: color,
-              fontSize: 10,
-              fontWeight:
-              FontWeight.w800,
+              fontSize: 9,
+              fontWeight: FontWeight.w800,
             ),
           ),
 
-          const SizedBox(width: 4),
+          const SizedBox(
+            width: 4,
+          ),
 
           Text(
             label,
             style: TextStyle(
               color: color,
-              fontSize: 9.5,
-              fontWeight:
-              FontWeight.w600,
+              fontSize: 8,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
@@ -2202,27 +2413,28 @@ class _KlienPageState extends State<KlienPage> {
     required Color color,
   }) {
     return Container(
-      padding:
-      const EdgeInsets.symmetric(
-        horizontal: 10,
-        vertical: 6,
+      padding: const EdgeInsets.symmetric(
+        horizontal: 8,
+        vertical: 5,
       ),
       decoration: BoxDecoration(
-        color:
-        color.withValues(alpha: 0.08),
-        borderRadius:
-        BorderRadius.circular(30),
+        color: color.withValues(
+          alpha: 0.07,
+        ),
+        borderRadius: BorderRadius.circular(
+          20,
+        ),
         border: Border.all(
-          color:
-          color.withValues(alpha: 0.18),
+          color: color.withValues(
+            alpha: 0.15,
+          ),
         ),
       ),
       child: Text(
         text,
         style: TextStyle(
-          fontSize: 9,
-          fontWeight:
-          FontWeight.w700,
+          fontSize: 8,
+          fontWeight: FontWeight.w700,
           color: color,
         ),
       ),
@@ -2237,8 +2449,7 @@ class _KlienPageState extends State<KlienPage> {
       AcModel ac,
       int intervalMonths,
       ) {
-    final lastService =
-        ac.terakhirService;
+    final lastService = ac.terakhirService;
 
     if (lastService == null) {
       return null;
@@ -2253,12 +2464,6 @@ class _KlienPageState extends State<KlienPage> {
   int _getServiceIntervalMonths(
       LokasiModel lokasi,
       ) {
-    // SEMENTARA DEFAULT 3 BULAN.
-    //
-    // Nanti:
-    //
-    // return lokasi.serviceIntervalMonths;
-
     return 3;
   }
 
@@ -2267,25 +2472,19 @@ class _KlienPageState extends State<KlienPage> {
       int months,
       ) {
     final totalMonthIndex =
-        date.year * 12 +
-            (date.month - 1) +
-            months;
+        date.year * 12 + (date.month - 1) + months;
 
-    final targetYear =
-        totalMonthIndex ~/ 12;
+    final targetYear = totalMonthIndex ~/ 12;
 
-    final targetMonth =
-        (totalMonthIndex % 12) + 1;
+    final targetMonth = (totalMonthIndex % 12) + 1;
 
-    final lastDayTargetMonth =
-        DateTime(
-          targetYear,
-          targetMonth + 1,
-          0,
-        ).day;
+    final lastDayTargetMonth = DateTime(
+      targetYear,
+      targetMonth + 1,
+      0,
+    ).day;
 
-    final targetDay =
-    date.day > lastDayTargetMonth
+    final targetDay = date.day > lastDayTargetMonth
         ? lastDayTargetMonth
         : date.day;
 
@@ -2313,8 +2512,7 @@ class _KlienPageState extends State<KlienPage> {
       );
     }
 
-    if (summary.neverServicedCount >
-        0) {
+    if (summary.neverServicedCount > 0) {
       return const _MaintenanceStatus(
         label: 'Belum Pernah',
         color: Colors.blueGrey,
@@ -2339,31 +2537,40 @@ class _KlienPageState extends State<KlienPage> {
       ) {
     if (status.color == Colors.red) {
       return const _MaintenanceVisual(
-        softColor: Color(0xFFFFF5F5),
+        softColor: Color(
+          0xFFFFF5F5,
+        ),
       );
     }
 
     if (status.color == Colors.orange) {
       return const _MaintenanceVisual(
-        softColor: Color(0xFFFFF8ED),
+        softColor: Color(
+          0xFFFFF8ED,
+        ),
       );
     }
 
     if (status.color == Colors.green) {
       return const _MaintenanceVisual(
-        softColor: Color(0xFFF2FAF5),
+        softColor: Color(
+          0xFFF2FAF5,
+        ),
       );
     }
 
-    if (status.color ==
-        Colors.blueGrey) {
+    if (status.color == Colors.blueGrey) {
       return const _MaintenanceVisual(
-        softColor: Color(0xFFF4F6F8),
+        softColor: Color(
+          0xFFF4F6F8,
+        ),
       );
     }
 
     return const _MaintenanceVisual(
-      softColor: Color(0xFFF6F7FA),
+      softColor: Color(
+        0xFFF6F7FA,
+      ),
     );
   }
 
@@ -2384,8 +2591,9 @@ class _KlienPageState extends State<KlienPage> {
       nextService.day,
     );
 
-    final difference =
-        target.difference(today).inDays;
+    final difference = target.difference(
+      today,
+    ).inDays;
 
     if (difference < 0) {
       return 'Lewat ${difference.abs()} hari';
@@ -2408,7 +2616,9 @@ class _KlienPageState extends State<KlienPage> {
     return DateFormat(
       'd MMM yyyy',
       'id_ID',
-    ).format(date);
+    ).format(
+      date.toLocal(),
+    );
   }
 
   // ============================================================
@@ -2419,8 +2629,7 @@ class _KlienPageState extends State<KlienPage> {
       List<LokasiModel> lokasiList,
       int id,
       ) {
-    for (final lokasi
-    in lokasiList) {
+    for (final lokasi in lokasiList) {
       if (lokasi.id == id) {
         return lokasi;
       }
@@ -2436,63 +2645,64 @@ class _KlienPageState extends State<KlienPage> {
   Widget _buildEmptyMaintenance() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(
+        17,
+      ),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            kPrimaryColor
-                .withValues(alpha: 0.05),
-            Colors.white,
-          ],
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(
+          18,
         ),
-        borderRadius:
-        BorderRadius.circular(22),
         border: Border.all(
-          color: kPrimaryColor
-              .withValues(alpha: 0.08),
+          color: kPrimaryColor.withValues(
+            alpha: 0.06,
+          ),
         ),
       ),
       child: Row(
         children: [
           Container(
-            width: 48,
-            height: 48,
+            width: 45,
+            height: 45,
             decoration: BoxDecoration(
-              color: kPrimaryColor
-                  .withValues(alpha: 0.09),
-              borderRadius:
-              BorderRadius.circular(16),
+              color: kPrimaryColor.withValues(
+                alpha: 0.08,
+              ),
+              borderRadius: BorderRadius.circular(
+                13,
+              ),
             ),
-            child: Icon(
+            child: const Icon(
               Iconsax.calendar_1,
               color: kPrimaryColor,
-              size: 23,
+              size: 20,
             ),
           ),
 
-          const SizedBox(width: 13),
+          const SizedBox(
+            width: 11,
+          ),
 
           Expanded(
             child: Column(
-              crossAxisAlignment:
-              CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'Belum Ada Data Perawatan',
-                  style:
-                  primaryTextStyle.copyWith(
-                    fontSize: 13.5,
+                  style: primaryTextStyle.copyWith(
+                    fontSize: 12,
                     fontWeight: bold,
                   ),
                 ),
 
-                const SizedBox(height: 4),
+                const SizedBox(
+                  height: 3,
+                ),
 
                 Text(
                   'Informasi perawatan AC akan muncul di sini.',
-                  style:
-                  greyTextStyle.copyWith(
-                    fontSize: 10.5,
+                  style: greyTextStyle.copyWith(
+                    fontSize: 9,
                   ),
                 ),
               ],
@@ -2521,16 +2731,16 @@ class _KlienPageState extends State<KlienPage> {
       width: double.infinity,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius:
-        BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(
+          18,
+        ),
       ),
-      child: Center(
+      child: const Center(
         child: SizedBox(
-          width: 22,
-          height: 22,
-          child:
-          CircularProgressIndicator(
-            strokeWidth: 2.5,
+          width: 21,
+          height: 21,
+          child: CircularProgressIndicator(
+            strokeWidth: 2.3,
             color: kPrimaryColor,
           ),
         ),
@@ -2547,34 +2757,40 @@ class _KlienPageState extends State<KlienPage> {
       ) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(
+        12,
+      ),
       decoration: BoxDecoration(
-        color:
-        Colors.red.withValues(alpha: 0.06),
-        borderRadius:
-        BorderRadius.circular(16),
+        color: Colors.red.withValues(
+          alpha: 0.05,
+        ),
+        borderRadius: BorderRadius.circular(
+          14,
+        ),
         border: Border.all(
-          color: Colors.red
-              .withValues(alpha: 0.10),
+          color: Colors.red.withValues(
+            alpha: 0.09,
+          ),
         ),
       ),
       child: Row(
         children: [
           Icon(
             Icons.error_outline_rounded,
-            size: 20,
-            color: Colors.red.shade500,
+            size: 18,
+            color: Colors.red[500],
           ),
 
-          const SizedBox(width: 10),
+          const SizedBox(
+            width: 8,
+          ),
 
           Expanded(
             child: Text(
               message,
               style: TextStyle(
-                fontSize: 11,
-                color:
-                Colors.red.shade600,
+                fontSize: 9,
+                color: Colors.red[600],
               ),
             ),
           ),
